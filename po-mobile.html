@@ -414,7 +414,8 @@
   <div style="display:flex;gap:8px;margin-bottom:10px;">
     <input type="text" id="search-input" placeholder="🔍 ค้นหา PO, บริษัท..."
       oninput="renderDashboard()" style="margin:0;flex:1;">
-    <select id="filter-status" onchange="renderDashboard()" style="margin:0;width:110px;font-size:13px;">
+    <select id="filter-status" onchange="renderDashboard()" style="margin:0;width:130px;font-size:13px;">
+      <option value="active" selected>กำลังดำเนินการ</option>
       <option value="">ทั้งหมด</option>
       <option value="Partial Send">🌸 บางส่วน</option>
       <option value="In progress">⏳ กำลังผลิต</option>
@@ -590,6 +591,10 @@
     <button class="btn" onclick="goUpdateFromModal()"
       style="background:var(--blue);color:#fff;margin-top:10px;margin-bottom:8px;">
       ✏️ อัพเดทสถานะชิ้นงาน
+    </button>
+    <button class="btn" onclick="deletePO(modalPoId)"
+      style="background:#C62828;color:#fff;margin-bottom:8px;">
+      🗑️ ลบ PO นี้
     </button>
     <button class="btn btn-outline" onclick="closeDetailModal()">ปิด</button>
   </div>
@@ -963,8 +968,11 @@ function renderDashboard() {
   const sf = document.getElementById('filter-status')?.value || '';
 
   const filtered = db.pos.filter(po => {
+    if (po.deleted) return false;  // ลบแล้วไม่แสดง
     const matchQ  = !q || po.id.toLowerCase().includes(q) || po.company.toLowerCase().includes(q) || po.model.toLowerCase().includes(q);
-    const matchSF = !sf || po.status === sf;
+    let matchSF;
+    if (sf === 'active') matchSF = po.status !== 'Complete';  // ซ่อน PO เสร็จแล้ว
+    else matchSF = !sf || po.status === sf;
     return matchQ && matchSF;
   });
 
@@ -1047,6 +1055,21 @@ function goUpdateFromModal() {
   openPoItems(modalPoId);
 }
 
+// ลบ PO (ยืนยันก่อนลบ)
+function deletePO(poId) {
+  const po = db.pos.find(p => p.id === poId);
+  if (!po) return;
+  const its = itemsOfPO(poId);
+  const msg = `⚠️ ยืนยันลบ PO "${poId}" (${po.company})\nชิ้นงาน ${its.length} ชิ้นจะถูกลบด้วย\n\nลบแล้วกู้คืนไม่ได้!`;
+  if (!confirm(msg)) return;
+  db.pos   = db.pos.filter(p => p.id !== poId);
+  db.items = db.items.filter(i => i.po !== poId);
+  saveData(db);
+  closeDetailModal();
+  renderDashboard();
+  toast('🗑️ ลบ ' + poId + ' แล้ว');
+}
+
 // ═══════════════════════════════════════════════════
 //  UPDATE TAB — เลือก PO จากลิสต์ (ไม่ใช้ dropdown)
 // ═══════════════════════════════════════════════════
@@ -1066,7 +1089,7 @@ function backToPoList() {
     list.innerHTML = '<div class="empty-state"><span class="emoji">📋</span><p>ยังไม่มี PO</p></div>';
     return;
   }
-  list.innerHTML = db.pos.map(po => {
+  list.innerHTML = db.pos.filter(po => !po.deleted).map(po => {
     const its     = itemsOfPO(po.id);
     const pending = its.filter(i => i.status !== 'ส่งแล้ว').length;
     const rework  = its.filter(i => i.status === 'กลับมาแก้ไข').length;
