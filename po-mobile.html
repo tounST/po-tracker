@@ -1666,6 +1666,12 @@ function addItemRow(prefillPart, prefillColor) {
     </div>
   `;
   document.getElementById('add-items-list').appendChild(div);
+
+  // ★ Force set select value หลัง DOM render — แก้ปัญหา selected ไม่ทำงานใน innerHTML
+  if (prefillPart) {
+    const sel = document.getElementById(`item-part-${idx}`);
+    if (sel) sel.value = prefillPart;
+  }
 }
 
 function removeItem(idx) {
