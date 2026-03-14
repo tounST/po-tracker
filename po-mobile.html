@@ -887,8 +887,17 @@ async function pushToSheet(data) {
   try {
     showSyncStatus('syncing');
     // ★ กรอง items ที่ไม่มีชื่อชิ้นงานออกก่อนส่ง — ป้องกัน row ว่างใน Sheet
+    const rawItems = data.items || [];
+    const filteredItems = rawItems.filter(i => i.po && i.part);
+    console.log(`[pushToSheet] items before filter: ${rawItems.length}, after filter: ${filteredItems.length}`);
+    if (rawItems.length !== filteredItems.length) {
+      console.warn(`[pushToSheet] ⚠️ ${rawItems.length - filteredItems.length} empty items filtered out!`);
+      rawItems.forEach((it, idx) => {
+        if (!it.po || !it.part) console.warn(`  [filtered] item ${idx}: po="${it.po}" part="${it.part}"`);
+      });
+    }
     const cleanData = Object.assign({}, data, {
-      items: (data.items || []).filter(i => i.po && i.part),
+      items: filteredItems,
       masterCompanies: db.masterCompanies || [...DEFAULT_COMPANIES],
       masterModels:    db.masterModels    || [...DEFAULT_CAR_MODELS],
       masterParts:     db.masterParts     || [...DEFAULT_PART_TYPES]
@@ -1643,15 +1652,36 @@ function addItemRow(prefillPart, prefillColor) {
   div.id = `add-item-${idx}`;
   div.style.cssText = 'padding:10px;border-radius:9px;border:1.5px solid var(--border);margin-bottom:8px;background:#fafafa;';
 
-  const partOpts = db.masterParts
-    .map(p => `<option value="${p}" ${p === prefillPart ? 'selected' : ''}>${p}</option>`).join('');
+  // ★★★ FIX: สร้าง <select> ด้วย DOM API โดยตรง — ไม่ใช้ innerHTML
+  // เพราะ innerHTML + selected attribute ไม่ทำงานถูกต้องบนเบราว์เซอร์มือถือบางรุ่น
+  const sel = document.createElement('select');
+  sel.id = `item-part-${idx}`;
+  sel.style.cssText = 'margin-bottom:8px;width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;';
 
+  // เพิ่ม option ว่าง
+  const emptyOpt = document.createElement('option');
+  emptyOpt.value = '';
+  emptyOpt.textContent = '— ชิ้นงาน —';
+  sel.appendChild(emptyOpt);
+
+  // เพิ่ม options จาก masterParts
+  db.masterParts.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    sel.appendChild(opt);
+  });
+
+  // ★ ตั้งค่า value ด้วย DOM API — การันตี 100% ทุกเบราว์เซอร์
+  if (prefillPart) sel.value = prefillPart;
+
+  // สร้างส่วน HTML ที่เหลือ (ไม่มี select)
   div.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span style="font-size:13px;font-weight:700;color:var(--muted);">ชิ้นที่ ${idx}</span>
       <button onclick="removeItem(${idx})" style="border:none;background:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px;">×</button>
     </div>
-    <select id="item-part-${idx}" style="margin-bottom:8px;"><option value="">— ชิ้นงาน —</option>${partOpts}</select>
+    <div id="item-sel-wrap-${idx}"></div>
     <input type="text" id="item-color-${idx}" placeholder="สี เช่น สีขาว W85" style="margin-bottom:8px;" value="${prefillColor || ''}">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <div class="urgent-toggle" id="item-urg-${idx}" onclick="toggleItemUrgent(${idx})" style="padding:8px 12px;flex:1;">
@@ -1665,13 +1695,11 @@ function addItemRow(prefillPart, prefillColor) {
       <input type="date" id="item-due-${idx}" style="margin-bottom:4px;">
     </div>
   `;
+
   document.getElementById('add-items-list').appendChild(div);
 
-  // ★ Force set select value หลัง DOM render — แก้ปัญหา selected ไม่ทำงานใน innerHTML
-  if (prefillPart) {
-    const sel = document.getElementById(`item-part-${idx}`);
-    if (sel) sel.value = prefillPart;
-  }
+  // ★ ใส่ select element เข้า wrapper
+  document.getElementById(`item-sel-wrap-${idx}`).appendChild(sel);
 }
 
 function removeItem(idx) {
@@ -1705,6 +1733,7 @@ function savePO() {
   }
 
   const newItems = [];
+  let skipped = 0;
   for (let i = 1; i <= addItemCount; i++) {
     const partEl  = document.getElementById(`item-part-${i}`);
     const colorEl = document.getElementById(`item-color-${i}`);
@@ -1713,16 +1742,32 @@ function savePO() {
     const part  = partEl.value;
     const color = colorEl ? colorEl.value.trim() : '';
     const urg   = urgEl ? urgEl.classList.contains('on') : false;
+    console.log(`[savePO] item-${i}: part="${part}" color="${color}"`);
     if (part) {
       const itemDueEl = document.getElementById(`item-due-${i}`);
       const itemDue = (itemDueEl && urg) ? itemDueEl.value : '';
       newItems.push({ po: poNo, part, color, urgent: urg, itemDue: itemDue,
         status: 'รับของแล้ว', sentDate: '', bundlePO: '', remark: '' });
+    } else {
+      skipped++;
+      console.warn(`[savePO] ⚠️ item-${i} SKIPPED — part is empty!`);
     }
+  }
+
+  // ★★★ SAFETY: ถ้ามี items ว่างมากกว่าครึ่ง → น่าจะมี bug → แจ้งเตือน
+  if (skipped > 0) {
+    console.warn(`[savePO] ⚠️ ${skipped} items skipped (empty part). Saved: ${newItems.length}`);
+  }
+
+  // ★★★ ป้องกัน: ไม่ save PO ที่ไม่มี items เลย
+  if (newItems.length === 0) {
+    toast('⚠️ ไม่มีชิ้นงาน — กรุณาเลือกชิ้นงานอย่างน้อย 1 รายการ'); return;
   }
 
   db.pos.push({ id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark });
   db.items.push(...newItems);
+
+  console.log(`[savePO] ✅ Pushing ${newItems.length} items to Sheet. Total db.items: ${db.items.length}`);
   syncPOStatuses(true);  // ★ push ขึ้น Sheet เพราะผู้ใช้เพิ่ม PO ใหม่
 
   toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
