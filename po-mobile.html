@@ -353,16 +353,81 @@
   .sdropdown-empty {
     padding: 10px 14px; font-size: 13px; color: var(--muted); text-align: center;
   }
+
+  /* ── Login Screen ── */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #1A73E8 0%, #0D47A1 100%);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; padding: 20px;
+  }
+  #login-screen.hidden { display: none; }
+  .login-box {
+    background: #fff; border-radius: 20px; padding: 32px 24px;
+    width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    text-align: center;
+  }
+  .login-box h2 { font-size: 22px; margin-bottom: 4px; color: var(--text); }
+  .login-box p { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .login-box input[type=password] {
+    width: 100%; padding: 14px; border: 2px solid var(--border);
+    border-radius: 12px; font-size: 20px; text-align: center;
+    letter-spacing: 8px; margin-bottom: 16px;
+  }
+  .login-box input[type=password]:focus {
+    outline: none; border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(26,115,232,.2);
+  }
+  .login-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .login-btn:active { transform: scale(.97); }
+  .login-btn-admin { background: var(--blue); color: #fff; margin-bottom: 10px; }
+  .login-btn-staff { background: #E8F0FE; color: var(--blue); }
+  .login-error {
+    color: var(--red); font-size: 13px; font-weight: 600;
+    min-height: 20px; margin-bottom: 10px;
+  }
+  .role-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; margin-left: 6px;
+  }
+  .role-badge-admin { background: #E8F0FE; color: var(--blue); }
+  .role-badge-staff { background: #FFF3E0; color: var(--orange); }
+  .admin-only { /* ซ่อนเมื่อ staff */ }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:40px;margin-bottom:8px;">🔩</div>
+    <h2>PO Tracker</h2>
+    <p>ร้านพ่นสี — ใส่รหัสผ่านเพื่อเข้าใช้งาน</p>
+    <input type="password" id="login-pass" placeholder="••••" maxlength="10"
+      onkeypress="if(event.key==='Enter')doLogin()">
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn login-btn-admin" onclick="doLogin()">🔓 เข้าสู่ระบบ</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:12px;">
+      ถ้าไม่ทราบรหัส ติดต่อ Admin
+    </div>
+  </div>
+</div>
+
+<div id="app-wrapper" style="display:none;">
+
 <div class="topbar">
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <h1>🔩 PO Tracker — ร้านพ่นสี</h1>
-    <button onclick="openSyncModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">☁️ Sync</button>
+    <h1>🔩 PO Tracker <span id="role-badge-display"></span></h1>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button onclick="openSyncModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">☁️ Sync</button>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">🚪 ออก</button>
+    </div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
     <small id="topbar-date"></small>
@@ -626,7 +691,7 @@
       style="background:var(--blue);color:#fff;margin-top:10px;margin-bottom:8px;">
       ✏️ อัพเดทสถานะชิ้นงาน
     </button>
-    <button class="btn" onclick="deletePO(modalPoId)"
+    <button class="btn admin-only" onclick="deletePO(modalPoId)"
       style="background:#C62828;color:#fff;margin-bottom:8px;">
       🗑️ ลบ PO นี้
     </button>
@@ -634,9 +699,80 @@
   </div>
 </div>
 
+</div><!-- /app-wrapper -->
+
 <div id="toast"></div>
 
 <script>
+// ═══════════════════════════════════════════════════
+//  LOGIN & ROLE SYSTEM
+// ═══════════════════════════════════════════════════
+const PASSWORDS = {
+  admin: '1234',    // ← เปลี่ยนรหัส Admin ตรงนี้
+  staff: '0000'     // ← เปลี่ยนรหัส Staff ตรงนี้
+};
+let currentRole = localStorage.getItem('po_role') || '';
+
+function doLogin() {
+  const pass = document.getElementById('login-pass').value.trim();
+  const errEl = document.getElementById('login-error');
+  if (!pass) { errEl.textContent = '⚠️ กรุณาใส่รหัสผ่าน'; return; }
+  if (pass === PASSWORDS.admin) {
+    currentRole = 'admin';
+  } else if (pass === PASSWORDS.staff) {
+    currentRole = 'staff';
+  } else {
+    errEl.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+    document.getElementById('login-pass').value = '';
+    return;
+  }
+  localStorage.setItem('po_role', currentRole);
+  showApp();
+}
+
+function doLogout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  currentRole = '';
+  localStorage.removeItem('po_role');
+  document.getElementById('app-wrapper').style.display = 'none';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').textContent = '';
+}
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-wrapper').style.display = 'block';
+  applyRole();
+  renderDashboard();
+}
+
+function applyRole() {
+  const badgeEl = document.getElementById('role-badge-display');
+  if (currentRole === 'admin') {
+    badgeEl.innerHTML = '<span class="role-badge role-badge-admin">👑 Admin</span>';
+  } else {
+    badgeEl.innerHTML = '<span class="role-badge role-badge-staff">👷 Staff</span>';
+  }
+
+  // ซ่อน/แสดงตาม role
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = currentRole === 'admin' ? '' : 'none';
+  });
+
+  // แท็บ "จัดการ" — ซ่อนสำหรับ Staff
+  const masterTab = document.querySelectorAll('.tabnav button')[3]; // แท็บที่ 4
+  if (masterTab) {
+    masterTab.style.display = currentRole === 'admin' ? '' : 'none';
+  }
+
+  // ปุ่ม Sync — ซ่อนสำหรับ Staff
+  const syncBtn = document.querySelector('.topbar button[onclick="openSyncModal()"]');
+  if (syncBtn) {
+    syncBtn.style.display = currentRole === 'admin' ? '' : 'none';
+  }
+}
+
 // ═══════════════════════════════════════════════════
 //  GOOGLE SHEETS SYNC
 // ═══════════════════════════════════════════════════
@@ -682,8 +818,8 @@ async function fetchFromSheet() {
       id:     p.po_id   || p.id   || '',
       company:p.company || '',
       model:  p.model   || '',
-      recv:   p.recv_date || p.recv || '',
-      due:    p.due_date  || p.due  || '',
+      recv:   fixDateStr(p.recv_date || p.recv || ''),
+      due:    fixDateStr(p.due_date  || p.due  || ''),
       urgent: p.urgent === true || String(p.urgent).toUpperCase() === 'TRUE',
       status: p.status  || 'Order',
       remark: p.remark  || ''
@@ -695,8 +831,8 @@ async function fetchFromSheet() {
       color:    i.color    || '',
       urgent:   i.urgent === true || String(i.urgent).toUpperCase() === 'TRUE',
       status:   i.status   || 'รับของแล้ว',
-      itemDue:  i.item_due || i.itemDue  || '',
-      sentDate: i.sent_date|| i.sentDate || '',
+      itemDue:  fixDateStr(i.item_due || i.itemDue  || ''),
+      sentDate: fixDateStr(i.sent_date|| i.sentDate || ''),
       bundlePO: i.bundle_po|| i.bundlePO || '',
       remark:   i.remark   || ''
     })).filter(i => i.po);   // กรองแถวที่ไม่มี po ออก
@@ -890,9 +1026,40 @@ let modalPoId     = '';
 // ═══════════════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════════════
+// แปลงวันที่จาก GAS/Sheet ที่อาจมาหลายรูปแบบ ให้เป็น yyyy-mm-dd
+function fixDateStr(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  // ถ้าเป็น ISO อยู่แล้ว (yyyy-mm-dd) → ใช้เลย
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // ถ้า GAS ส่งมาเป็น Date string เช่น "Sat Mar 14 2026 ..."
+  if (s.includes(' ') && !s.includes('/')) {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  }
+  // ถ้าเป็น d/m/y หรือ d/m/-407 → แปลงกลับ
+  const parts = s.split('/');
+  if (parts.length === 3) {
+    let day = parseInt(parts[0]);
+    let mon = parseInt(parts[1]);
+    let yr  = parseInt(parts[2]);
+    if (isNaN(day) || isNaN(mon) || isNaN(yr)) return '';
+    // ถ้าปีเป็นลบ หรือ < 100 → คำนวณผิดจากสูตรเก่า
+    if (yr < 0) yr = yr + 2500 - 67; // reverse: getFullYear()-2500+67 → yr; so getFullYear() = yr+2500-67
+    // ถ้าปี พ.ศ. (>2400) → แปลงเป็น ค.ศ.
+    if (yr > 2400) yr = yr - 543;
+    if (yr < 1900 || yr > 2100) return ''; // ค่าผิดปกติ
+    return `${yr}-${String(mon).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  }
+  return '';
+}
+
 function thaiDate(isoStr) {
   if (!isoStr) return '—';
-  const d = new Date(isoStr + 'T00:00:00');
+  const fixed = fixDateStr(isoStr);
+  if (!fixed) return '—';
+  const d = new Date(fixed + 'T00:00:00');
+  if (isNaN(d.getTime())) return '—';
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()+543}`;
 }
 
@@ -900,8 +1067,11 @@ function todayISO() { return new Date().toISOString().split('T')[0]; }
 
 function daysLeft(dueStr) {
   if (!dueStr) return null;
+  const fixed = fixDateStr(dueStr);
+  if (!fixed) return null;
   const today = new Date(); today.setHours(0,0,0,0);
-  const due = new Date(dueStr + 'T00:00:00');
+  const due = new Date(fixed + 'T00:00:00');
+  if (isNaN(due.getTime())) return null;
   return Math.ceil((due - today) / 86400000);
 }
 
@@ -1118,6 +1288,7 @@ function openDetailModal(poId) {
     `).join('') : '<div style="color:var(--muted);text-align:center;padding:20px;">ยังไม่มีชิ้นงาน</div>'}
   `;
   document.getElementById('detail-modal').classList.add('open');
+  applyRole(); // ซ่อนปุ่มลบถ้าเป็น Staff
 }
 
 function closeModal(e) { if (e.target.id === 'detail-modal') closeDetailModal(); }
@@ -1604,6 +1775,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('topbar-date').textContent =
     `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
 
+  // ถ้า login ไว้แล้ว (มี role ใน localStorage) ข้ามหน้า login
+  if (currentRole === 'admin' || currentRole === 'staff') {
+    showApp();
+  }
+  // ถ้ายังไม่ login จะเห็นหน้า login อัตโนมัติ
+
   if (GAS_URL) {
     showSyncStatus('syncing');
     const sheetData = await fetchFromSheet();
@@ -1612,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem(STORE_KEY, JSON.stringify(db));
     }
   }
-  renderDashboard();
+  if (currentRole) renderDashboard();
 });
 </script>
 </body>
