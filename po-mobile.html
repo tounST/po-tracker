@@ -893,7 +893,7 @@ let modalPoId     = '';
 function thaiDate(isoStr) {
   if (!isoStr) return '—';
   const d = new Date(isoStr + 'T00:00:00');
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()-2500+67}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()+543}`;
 }
 
 function todayISO() { return new Date().toISOString().split('T')[0]; }
@@ -998,19 +998,34 @@ function renderDashboard() {
   const urgItems = items.filter(i => i.urgent && i.status !== 'ส่งแล้ว');
   const urgSec = document.getElementById('urgent-section');
   if (urgItems.length) {
+    // เรียงงานด่วนตามวันกำหนดส่ง (itemDue ก่อน, ถ้าไม่มีใช้ PO due)
+    urgItems.sort((a, b) => {
+      const aPo = db.pos.find(p => p.id === a.po);
+      const bPo = db.pos.find(p => p.id === b.po);
+      const aDue = a.itemDue || (aPo && aPo.due) || '9999';
+      const bDue = b.itemDue || (bPo && bPo.due) || '9999';
+      return aDue.localeCompare(bDue);
+    });
     urgSec.innerHTML = `
-      <div class="section-label" style="color:var(--red);">🔥 ชิ้นด่วนที่ยังไม่ส่ง (${urgItems.length})</div>
-      ${urgItems.map(i => `
-        <div class="po-card partial" style="border-left-color:var(--red);">
+      <div class="section-label" style="color:var(--red);font-size:13px;">🔥 ชิ้นด่วนที่ยังไม่ส่ง (${urgItems.length})</div>
+      ${urgItems.map(i => {
+        const po = db.pos.find(p => p.id === i.po);
+        const dueDateStr = i.itemDue || (po && po.due) || '';
+        return `
+        <div class="po-card partial" style="border-left-color:var(--red);padding:14px 16px;">
           <div class="po-card-header">
             <div>
-              <div class="po-card-no" style="color:var(--red);">${i.po}</div>
-              <div class="po-card-company">🔩 ${i.part} — ${i.color}</div>
+              <div class="po-card-no" style="color:var(--red);font-size:16px;">${i.po}</div>
+              <div style="font-size:14px;font-weight:600;margin-top:2px;">🔩 ${i.part} — ${i.color}</div>
             </div>
             ${statusBadge(i.status)}
           </div>
-        </div>
-      `).join('')}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <div style="font-size:13px;color:var(--muted);">📅 กำหนดส่ง: <strong>${thaiDate(dueDateStr)}</strong></div>
+            <div style="font-size:13px;">${daysLeftLabel(dueDateStr)}</div>
+          </div>
+        </div>`;
+      }).join('')}
     `;
   } else { urgSec.innerHTML = ''; }
 
@@ -1587,7 +1602,7 @@ function masterInputEnter(type, event) {
 document.addEventListener('DOMContentLoaded', async () => {
   const now = new Date();
   document.getElementById('topbar-date').textContent =
-    `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()-2500+67}`;
+    `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
 
   if (GAS_URL) {
     showSyncStatus('syncing');
