@@ -403,6 +403,13 @@
 </head>
 <body>
 
+<!-- ═══ LOADING OVERLAY ═══ -->
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(255,255,255,.92);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+  <div style="font-size:40px;">🔄</div>
+  <div style="font-size:16px;font-weight:700;color:#1A73E8;">กำลังดึงข้อมูลล่าสุด...</div>
+  <div style="font-size:12px;color:#78909C;">ข้อมูลจะตรงกันทุกเครื่อง</div>
+</div>
+
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="login-screen">
   <div class="login-box">
@@ -425,7 +432,8 @@
   <div style="display:flex;justify-content:space-between;align-items:center">
     <h1>🔩 PO Tracker <span id="role-badge-display"></span></h1>
     <div style="display:flex;gap:6px;align-items:center;">
-      <button onclick="openSyncModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">☁️ Sync</button>
+      <button onclick="quickRefresh()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer" title="ดึงข้อมูลล่าสุด">🔄</button>
+      <button onclick="openSyncModal()" class="admin-only" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">⚙️ Sync</button>
       <button onclick="doLogout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">🚪 ออก</button>
     </div>
   </div>
@@ -708,7 +716,7 @@
 //  LOGIN & ROLE SYSTEM
 // ═══════════════════════════════════════════════════
 const PASSWORDS = {
-  admin: '1212',    // ← เปลี่ยนรหัส Admin ตรงนี้
+  admin: '1234',    // ← เปลี่ยนรหัส Admin ตรงนี้
   staff: '0000'     // ← เปลี่ยนรหัส Staff ตรงนี้
 };
 let currentRole = localStorage.getItem('po_role') || '';
@@ -766,17 +774,15 @@ function applyRole() {
     masterTab.style.display = currentRole === 'admin' ? '' : 'none';
   }
 
-  // ปุ่ม Sync — ซ่อนสำหรับ Staff
-  const syncBtn = document.querySelector('.topbar button[onclick="openSyncModal()"]');
-  if (syncBtn) {
-    syncBtn.style.display = currentRole === 'admin' ? '' : 'none';
-  }
+  // admin-only class จะจัดการซ่อน/แสดงปุ่ม Sync settings อัตโนมัติ
 }
 
 // ═══════════════════════════════════════════════════
-//  GOOGLE SHEETS SYNC
+//  GOOGLE SHEETS SYNC  — Cloud-first mode
 // ═══════════════════════════════════════════════════
-let GAS_URL = localStorage.getItem('gas_url') || '';
+// ★ ใส่ URL ของ Apps Script Web App ตรงนี้ → ทุกเครื่องจะใช้ค่าเดียวกัน
+const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbx3igA3KA-PLZUg5AJPNZNGxv_AQPKk2Vkg6GsOhVQDFO0O1y-mhho3JlcVrtwzHDQE/exec';
+let GAS_URL = HARDCODED_GAS_URL || localStorage.getItem('gas_url') || '';
 
 function setGasUrl(url) {
   GAS_URL = url.trim();
@@ -1661,7 +1667,24 @@ function savePO() {
 }
 
 // ═══════════════════════════════════════════════════
-//  SYNC MODAL
+//  QUICK REFRESH (ทุก role ใช้ได้)
+// ═══════════════════════════════════════════════════
+async function quickRefresh() {
+  if (!GAS_URL) { toast('⚠️ ยังไม่ได้ตั้งค่า URL (แจ้ง Admin)'); return; }
+  toast('🔄 กำลังดึงข้อมูลล่าสุด...');
+  const data = await fetchFromSheet();
+  if (data) {
+    db = data;
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    renderDashboard();
+    toast('✅ ข้อมูลอัพเดทแล้ว');
+  } else {
+    toast('❌ ดึงข้อมูลไม่สำเร็จ');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SYNC MODAL (Admin เท่านั้น)
 // ═══════════════════════════════════════════════════
 function openSyncModal() {
   document.getElementById('sync-modal').style.display = 'flex';
@@ -1768,8 +1791,13 @@ function masterInputEnter(type, event) {
 }
 
 // ═══════════════════════════════════════════════════
-//  INIT
+//  INIT — Cloud-first: ดึงข้อมูลจาก Sheet อัตโนมัติทุกครั้ง
 // ═══════════════════════════════════════════════════
+function showLoading(show) {
+  const el = document.getElementById('loading-overlay');
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const now = new Date();
   document.getElementById('topbar-date').textContent =
@@ -1779,17 +1807,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (currentRole === 'admin' || currentRole === 'staff') {
     showApp();
   }
-  // ถ้ายังไม่ login จะเห็นหน้า login อัตโนมัติ
 
+  // ★ Cloud-first: ดึงข้อมูลจาก Sheet อัตโนมัติทุกครั้งที่เปิดแอป
   if (GAS_URL) {
+    showLoading(true);
     showSyncStatus('syncing');
-    const sheetData = await fetchFromSheet();
-    if (sheetData) {
-      db = sheetData;
-      localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    try {
+      const sheetData = await fetchFromSheet();
+      if (sheetData) {
+        db = sheetData;
+        localStorage.setItem(STORE_KEY, JSON.stringify(db));
+        showSyncStatus('ok');
+      }
+    } catch(e) {
+      console.warn('Auto-fetch failed, using local data:', e);
+      showSyncStatus('error', e.message);
     }
+    showLoading(false);
   }
   if (currentRole) renderDashboard();
+
+  // ★ Auto-refresh ทุก 60 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
+  if (GAS_URL) {
+    setInterval(async () => {
+      if (!document.hidden && currentRole) {  // เฉพาะตอนแอปอยู่หน้าจอ
+        const data = await fetchFromSheet();
+        if (data) {
+          db = data;
+          localStorage.setItem(STORE_KEY, JSON.stringify(db));
+          renderDashboard();
+        }
+      }
+    }, 60000);
+  }
 });
 </script>
 </body>
