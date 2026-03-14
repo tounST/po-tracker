@@ -802,7 +802,7 @@ function applyRole() {
 const APP_VERSION = 'v3.5-FIX-2026-03-14';
 console.log('🚀 PO Tracker Mobile ' + APP_VERSION + ' loaded at ' + new Date().toISOString());
 
-const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbzuvs_xgXjLGF25epq44BJhgK9Pp0UEJGgGZ3rEMYWbCF6IA0-mOUmuRjslTYGNRbYW/exec';
+const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbyEluHR9TJcsrYnDP1T2QIswOTTt6iRGR1GLVzvGDKzXR4J11JSfa7azW_Lmua6OzNo/exec';
 let GAS_URL = HARDCODED_GAS_URL || localStorage.getItem('gas_url') || '';
 
 function setGasUrl(url) {
@@ -926,12 +926,17 @@ async function pushToSheet(data) {
     });
     const json = await resp.json();
 
-    // ★★★ DEBUG — แสดง GAS response version + item count
+    // ★★★ DEBUG — แสดง GAS response + ข้อมูลที่ GAS เขียนลง Sheet จริง
     console.log(`[pushToSheet] GAS response:`, json);
     if (json.version) {
       console.log(`[pushToSheet] ★ GAS VERSION: ${json.version} | saved: ${json.saved_items} | filtered_out: ${json.filtered_out}`);
     } else {
       console.warn(`[pushToSheet] ⚠️ GAS ไม่ส่ง version กลับมา — อาจเป็น GAS เวอร์ชันเก่า!`);
+    }
+    // ★★★ DEBUG: แสดง rows ที่ GAS เขียนลง Sheet จริงๆ
+    if (json.debug_written_rows) {
+      const lines = json.debug_written_rows.map(r => `row${r.row}: po="${r.po}" part="${r.part}" color="${r.color}" order=${r.order}`).join('\n');
+      alert(`📊 GAS ${json.version} VERIFY\n\nsaved: ${json.saved_items} | filtered_out: ${json.filtered_out}\n\n--- Sheet rows after write ---\n${lines}`);
     }
     if (json.ok) showSyncStatus('ok');
     else showSyncStatus('error', json.error || 'GAS error');
