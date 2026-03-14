@@ -1646,7 +1646,7 @@ function addItemRow(prefillPart, prefillColor) {
       <button onclick="removeItem(${idx})" style="border:none;background:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px;">×</button>
     </div>
     <select id="item-part-${idx}" style="margin-bottom:8px;"><option value="">— ชิ้นงาน —</option>${partOpts}</select>
-    <input type="text" id="item-color-${idx}" placeholder="สี เช่น สีขาว W85" style="margin-bottom:8px;" value="${prefillColor || ''}">`;
+    <input type="text" id="item-color-${idx}" placeholder="สี เช่น สีขาว W85" style="margin-bottom:8px;" value="${prefillColor || ''}">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <div class="urgent-toggle" id="item-urg-${idx}" onclick="toggleItemUrgent(${idx})" style="padding:8px 12px;flex:1;">
         <span style="font-size:16px;">🔥</span>
