@@ -885,14 +885,16 @@ async function pushToSheet(data) {
   if (!GAS_URL) return;
   try {
     showSyncStatus('syncing');
-    // ส่ง master lists ไปด้วยเสมอ เพื่อ sync CONFIG sheet ใน Google Sheets
+    // ★ กรอง items ที่ไม่มีชื่อชิ้นงานออกก่อนส่ง — ป้องกัน row ว่างใน Sheet
+    const cleanData = Object.assign({}, data, {
+      items: (data.items || []).filter(i => i.po && i.part),
+      masterCompanies: db.masterCompanies || [...DEFAULT_COMPANIES],
+      masterModels:    db.masterModels    || [...DEFAULT_CAR_MODELS],
+      masterParts:     db.masterParts     || [...DEFAULT_PART_TYPES]
+    });
     const payload = {
       action: 'saveAll',
-      data: Object.assign({}, data, {
-        masterCompanies: db.masterCompanies || [...DEFAULT_COMPANIES],
-        masterModels:    db.masterModels    || [...DEFAULT_CAR_MODELS],
-        masterParts:     db.masterParts     || [...DEFAULT_PART_TYPES]
-      })
+      data: cleanData
     };
 
     // ใช้ POST แทน GET — ไม่จำกัด URL length, ส่ง JSON body ได้ไม่จำกัดขนาด
