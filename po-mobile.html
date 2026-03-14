@@ -1734,6 +1734,7 @@ function savePO() {
 
   const newItems = [];
   let skipped = 0;
+  let debugParts = [];  // ★ DEBUG: เก็บค่าทุก item เพื่อแสดง alert
   for (let i = 1; i <= addItemCount; i++) {
     const partEl  = document.getElementById(`item-part-${i}`);
     const colorEl = document.getElementById(`item-color-${i}`);
@@ -1742,7 +1743,7 @@ function savePO() {
     const part  = partEl.value;
     const color = colorEl ? colorEl.value.trim() : '';
     const urg   = urgEl ? urgEl.classList.contains('on') : false;
-    console.log(`[savePO] item-${i}: part="${part}" color="${color}"`);
+    debugParts.push(`#${i}: "${part}" | "${color}"`);
     if (part) {
       const itemDueEl = document.getElementById(`item-due-${i}`);
       const itemDue = (itemDueEl && urg) ? itemDueEl.value : '';
@@ -1750,14 +1751,12 @@ function savePO() {
         status: 'รับของแล้ว', sentDate: '', bundlePO: '', remark: '' });
     } else {
       skipped++;
-      console.warn(`[savePO] ⚠️ item-${i} SKIPPED — part is empty!`);
     }
   }
 
-  // ★★★ SAFETY: ถ้ามี items ว่างมากกว่าครึ่ง → น่าจะมี bug → แจ้งเตือน
-  if (skipped > 0) {
-    console.warn(`[savePO] ⚠️ ${skipped} items skipped (empty part). Saved: ${newItems.length}`);
-  }
+  // ★★★ DEBUG ALERT — แสดงให้เห็นว่า select มีค่าอะไรจริงๆ บนเบราว์เซอร์
+  // (ลบ block นี้ออกหลัง debug เสร็จ)
+  alert('🔍 DEBUG savePO\n\naddItemCount: ' + addItemCount + '\nnewItems: ' + newItems.length + '\nskipped: ' + skipped + '\n\n' + debugParts.join('\n'));
 
   // ★★★ ป้องกัน: ไม่ save PO ที่ไม่มี items เลย
   if (newItems.length === 0) {
@@ -1767,7 +1766,6 @@ function savePO() {
   db.pos.push({ id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark });
   db.items.push(...newItems);
 
-  console.log(`[savePO] ✅ Pushing ${newItems.length} items to Sheet. Total db.items: ${db.items.length}`);
   syncPOStatuses(true);  // ★ push ขึ้น Sheet เพราะผู้ใช้เพิ่ม PO ใหม่
 
   toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
