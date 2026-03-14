@@ -985,9 +985,12 @@ function loadData() {
   return getInitialData();
 }
 
-function saveData(d) {
+// ★ skipPush = true เมื่อดึงข้อมูลมาจาก Sheet (ไม่ต้อง push กลับ ป้องกันวนแปลง)
+let _skipPush = false;
+
+function saveData(d, skipPush) {
   localStorage.setItem(STORE_KEY, JSON.stringify(d));
-  if (GAS_URL) pushToSheet(d);
+  if (GAS_URL && !skipPush && !_skipPush) pushToSheet(d);
 }
 
 function getInitialData() {
@@ -1066,7 +1069,7 @@ function thaiDate(isoStr) {
   if (!fixed) return '—';
   const d = new Date(fixed + 'T00:00:00');
   if (isNaN(d.getTime())) return '—';
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()+543}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
 }
 
 function todayISO() { return new Date().toISOString().split('T')[0]; }
@@ -1131,9 +1134,13 @@ function poStatusAuto(poId) {
   return 'Order';
 }
 
-function syncPOStatuses() {
+function syncPOStatuses(pushToCloud) {
   db.pos.forEach(po => { po.status = poStatusAuto(po.id); });
-  saveData(db);
+  if (pushToCloud) {
+    saveData(db);  // push ขึ้น Sheet ด้วย
+  } else {
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));  // save local เท่านั้น
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1156,7 +1163,7 @@ function switchTab(name) {
 //  DASHBOARD (รวม list แล้ว)
 // ═══════════════════════════════════════════════════
 function renderDashboard() {
-  syncPOStatuses();
+  syncPOStatuses(false);  // คำนวณสถานะใหม่แต่ไม่ push ขึ้น Sheet
   const items   = db.items;
   const sent    = items.filter(i => i.status === 'ส่งแล้ว').length;
   const prod    = items.filter(i => i.status === 'กำลังผลิต').length;
@@ -1467,7 +1474,7 @@ function saveUpdate() {
     }
   });
 
-  syncPOStatuses();
+  syncPOStatuses(true);  // ★ push ขึ้น Sheet เพราะผู้ใช้แก้ข้อมูล
   toast(`✅ อัพเดท ${selectedItems.size} ชิ้น → "${selectedStatus}" แล้ว`);
 
   // Reset แล้ว refresh รายการ
@@ -1659,7 +1666,7 @@ function savePO() {
 
   db.pos.push({ id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark });
   db.items.push(...newItems);
-  syncPOStatuses();
+  syncPOStatuses(true);  // ★ push ขึ้น Sheet เพราะผู้ใช้เพิ่ม PO ใหม่
 
   toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
   initAddPOTab();
@@ -1717,7 +1724,7 @@ async function syncNow() {
   el.textContent = '🔄 กำลังดึงข้อมูล...'; el.style.color = '#1A73E8';
   const data = await fetchFromSheet();
   if (data) {
-    db = data; saveData(db); renderDashboard();
+    db = data; saveData(db, true); renderDashboard();
     el.textContent = `✅ ดึงข้อมูลสำเร็จ — ${db.pos.length} PO, ${db.items.length} ชิ้น`;
     el.style.color = '#2E7D32';
   } else {
@@ -1801,7 +1808,7 @@ function showLoading(show) {
 document.addEventListener('DOMContentLoaded', async () => {
   const now = new Date();
   document.getElementById('topbar-date').textContent =
-    `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
+    `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
 
   // ถ้า login ไว้แล้ว (มี role ใน localStorage) ข้ามหน้า login
   if (currentRole === 'admin' || currentRole === 'staff') {
