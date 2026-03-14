@@ -858,7 +858,7 @@ async function fetchFromSheet() {
       sentDate: fixDateStr(i.sent_date|| i.sentDate || ''),
       bundlePO: i.bundle_po|| i.bundlePO || '',
       remark:   i.remark   || ''
-    })).filter(i => i.po);   // กรองแถวที่ไม่มี po ออก
+    })).filter(i => i.po && i.part);   // กรองแถวที่ไม่มี po หรือไม่มีชิ้นงานออก
 
     // ── ถ้า GAS v3 ส่ง master lists มา ให้ใช้จาก Sheet (CONFIG เป็น source of truth)
     //    ถ้า GAS เก่าไม่ส่งมา ให้ fallback เป็น local db หรือ defaults
@@ -1879,7 +1879,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (currentRole) renderDashboard();
 
-  // ★ Auto-refresh ทุก 60 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
+  // ★ Auto-refresh ทุก 10 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
   if (GAS_URL) {
     setInterval(async () => {
       if (!document.hidden && currentRole) {  // เฉพาะตอนแอปอยู่หน้าจอ
@@ -1890,7 +1890,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           renderDashboard();
         }
       }
-    }, 60000);
+    }, 10000);
   }
 });
 </script>
