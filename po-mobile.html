@@ -642,9 +642,26 @@
 
   <div class="card">
     <div class="card-title">🔩 เพิ่มชิ้นงาน</div>
+
+    <!-- ★ เพิ่มหลายชิ้นพร้อมกัน -->
+    <div style="background:#EEF2FF;border-radius:10px;padding:12px;margin-bottom:12px;border:1.5px solid #C7D2FE;">
+      <div style="font-size:13px;font-weight:700;color:#3730A3;margin-bottom:8px;">⚡ เพิ่มหลายชิ้นพร้อมกัน</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <select id="bulk-part" style="margin:0;font-size:13px;padding:9px 10px;"></select>
+        <input type="text" id="bulk-color" placeholder="สี เช่น สีขาว W85" style="margin:0;font-size:13px;padding:9px 10px;">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="margin:0;white-space:nowrap;font-size:13px;">จำนวน:</label>
+        <input type="number" id="bulk-qty" value="1" min="1" max="50" style="margin:0;width:70px;text-align:center;font-size:15px;font-weight:700;padding:9px 6px;">
+        <button onclick="addBulkItems()" style="flex:1;background:#3730A3;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:700;cursor:pointer;">
+          ➕ เพิ่มทีเดียว
+        </button>
+      </div>
+    </div>
+
     <div id="add-items-list"></div>
     <button class="btn btn-outline" onclick="addItemRow()" style="margin-bottom:10px;">
-      ➕ เพิ่มชิ้น
+      ➕ เพิ่มชิ้นทีละ 1
     </button>
   </div>
 
@@ -781,7 +798,7 @@ function applyRole() {
 //  GOOGLE SHEETS SYNC  — Cloud-first mode
 // ═══════════════════════════════════════════════════
 // ★ ใส่ URL ของ Apps Script Web App ตรงนี้ → ทุกเครื่องจะใช้ค่าเดียวกัน
-const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbyREeBgFSa0aKCZeRDODSgGxuV-n01d8K52i8_DeEOG2VUvo9rBWzB7ZtL5LylV5hE5/exec';
+const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbyehZ8jiGkCArCmSWmexykFIXShOQnWDroUipOzAw--YkWxt_Ks27PZAd8lNm5Gj51N/exec';
 let GAS_URL = HARDCODED_GAS_URL || localStorage.getItem('gas_url') || '';
 
 function setGasUrl(url) {
@@ -1567,7 +1584,35 @@ function initAddPOTab() {
   addItemCount = 0;
   document.getElementById('add-items-list').innerHTML = '';
   document.getElementById('add-pono').value = autoNextPO();
+
+  // ★ Populate bulk part dropdown
+  const bulkPartSel = document.getElementById('bulk-part');
+  bulkPartSel.innerHTML = '<option value="">— เลือกชิ้นงาน —</option>' +
+    db.masterParts.map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('bulk-color').value = '';
+  document.getElementById('bulk-qty').value = 1;
+
   addItemRow();
+}
+
+// ★ เพิ่มหลายชิ้นพร้อมกัน
+function addBulkItems() {
+  const part  = document.getElementById('bulk-part').value;
+  const color = document.getElementById('bulk-color').value.trim();
+  const qty   = parseInt(document.getElementById('bulk-qty').value) || 1;
+
+  if (!part) { toast('⚠️ กรุณาเลือกชิ้นงานก่อน'); return; }
+  if (qty < 1 || qty > 50) { toast('⚠️ จำนวนต้องอยู่ระหว่าง 1-50'); return; }
+
+  for (let i = 0; i < qty; i++) {
+    addItemRow(part, color);
+  }
+  toast(`✅ เพิ่ม "${part}" × ${qty} ชิ้นแล้ว`);
+
+  // Reset bulk form
+  document.getElementById('bulk-part').value = '';
+  document.getElementById('bulk-color').value = '';
+  document.getElementById('bulk-qty').value = 1;
 }
 
 function autoNextPO() {
@@ -1585,7 +1630,7 @@ function toggleUrgent() {
   document.getElementById('add-urgent-toggle').classList.toggle('on', urgentOn);
 }
 
-function addItemRow() {
+function addItemRow(prefillPart, prefillColor) {
   addItemCount++;
   const idx = addItemCount;
   const div = document.createElement('div');
@@ -1593,7 +1638,7 @@ function addItemRow() {
   div.style.cssText = 'padding:10px;border-radius:9px;border:1.5px solid var(--border);margin-bottom:8px;background:#fafafa;';
 
   const partOpts = db.masterParts
-    .map(p => `<option value="${p}">${p}</option>`).join('');
+    .map(p => `<option value="${p}" ${p === prefillPart ? 'selected' : ''}>${p}</option>`).join('');
 
   div.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -1601,7 +1646,7 @@ function addItemRow() {
       <button onclick="removeItem(${idx})" style="border:none;background:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px;">×</button>
     </div>
     <select id="item-part-${idx}" style="margin-bottom:8px;"><option value="">— ชิ้นงาน —</option>${partOpts}</select>
-    <input type="text" id="item-color-${idx}" placeholder="สี เช่น สีขาว W85" style="margin-bottom:8px;">
+    <input type="text" id="item-color-${idx}" placeholder="สี เช่น สีขาว W85" style="margin-bottom:8px;" value="${prefillColor || ''}">`;
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <div class="urgent-toggle" id="item-urg-${idx}" onclick="toggleItemUrgent(${idx})" style="padding:8px 12px;flex:1;">
         <span style="font-size:16px;">🔥</span>
