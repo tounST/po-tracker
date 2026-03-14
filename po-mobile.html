@@ -883,6 +883,7 @@ async function fetchFromSheet() {
 
 async function pushToSheet(data) {
   if (!GAS_URL) return;
+  _pushing = true;  // ★ ล็อก — ห้าม auto-refresh ทับข้อมูลขณะ push
   try {
     showSyncStatus('syncing');
     // ★ กรอง items ที่ไม่มีชื่อชิ้นงานออกก่อนส่ง — ป้องกัน row ว่างใน Sheet
@@ -909,6 +910,7 @@ async function pushToSheet(data) {
     if (json.ok) showSyncStatus('ok');
     else showSyncStatus('error', json.error || 'GAS error');
   } catch(e) { showSyncStatus('error', e.message); }
+  finally { _pushing = false; }  // ★ ปลดล็อก
 }
 
 function showSyncStatus(state, msg) {
@@ -1006,6 +1008,8 @@ function loadData() {
 
 // ★ skipPush = true เมื่อดึงข้อมูลมาจาก Sheet (ไม่ต้อง push กลับ ป้องกันวนแปลง)
 let _skipPush = false;
+// ★ _pushing = true ขณะกำลัง push ข้อมูลขึ้น Sheet → ห้าม auto-refresh ทับ
+let _pushing = false;
 
 function saveData(d, skipPush) {
   localStorage.setItem(STORE_KEY, JSON.stringify(d));
@@ -1881,18 +1885,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (currentRole) renderDashboard();
 
-  // ★ Auto-refresh ทุก 10 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
+  // ★ Auto-refresh ทุก 30 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
   if (GAS_URL) {
     setInterval(async () => {
-      if (!document.hidden && currentRole) {  // เฉพาะตอนแอปอยู่หน้าจอ
+      if (!document.hidden && currentRole && !_pushing) {  // ★ ห้าม refresh ขณะ push
         const data = await fetchFromSheet();
-        if (data) {
+        if (data && !_pushing) {  // ★ เช็คอีกทีหลัง fetch เสร็จ กันกรณี push เริ่มระหว่าง fetch
           db = data;
           localStorage.setItem(STORE_KEY, JSON.stringify(db));
           renderDashboard();
         }
       }
-    }, 10000);
+    }, 30000);
   }
 });
 </script>
