@@ -802,7 +802,7 @@ function applyRole() {
 const APP_VERSION = 'v3.5-FIX-2026-03-14';
 console.log('🚀 PO Tracker Mobile ' + APP_VERSION + ' loaded at ' + new Date().toISOString());
 
-const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbyEluHR9TJcsrYnDP1T2QIswOTTt6iRGR1GLVzvGDKzXR4J11JSfa7azW_Lmua6OzNo/exec';
+const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbwTvCm7tOQ8gT3yQDZcL_BCwaX9M_G-AS3eMbPN5FWDLOgoHKdBnRfbEvaDxGZy6DI/exec';
 let GAS_URL = HARDCODED_GAS_URL || localStorage.getItem('gas_url') || '';
 
 function setGasUrl(url) {
@@ -911,12 +911,6 @@ async function pushToSheet(data) {
       data: cleanData
     };
 
-    // ★★★ ATOMIC DEBUG — แสดงข้อมูลที่กำลังจะส่งไป GAS จริงๆ
-    // (ลบ block นี้ออกหลัง debug เสร็จ)
-    const debugItems = filteredItems.map((it, i) => `${i+1}. po="${it.po}" part="${it.part}" color="${it.color}"`).join('\n');
-    console.log(`[pushToSheet ${APP_VERSION}] ★ SENDING ${filteredItems.length} items to GAS:\n${debugItems}`);
-    alert(`🚀 pushToSheet ${APP_VERSION}\n\nraw: ${rawItems.length} → filtered: ${filteredItems.length}\n\n${debugItems}`);
-
     // ใช้ POST แทน GET — ไม่จำกัด URL length, ส่ง JSON body ได้ไม่จำกัดขนาด
     const resp = await fetch(GAS_URL, {
       method: 'POST',
@@ -926,18 +920,6 @@ async function pushToSheet(data) {
     });
     const json = await resp.json();
 
-    // ★★★ DEBUG — แสดง GAS response + ข้อมูลที่ GAS เขียนลง Sheet จริง
-    console.log(`[pushToSheet] GAS response:`, json);
-    if (json.version) {
-      console.log(`[pushToSheet] ★ GAS VERSION: ${json.version} | saved: ${json.saved_items} | filtered_out: ${json.filtered_out}`);
-    } else {
-      console.warn(`[pushToSheet] ⚠️ GAS ไม่ส่ง version กลับมา — อาจเป็น GAS เวอร์ชันเก่า!`);
-    }
-    // ★★★ DEBUG: แสดง rows ที่ GAS เขียนลง Sheet จริงๆ
-    if (json.debug_written_rows) {
-      const lines = json.debug_written_rows.map(r => `row${r.row}: po="${r.po}" part="${r.part}" color="${r.color}" order=${r.order}`).join('\n');
-      alert(`📊 GAS ${json.version} VERIFY\n\nsaved: ${json.saved_items} | filtered_out: ${json.filtered_out}\n\n--- Sheet rows after write ---\n${lines}`);
-    }
     if (json.ok) showSyncStatus('ok');
     else showSyncStatus('error', json.error || 'GAS error');
   } catch(e) { showSyncStatus('error', e.message); }
@@ -1756,7 +1738,6 @@ function savePO() {
 
   const newItems = [];
   let skipped = 0;
-  let debugParts = [];  // ★ DEBUG: เก็บค่าทุก item เพื่อแสดง alert
   for (let i = 1; i <= addItemCount; i++) {
     const partEl  = document.getElementById(`item-part-${i}`);
     const colorEl = document.getElementById(`item-color-${i}`);
@@ -1765,7 +1746,6 @@ function savePO() {
     const part  = partEl.value;
     const color = colorEl ? colorEl.value.trim() : '';
     const urg   = urgEl ? urgEl.classList.contains('on') : false;
-    debugParts.push(`#${i}: "${part}" | "${color}"`);
     if (part) {
       const itemDueEl = document.getElementById(`item-due-${i}`);
       const itemDue = (itemDueEl && urg) ? itemDueEl.value : '';
@@ -1775,10 +1755,6 @@ function savePO() {
       skipped++;
     }
   }
-
-  // ★★★ DEBUG ALERT — แสดงให้เห็นว่า select มีค่าอะไรจริงๆ บนเบราว์เซอร์
-  // (ลบ block นี้ออกหลัง debug เสร็จ)
-  alert('🔍 DEBUG savePO\n\naddItemCount: ' + addItemCount + '\nnewItems: ' + newItems.length + '\nskipped: ' + skipped + '\n\n' + debugParts.join('\n'));
 
   // ★★★ ป้องกัน: ไม่ save PO ที่ไม่มี items เลย
   if (newItems.length === 0) {
