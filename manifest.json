@@ -1,0 +1,20 @@
+{
+  "name": "PO Tracker — ร้านพ่นสี",
+  "short_name": "PO Tracker",
+  "description": "ระบบติดตาม PO โรงงานพ่นสี",
+  "start_url": "/po-tracker/po-mobile.html",
+  "scope": "/po-tracker/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1A73E8",
+  "theme_color": "#1A73E8",
+  "lang": "th",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='24' fill='%231A73E8'/><text y='130' x='30' font-size='120'>🔩</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
