@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1A73E8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-touch-fullscreen" content="yes">
+<title>🔩 PO Tracker — ร้านพ่นสี</title>
+<style>
+  :root {
+    --blue:   #1A73E8;
+    --green:  #2E7D32;
+    --amber:  #F57F17;
+    --red:    #C62828;
+    --orange: #E65100;
+    --purple: #6A1B9A;
+    --grey:   #546E7A;
+    --bg:     #F8F9FA;
+    --card:   #FFFFFF;
+    --border: #E0E0E0;
+    --text:   #263238;
+    --muted:  #78909C;
+    --radius: 12px;
+    --shadow: 0 2px 8px rgba(0,0,0,.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    background: var(--blue);
+    color: #fff;
+    padding: 14px 16px 12px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .topbar h1 { font-size: 17px; font-weight: 700; }
+  .topbar small { font-size: 12px; opacity: .85; }
+
+  /* ── Tab Nav ── */
+  .tabnav {
+    display: flex;
+    background: #fff;
+    border-bottom: 2px solid var(--border);
+    position: sticky; top: 58px; z-index: 99;
+  }
+  .tabnav button {
+    flex: 1; padding: 12px 4px; border: none; background: none;
+    font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
+    border-bottom: 3px solid transparent; transition: all .2s;
+  }
+  .tabnav button.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+  }
+
+  /* ── Page sections ── */
+  .page { display: none; padding: 14px 14px 0; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Form elements ── */
+  label { font-size: 13px; font-weight: 600; color: var(--grey); display: block; margin-bottom: 5px; }
+  select, input[type=text], input[type=date], textarea {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 15px; background: #fff; color: var(--text);
+    -webkit-appearance: none; appearance: none;
+    margin-bottom: 14px;
+  }
+  select:focus, input:focus, textarea:focus {
+    outline: none; border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(26,115,232,.15);
+  }
+  textarea { resize: none; height: 70px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: block; width: 100%; padding: 14px;
+    border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); opacity: .9; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-green   { background: var(--green); color: #fff; }
+  .btn-outline {
+    background: #fff; color: var(--blue);
+    border: 2px solid var(--blue);
+  }
+  .btn + .btn { margin-top: 8px; }
+
+  /* ── Status badges ── */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+  }
+  /* สถานะชิ้นงาน 5 แบบใหม่ */
+  .badge-recv     { background: #E3F2FD; color: #1565C0; }   /* รับของแล้ว */
+  .badge-prod     { background: #FFF9C4; color: #795548; }   /* กำลังผลิต */
+  .badge-ready    { background: #E8EAF6; color: #3949AB; }   /* เตรียมส่ง */
+  .badge-sent     { background: #C8E6C9; color: var(--green); } /* ส่งแล้ว */
+  .badge-rework   { background: #FCE4EC; color: var(--red); }  /* กลับมาแก้ไข */
+
+  .badge-po-partial { background: #FCE4EC; color: var(--red); }
+  .badge-po-inprog  { background: #FFF8E1; color: var(--amber); }
+  .badge-po-done    { background: #C8E6C9; color: var(--green); }
+  .badge-po-order   { background: #E3F2FD; color: var(--blue); }
+
+  /* ── Item list in update tab ── */
+  .item-list { margin-top: 8px; }
+  .item-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 12px; margin-bottom: 8px;
+    background: #F8F9FA; border-radius: 9px;
+    border: 1.5px solid var(--border);
+    cursor: pointer; transition: border-color .15s;
+  }
+  .item-row.selected { border-color: var(--blue); background: #E8F0FE; }
+  .item-row .item-name { flex: 1; font-size: 14px; font-weight: 600; }
+  .item-row .item-color { font-size: 12px; color: var(--muted); }
+  .item-check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid var(--border); background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .item-row.selected .item-check {
+    background: var(--blue); border-color: var(--blue); color: #fff;
+  }
+  .item-urgent-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red); flex-shrink: 0;
+  }
+
+  /* ── PO Summary Cards ── */
+  .po-card {
+    border-radius: 10px; padding: 13px 14px;
+    margin-bottom: 10px; border-left: 5px solid var(--blue);
+    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    cursor: pointer; transition: box-shadow .15s;
+  }
+  .po-card:active { box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .po-card.partial { border-left-color: var(--red); }
+  .po-card.inprog  { border-left-color: var(--amber); }
+  .po-card.done    { border-left-color: var(--green); }
+  .po-card-header { display: flex; justify-content: space-between; align-items: center; }
+  .po-card-no { font-size: 15px; font-weight: 700; }
+  .po-card-company { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .po-card-progress { margin-top: 10px; }
+  .progress-bar-bg {
+    height: 7px; background: var(--border); border-radius: 10px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 10px;
+    background: var(--green); transition: width .4s;
+  }
+  .po-card-stats {
+    display: flex; gap: 12px; margin-top: 8px;
+    font-size: 12px; color: var(--muted);
+  }
+  .po-card-stats span { font-weight: 700; }
+
+  /* ── KPI row ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+  .kpi-box {
+    background: #fff; border-radius: 10px; padding: 12px 8px;
+    text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.09);
+  }
+  .kpi-num { font-size: 26px; font-weight: 800; }
+  .kpi-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .kpi-blue   .kpi-num { color: var(--blue); }
+  .kpi-green  .kpi-num { color: var(--green); }
+  .kpi-amber  .kpi-num { color: var(--amber); }
+  .kpi-red    .kpi-num { color: var(--red); }
+  .kpi-purple .kpi-num { color: var(--purple); }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #263238; color: #fff; padding: 11px 22px;
+    border-radius: 24px; font-size: 14px; font-weight: 600;
+    opacity: 0; transition: all .3s; z-index: 9999; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Modal (bottom sheet) ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); z-index: 200;
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    background: #fff; border-radius: 20px 20px 0 0;
+    padding: 20px 16px 30px; width: 100%; max-height: 90vh;
+    overflow-y: auto; animation: slideUp .25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle {
+    width: 40px; height: 4px; background: var(--border);
+    border-radius: 10px; margin: 0 auto 16px;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+
+  /* ── Divider / labels ── */
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .section-label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .8px;
+    margin-bottom: 8px; margin-top: 4px;
+  }
+
+  /* ── Empty state ── */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-state .emoji { font-size: 40px; display: block; margin-bottom: 10px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── Add PO Form ── */
+  .form-group { margin-bottom: 14px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── สถานะชิ้นงาน 5 ปุ่ม ── */
+  .status-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
+  }
+  .status-opt {
+    padding: 11px 8px; border-radius: 10px; border: 2px solid var(--border);
+    text-align: center; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all .15s; line-height: 1.4;
+  }
+  .status-opt.sel-recv   { border-color: #1565C0; background: #E3F2FD; color: #1565C0; }
+  .status-opt.sel-prod   { border-color: #795548; background: #EFEBE9; color: #795548; }
+  .status-opt.sel-ready  { border-color: #3949AB; background: #E8EAF6; color: #3949AB; }
+  .status-opt.sel-sent   { border-color: var(--green); background: #E8F5E9; color: var(--green); }
+  .status-opt.sel-rework { border-color: var(--red); background: #FFEBEE; color: var(--red); }
+  /* ปุ่มที่ 5 (กลับมาแก้ไข) ให้ขยาย full width */
+  .status-opt.full-row { grid-column: 1 / -1; }
+
+  /* ── Urgent toggle ── */
+  .urgent-toggle {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px; border-radius: 8px; border: 2px solid var(--border);
+    cursor: pointer; transition: all .15s; margin-bottom: 14px;
+  }
+  .urgent-toggle.on { border-color: var(--red); background: #FFEBEE; }
+  .urgent-toggle-icon { font-size: 20px; }
+  .urgent-toggle-text { font-size: 14px; font-weight: 600; flex: 1; }
+  .toggle-switch {
+    width: 44px; height: 24px; border-radius: 12px; background: var(--border);
+    position: relative; transition: background .2s;
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute; width: 18px; height: 18px;
+    border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: left .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  }
+  .urgent-toggle.on .toggle-switch { background: var(--red); }
+  .urgent-toggle.on .toggle-switch::after { left: 23px; }
+
+  /* ── Quick-update hint chip ── */
+  .hint-chip {
+    display: inline-block; background: #E8F0FE; color: var(--blue);
+    font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+    margin-bottom: 10px;
+  }
+
+  /* ── Master Data Management ── */
+  .master-section { margin-bottom: 18px; }
+  .master-section-title {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .master-tag-wrap {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;
+    min-height: 36px;
+  }
+  .master-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #EEF2FF; color: #3730A3;
+    border-radius: 20px; padding: 6px 12px; font-size: 13px; font-weight: 600;
+    border: 1.5px solid #C7D2FE;
+  }
+  .master-tag.tag-company  { background: #E0F2FE; color: #0369A1; border-color: #BAE6FD; }
+  .master-tag.tag-model    { background: #F0FDF4; color: #15803D; border-color: #BBF7D0; }
+  .master-tag.tag-part     { background: #FEF9C3; color: #854D0E; border-color: #FDE68A; }
+  .master-tag-del {
+    border: none; background: none; cursor: pointer;
+    font-size: 16px; color: #94A3B8; padding: 0; line-height: 1;
+    transition: color .15s;
+  }
+  .master-tag-del:hover { color: var(--red); }
+  .master-add-row {
+    display: flex; gap: 8px;
+  }
+  .master-add-row input {
+    flex: 1; margin-bottom: 0; font-size: 14px;
+  }
+  .master-add-btn {
+    background: var(--blue); color: #fff; border: none;
+    border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+  }
+  .master-add-btn:active { opacity: .8; }
+
+  /* ── Searchable Dropdown ── */
+  .sdropdown { position: relative; margin-bottom: 14px; }
+  .sdropdown-input {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 15px; background: #fff; color: var(--text);
+    cursor: pointer;
+  }
+  .sdropdown-input:focus {
+    outline: none; border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(26,115,232,.15);
+  }
+  .sdropdown-list {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    background: #fff; border: 1.5px solid var(--blue); border-radius: 0 0 8px 8px;
+    max-height: 200px; overflow-y: auto; z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  }
+  .sdropdown-list.open { display: block; }
+  .sdropdown-item {
+    padding: 10px 14px; font-size: 14px; cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .sdropdown-item:hover, .sdropdown-item.highlighted {
+    background: #E8F0FE; color: var(--blue);
+  }
+  .sdropdown-item:last-child { border-bottom: none; }
+  .sdropdown-empty {
+    padding: 10px 14px; font-size: 13px; color: var(--muted); text-align: center;
+  }
+
+  /* ── Login Screen ── */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #1A73E8 0%, #0D47A1 100%);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; padding: 20px;
+  }
+  #login-screen.hidden { display: none; }
+  .login-box {
+    background: #fff; border-radius: 20px; padding: 32px 24px;
+    width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    text-align: center;
+  }
+  .login-box h2 { font-size: 22px; margin-bottom: 4px; color: var(--text); }
+  .login-box p { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .login-box input[type=password] {
+    width: 100%; padding: 14px; border: 2px solid var(--border);
+    border-radius: 12px; font-size: 20px; text-align: center;
+    letter-spacing: 8px; margin-bottom: 16px;
+  }
+  .login-box input[type=password]:focus {
+    outline: none; border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(26,115,232,.2);
+  }
+  .login-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .login-btn:active { transform: scale(.97); }
+  .login-btn-admin { background: var(--blue); color: #fff; margin-bottom: 10px; }
+  .login-btn-staff { background: #E8F0FE; color: var(--blue); }
+  .login-error {
+    color: var(--red); font-size: 13px; font-weight: 600;
+    min-height: 20px; margin-bottom: 10px;
+  }
+  .role-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; margin-left: 6px;
+  }
+  .role-badge-admin { background: #E8F0FE; color: var(--blue); }
+  .role-badge-staff { background: #FFF3E0; color: var(--orange); }
+  .admin-only { /* ซ่อนเมื่อ staff */ }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ═══ LOADING OVERLAY ═══ -->
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(255,255,255,.92);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+  <div style="font-size:40px;">🔄</div>
+  <div style="font-size:16px;font-weight:700;color:#1A73E8;">กำลังดึงข้อมูลล่าสุด...</div>
+  <div style="font-size:12px;color:#78909C;">ข้อมูลจะตรงกันทุกเครื่อง</div>
+</div>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:40px;margin-bottom:8px;">🔩</div>
+    <h2>PO Tracker</h2>
+    <p>ร้านพ่นสี — ใส่รหัสผ่านเพื่อเข้าใช้งาน</p>
+    <input type="password" id="login-pass" placeholder="••••" maxlength="10"
+      onkeypress="if(event.key==='Enter')doLogin()">
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn login-btn-admin" onclick="doLogin()">🔓 เข้าสู่ระบบ</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:12px;">
+      ถ้าไม่ทราบรหัส ติดต่อ Admin
+    </div>
+  </div>
+</div>
+
+<div id="app-wrapper" style="display:none;">
+
+<div class="topbar">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h1>🔩 PO Tracker <span id="role-badge-display"></span></h1>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button onclick="quickRefresh()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer" title="ดึงข้อมูลล่าสุด">🔄</button>
+      <button onclick="openSyncModal()" class="admin-only" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">⚙️ Sync</button>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">🚪 ออก</button>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+    <small id="topbar-date"></small>
+    <small id="sync-status" style="font-size:11px;opacity:.9"></small>
+  </div>
+</div>
+
+<!-- ═══ SYNC MODAL ═══ -->
+<div id="sync-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:flex-end">
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-height:90vh;overflow-y:auto">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">☁️ เชื่อมต่อ Google Sheets</h3>
+    <p style="font-size:13px;color:#78909C;margin-bottom:16px">ใส่ URL ของ Apps Script Web App เพื่อ sync ข้อมูลกับทุกอุปกรณ์</p>
+    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Apps Script Web App URL</label>
+    <input id="gas-url-input" type="url" placeholder="https://script.google.com/macros/s/..."
+      style="width:100%;padding:12px;border:1px solid #E0E0E0;border-radius:10px;font-size:13px;margin-bottom:12px">
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <button onclick="saveGasUrl()" style="flex:1;background:#1A73E8;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">💾 บันทึก URL</button>
+      <button onclick="testConnection()" style="flex:1;background:#2E7D32;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">🔌 ทดสอบ</button>
+    </div>
+    <button onclick="syncNow()" style="width:100%;background:#F57F17;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:12px">🔄 ดึงข้อมูลล่าสุดจาก Sheet</button>
+    <p id="sync-test-result" style="font-size:13px;text-align:center;min-height:20px;margin-bottom:12px"></p>
+    <div style="background:#FFF3E0;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#E65100;line-height:1.7">
+      <strong>วิธี Deploy Apps Script:</strong><br>
+      1. เปิด Google Sheet → Extensions → Apps Script<br>
+      2. วาง code จากไฟล์ <code>po-tracker-gas.js</code><br>
+      3. Deploy → New deployment → Web app<br>
+      4. Execute as: <strong>Me</strong> | Access: <strong>Anyone</strong><br>
+      5. Copy URL มาวางตรงนี้
+    </div>
+    <button onclick="closeSyncModal()" style="width:100%;background:#ECEFF1;color:#546E7A;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">ปิด</button>
+  </div>
+</div>
+
+<!-- ═══ TAB NAV (4 แท็บ) ═══ -->
+<nav class="tabnav">
+  <button class="active" onclick="switchTab('dashboard')">📊 ภาพรวม</button>
+  <button onclick="switchTab('update')">✏️ อัพเดทชิ้น</button>
+  <button onclick="switchTab('addpo')">➕ เพิ่ม PO</button>
+  <button onclick="switchTab('master')">⚙️ จัดการ</button>
+</nav>
+
+<!-- ═══════════════ TAB: DASHBOARD + LIST รวมกัน ═══════════════ -->
+<div id="tab-dashboard" class="page active">
+
+  <!-- KPI -->
+  <div class="kpi-row">
+    <div class="kpi-box kpi-blue">
+      <div class="kpi-num" id="kpi-total-po">–</div>
+      <div class="kpi-label">PO ทั้งหมด</div>
+    </div>
+    <div class="kpi-box kpi-amber">
+      <div class="kpi-num" id="kpi-total-items">–</div>
+      <div class="kpi-label">ชิ้นทั้งหมด</div>
+    </div>
+    <div class="kpi-box kpi-green">
+      <div class="kpi-num" id="kpi-sent">–</div>
+      <div class="kpi-label">ส่งแล้ว</div>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi-box kpi-amber">
+      <div class="kpi-num" id="kpi-prod">–</div>
+      <div class="kpi-label">กำลังผลิต</div>
+    </div>
+    <div class="kpi-box kpi-blue">
+      <div class="kpi-num" id="kpi-ready">–</div>
+      <div class="kpi-label">เตรียมส่ง</div>
+    </div>
+    <div class="kpi-box kpi-red">
+      <div class="kpi-num" id="kpi-rework">–</div>
+      <div class="kpi-label">แก้ไข</div>
+    </div>
+  </div>
+
+  <!-- Urgent -->
+  <div id="urgent-section"></div>
+
+  <!-- Search + Filter -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <input type="text" id="search-input" placeholder="🔍 ค้นหา PO, บริษัท..."
+      oninput="renderDashboard()" style="margin:0;flex:1;">
+    <select id="filter-status" onchange="renderDashboard()" style="margin:0;width:130px;font-size:13px;">
+      <option value="active" selected>กำลังดำเนินการ</option>
+      <option value="">ทั้งหมด</option>
+      <option value="Partial Send">🌸 บางส่วน</option>
+      <option value="In progress">⏳ กำลังผลิต</option>
+      <option value="Order">📦 รอเริ่ม</option>
+      <option value="Complete">✅ เสร็จแล้ว</option>
+    </select>
+  </div>
+
+  <!-- PO Cards -->
+  <div class="section-label">📋 รายการ PO ทั้งหมด</div>
+  <div id="po-cards"></div>
+
+</div>
+
+<!-- ═══════════════ TAB: UPDATE STATUS ═══════════════ -->
+<div id="tab-update" class="page">
+
+  <!-- ถ้ายังไม่ได้เลือก PO แสดงลิสต์ให้แตะเลือก -->
+  <div id="update-select-section">
+    <span class="hint-chip">👆 แตะ PO ที่ต้องการอัพเดท</span>
+    <div id="update-po-list"></div>
+  </div>
+
+  <!-- หลังเลือก PO แล้ว แสดงรายการชิ้น -->
+  <div id="update-items-section" style="display:none;">
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <button onclick="backToPoList()"
+        style="background:#ECEFF1;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;color:#546E7A;">
+        ← กลับ
+      </button>
+      <div id="update-po-badge" style="font-size:14px;font-weight:700;color:var(--blue);"></div>
+    </div>
+
+    <div class="card" style="padding:12px 14px;margin-bottom:10px;">
+      <div id="update-po-detail" style="font-size:13px;color:var(--muted);"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔩 เลือกชิ้นที่จะอัพเดท <span style="color:var(--blue);font-size:12px;">(เลือกได้หลายชิ้น)</span></div>
+      <div id="items-list" class="item-list"></div>
+    </div>
+
+    <div id="update-form-section" style="display:none;" class="card">
+      <div class="card-title">✏️ เปลี่ยนสถานะ</div>
+
+      <div class="section-label">สถานะใหม่</div>
+      <!-- 5 สถานะ: 2+2+1(full) -->
+      <div class="status-grid">
+        <div class="status-opt" data-status="รับของแล้ว"   data-sel="sel-recv"   onclick="selectStatus('รับของแล้ว','sel-recv',this)">📥 รับของแล้ว</div>
+        <div class="status-opt" data-status="กำลังผลิต"    data-sel="sel-prod"   onclick="selectStatus('กำลังผลิต','sel-prod',this)">🔄 กำลังผลิต</div>
+        <div class="status-opt" data-status="เตรียมส่ง"    data-sel="sel-ready"  onclick="selectStatus('เตรียมส่ง','sel-ready',this)">📦 เตรียมส่ง</div>
+        <div class="status-opt" data-status="ส่งแล้ว"      data-sel="sel-sent"   onclick="selectStatus('ส่งแล้ว','sel-sent',this)">✅ ส่งแล้ว</div>
+        <div class="status-opt full-row" data-status="กลับมาแก้ไข" data-sel="sel-rework" onclick="selectStatus('กลับมาแก้ไข','sel-rework',this)">🔁 กลับมาแก้ไข</div>
+      </div>
+
+      <div id="sent-date-group" style="display:none;">
+        <label>📅 วันที่ส่ง</label>
+        <input type="date" id="sent-date">
+      </div>
+
+      <div id="bundle-po-group" style="display:none;">
+        <label>📦 ส่งไปกับ PO ไหน (ถ้ามี)</label>
+        <select id="bundle-po-select">
+          <option value="">— ไม่มี / ส่งเดี่ยว —</option>
+        </select>
+      </div>
+
+      <label>💬 หมายเหตุ (ไม่บังคับ)</label>
+      <textarea id="update-remark" placeholder="เช่น: ชิ้นด่วน, รอสีจากโรงงาน, ลูกค้าส่งกลับมา..."></textarea>
+
+      <button class="btn btn-primary" onclick="saveUpdate()">💾 บันทึกสถานะ</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ TAB: ADD PO ═══════════════ -->
+<div id="tab-addpo" class="page">
+
+  <div class="card">
+    <div class="card-title">📋 ข้อมูล PO</div>
+
+    <label>เลขที่ PO *</label>
+    <input type="text" id="add-pono" placeholder="เช่น PO-67-010">
+
+    <label>บริษัท / ลูกค้า *</label>
+    <div class="sdropdown" id="sd-company">
+      <input type="text" class="sdropdown-input" id="add-company-input" placeholder="🔍 พิมพ์ค้นหาบริษัท..." autocomplete="off">
+      <input type="hidden" id="add-company" value="">
+      <div class="sdropdown-list" id="sd-company-list"></div>
+    </div>
+
+    <label>รุ่นรถ</label>
+    <div class="sdropdown" id="sd-model">
+      <input type="text" class="sdropdown-input" id="add-model-input" placeholder="🔍 พิมพ์ค้นหารุ่นรถ..." autocomplete="off">
+      <input type="hidden" id="add-model" value="">
+      <div class="sdropdown-list" id="sd-model-list"></div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>วันที่รับ *</label>
+        <input type="date" id="add-recv">
+      </div>
+      <div>
+        <label>กำหนดส่ง *</label>
+        <input type="date" id="add-due">
+      </div>
+    </div>
+
+    <div class="urgent-toggle" id="add-urgent-toggle" onclick="toggleUrgent()">
+      <span class="urgent-toggle-icon">🔥</span>
+      <span class="urgent-toggle-text">งานด่วน</span>
+      <div class="toggle-switch"></div>
+    </div>
+
+    <label>หมายเหตุ</label>
+    <textarea id="add-remark" placeholder="เช่น: ตัดดำคาดแดง, ล้างสีก่อน..."></textarea>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔩 เพิ่มชิ้นงาน</div>
+
+    <!-- ★ เพิ่มหลายชิ้นพร้อมกัน -->
+    <div style="background:#EEF2FF;border-radius:10px;padding:12px;margin-bottom:12px;border:1.5px solid #C7D2FE;">
+      <div style="font-size:13px;font-weight:700;color:#3730A3;margin-bottom:8px;">⚡ เพิ่มหลายชิ้นพร้อมกัน</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <select id="bulk-part" style="margin:0;font-size:13px;padding:9px 10px;"></select>
+        <input type="text" id="bulk-color" placeholder="สี เช่น สีขาว W85" style="margin:0;font-size:13px;padding:9px 10px;">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="margin:0;white-space:nowrap;font-size:13px;">จำนวน:</label>
+        <input type="number" id="bulk-qty" value="1" min="1" max="50" style="margin:0;width:70px;text-align:center;font-size:15px;font-weight:700;padding:9px 6px;">
+        <button onclick="addBulkItems()" style="flex:1;background:#3730A3;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:700;cursor:pointer;">
+          ➕ เพิ่มทีเดียว
+        </button>
+      </div>
+    </div>
+
+    <div id="add-items-list"></div>
+    <button class="btn btn-outline" onclick="addItemRow()" style="margin-bottom:10px;">
+      ➕ เพิ่มชิ้นทีละ 1
+    </button>
+  </div>
+
+  <button class="btn btn-green" onclick="savePO()">✅ บันทึก PO ใหม่</button>
+</div>
+
+<!-- ═══════════════ TAB: MASTER DATA ═══════════════ -->
+<div id="tab-master" class="page">
+
+  <!-- บริษัท / ลูกค้า -->
+  <div class="card master-section">
+    <div class="master-section-title">🏢 บริษัท / ลูกค้า</div>
+    <div class="master-tag-wrap" id="master-company-tags"></div>
+    <div class="master-add-row">
+      <input type="text" id="master-company-input" placeholder="ชื่อบริษัทใหม่..." onkeypress="masterInputEnter('company',event)">
+      <button class="master-add-btn" onclick="addMasterItem('company')">➕ เพิ่ม</button>
+    </div>
+  </div>
+
+  <!-- รุ่นรถ -->
+  <div class="card master-section">
+    <div class="master-section-title">🚗 รุ่นรถ</div>
+    <div class="master-tag-wrap" id="master-model-tags"></div>
+    <div class="master-add-row">
+      <input type="text" id="master-model-input" placeholder="รุ่นรถใหม่ เช่น TRITON 2025..." onkeypress="masterInputEnter('model',event)">
+      <button class="master-add-btn" onclick="addMasterItem('model')">➕ เพิ่ม</button>
+    </div>
+  </div>
+
+  <!-- ชิ้นงาน -->
+  <div class="card master-section">
+    <div class="master-section-title">🔩 ชิ้นงาน</div>
+    <div class="master-tag-wrap" id="master-part-tags"></div>
+    <div class="master-add-row">
+      <input type="text" id="master-part-input" placeholder="ชิ้นงานใหม่ เช่น คิ้วล้อ..." onkeypress="masterInputEnter('part',event)">
+      <button class="master-add-btn" onclick="addMasterItem('part')">➕ เพิ่ม</button>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:12px;color:var(--muted);padding:8px 0 4px;">
+    ข้อมูลบันทึกในเครื่องอัตโนมัติ · กดค้าง × เพื่อลบ
+  </div>
+</div>
+
+<!-- ═══ ITEM DETAIL MODAL ═══ -->
+<div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-po-title">ชิ้นงานใน PO</div>
+    <div id="modal-items-detail"></div>
+    <button class="btn" onclick="goUpdateFromModal()"
+      style="background:var(--blue);color:#fff;margin-top:10px;margin-bottom:8px;">
+      ✏️ อัพเดทสถานะชิ้นงาน
+    </button>
+    <button class="btn admin-only" onclick="deletePO(modalPoId)"
+      style="background:#C62828;color:#fff;margin-bottom:8px;">
+      🗑️ ลบ PO นี้
+    </button>
+    <button class="btn btn-outline" onclick="closeDetailModal()">ปิด</button>
+  </div>
+</div>
+
+</div><!-- /app-wrapper -->
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  LOGIN & ROLE SYSTEM
+// ═══════════════════════════════════════════════════
+// ★ FIX BUG4: เก็บ SHA-256 hash แทน plain text
+// สร้าง hash ด้วย: https://emn178.github.io/online-tools/sha256.html
+// 1234  → 03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4
+// 0000  → 9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0
+// แนะนำเปลี่ยนรหัสผ่านใหม่หลัง deploy
+const PASSWORDS = {
+  admin: '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+  staff: '9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0'
+};
+let currentRole = localStorage.getItem('po_role') || '';
+
+async function hashPassword(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function doLogin() {
+  const pass = document.getElementById('login-pass').value.trim();
+  const errEl = document.getElementById('login-error');
+  if (!pass) { errEl.textContent = '⚠️ กรุณาใส่รหัสผ่าน'; return; }
+  const hashed = await hashPassword(pass);
+  if (hashed === PASSWORDS.admin) {
+    currentRole = 'admin';
+  } else if (hashed === PASSWORDS.staff) {
+    currentRole = 'staff';
+  } else {
+    errEl.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+    document.getElementById('login-pass').value = '';
+    return;
+  }
+  localStorage.setItem('po_role', currentRole);
+  showApp();
+}
+
+function doLogout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  currentRole = '';
+  localStorage.removeItem('po_role');
+  document.getElementById('app-wrapper').style.display = 'none';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').textContent = '';
+}
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-wrapper').style.display = 'block';
+  applyRole();
+  renderDashboard();
+}
+
+function applyRole() {
+  const badgeEl = document.getElementById('role-badge-display');
+  if (currentRole === 'admin') {
+    badgeEl.innerHTML = '<span class="role-badge role-badge-admin">👑 Admin</span>';
+  } else {
+    badgeEl.innerHTML = '<span class="role-badge role-badge-staff">👷 Staff</span>';
+  }
+
+  // ซ่อน/แสดงตาม role
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = currentRole === 'admin' ? '' : 'none';
+  });
+
+  // แท็บ "จัดการ" — ซ่อนสำหรับ Staff
+  const masterTab = document.querySelectorAll('.tabnav button')[3]; // แท็บที่ 4
+  if (masterTab) {
+    masterTab.style.display = currentRole === 'admin' ? '' : 'none';
+  }
+
+  // admin-only class จะจัดการซ่อน/แสดงปุ่ม Sync settings อัตโนมัติ
+}
+
+// ═══════════════════════════════════════════════════
+//  GOOGLE SHEETS SYNC  — Cloud-first mode
+// ═══════════════════════════════════════════════════
+// ★ ใส่ URL ของ Apps Script Web App ตรงนี้ → ทุกเครื่องจะใช้ค่าเดียวกัน
+// ★★★ VERSION STAMP — ถ้าเห็นเลขนี้ใน console = โค้ดใหม่ทำงานแล้ว
+const APP_VERSION = 'v3.6-BUGFIX-2026-03-20';
+console.log('🚀 PO Tracker Mobile ' + APP_VERSION + ' loaded at ' + new Date().toISOString());
+
+const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbwTvCm7tOQ8gT3yQDZcL_BCwaX9M_G-AS3eMbPN5FWDLOgoHKdBnRfbEvaDxGZy6DI/exec';
+let GAS_URL = HARDCODED_GAS_URL || localStorage.getItem('gas_url') || '';
+
+function setGasUrl(url) {
+  GAS_URL = url.trim();
+  localStorage.setItem('gas_url', GAS_URL);
+}
+
+// ★ FIX CHROME: เปลี่ยนจาก JSONP เป็น fetch() + credentials:'omit'
+// JSONP ทำให้ Chrome ส่ง Google session cookie → GAS redirect loop
+// credentials:'omit' = ไม่ส่ง cookie → GAS ตอบกลับโดยตรงในฐานะ Anonymous
+async function jsonpCall(url) {
+  // ตัด ?callback=... ออกถ้ามี (GAS จะ return JSON ล้วนเมื่อไม่มี callback param)
+  const fetchUrl = url.replace(/[&?]callback=[^&]*/g, '');
+  const response = await fetch(fetchUrl, {
+    method: 'GET',
+    credentials: 'omit',   // ★ สำคัญ: ไม่ส่ง cookie ใดๆ ป้องกัน redirect loop
+    redirect: 'follow',
+    headers: { 'Accept': 'application/json' }
+  });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  return await response.json();
+}
+
+async function fetchFromSheet() {
+  if (!GAS_URL) return null;
+  if (_pushing) {
+    console.log('[fetchFromSheet] Skipped — push in progress');
+    return null;  // ★ FIX BUG1: ห้าม fetch ขณะกำลัง push
+  }
+  try {
+    showSyncStatus('syncing');
+    const json = await jsonpCall(GAS_URL + '?action=getAll');
+    if (!json.ok) { showSyncStatus('error', json.error); return null; }
+
+    const raw = json.data;
+
+    // ── แปลง key: GAS ใช้ po_id, item_name, recv_date, due_date, sent_date, bundle_po
+    //              HTML ใช้  id,    part,      recv,      due,      sentDate,  bundlePO
+    const pos = (raw.pos || []).map(p => ({
+      id:     p.po_id   || p.id   || '',
+      company:p.company || '',
+      model:  p.model   || '',
+      recv:   fixDateStr(p.recv_date || p.recv || ''),
+      due:    fixDateStr(p.due_date  || p.due  || ''),
+      urgent: p.urgent === true || String(p.urgent).toUpperCase() === 'TRUE',
+      status: p.status  || 'Order',
+      remark: p.remark  || ''
+    })).filter(p => p.id);   // กรองแถวที่ไม่มี id ออก
+
+    const items = (raw.items || []).map(i => ({
+      po:       i.po_id    || i.po  || '',
+      part:     i.item_name|| i.part|| '',
+      color:    i.color    || '',
+      urgent:   i.urgent === true || String(i.urgent).toUpperCase() === 'TRUE',
+      status:   i.status   || 'รับของแล้ว',
+      itemDue:  fixDateStr(i.item_due || i.itemDue  || ''),
+      sentDate: fixDateStr(i.sent_date|| i.sentDate || ''),
+      bundlePO: i.bundle_po|| i.bundlePO || '',
+      remark:   i.remark   || ''
+    })).filter(i => i.po && i.part);   // กรองแถวที่ไม่มี po หรือไม่มีชิ้นงานออก
+
+    // ── ถ้า GAS v3 ส่ง master lists มา ให้ใช้จาก Sheet (CONFIG เป็น source of truth)
+    //    ถ้า GAS เก่าไม่ส่งมา ให้ fallback เป็น local db หรือ defaults
+    const merged = {
+      masterCompanies: (raw.masterCompanies && raw.masterCompanies.length > 0)
+                        ? raw.masterCompanies
+                        : (db.masterCompanies || [...DEFAULT_COMPANIES]),
+      masterModels:    (raw.masterModels    && raw.masterModels.length > 0)
+                        ? raw.masterModels
+                        : (db.masterModels    || [...DEFAULT_CAR_MODELS]),
+      masterParts:     (raw.masterParts     && raw.masterParts.length > 0)
+                        ? raw.masterParts
+                        : (db.masterParts     || [...DEFAULT_PART_TYPES]),
+      pos,
+      items
+    };
+
+    showSyncStatus('ok');
+    return merged;
+  } catch(e) { showSyncStatus('error', e.message); return null; }
+}
+
+async function pushToSheet(data) {
+  if (!GAS_URL) return;
+  _pushing = true;  // ★ ล็อก — ห้าม auto-refresh ทับข้อมูลขณะ push
+  try {
+    showSyncStatus('syncing');
+    // ★ กรอง items ที่ไม่มีชื่อชิ้นงานออกก่อนส่ง — ป้องกัน row ว่างใน Sheet
+    const rawItems = data.items || [];
+    const filteredItems = rawItems.filter(i => i.po && i.part);
+    console.log(`[pushToSheet] items before filter: ${rawItems.length}, after filter: ${filteredItems.length}`);
+    if (rawItems.length !== filteredItems.length) {
+      console.warn(`[pushToSheet] ⚠️ ${rawItems.length - filteredItems.length} empty items filtered out!`);
+      rawItems.forEach((it, idx) => {
+        if (!it.po || !it.part) console.warn(`  [filtered] item ${idx}: po="${it.po}" part="${it.part}"`);
+      });
+    }
+    const cleanData = Object.assign({}, data, {
+      items: filteredItems,
+      masterCompanies: db.masterCompanies || [...DEFAULT_COMPANIES],
+      masterModels:    db.masterModels    || [...DEFAULT_CAR_MODELS],
+      masterParts:     db.masterParts     || [...DEFAULT_PART_TYPES]
+    });
+    const payload = {
+      action: 'saveAll',
+      data: cleanData
+    };
+
+    // ใช้ POST แทน GET — ไม่จำกัด URL length, ส่ง JSON body ได้ไม่จำกัดขนาด
+    // credentials:'omit' ป้องกัน Chrome ส่ง Google session cookie → redirect loop
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      credentials: 'omit',   // ★ FIX CHROME: ไม่ส่ง cookie
+      redirect: 'follow'
+    });
+    const json = await resp.json();
+
+    if (json.ok) showSyncStatus('ok');
+    else showSyncStatus('error', json.error || 'GAS error');
+  } catch(e) { showSyncStatus('error', e.message); }
+  finally { _pushing = false; }  // ★ ปลดล็อก
+}
+
+function showSyncStatus(state, msg) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (state === 'syncing') {
+    el.innerHTML = '🔄 กำลัง sync...'; el.style.color = '#F57F17';
+  } else if (state === 'ok') {
+    const t = new Date();
+    el.innerHTML = `✅ Sync ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}`;
+    el.style.color = '#2E7D32';
+  } else {
+    el.innerHTML = '❌ Sync ล้มเหลว'; el.style.color = '#C62828';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  DATA STORE
+// ═══════════════════════════════════════════════════
+const STORE_KEY = 'po_tracker_v3';
+
+// Master lists — ค่าเริ่มต้น (จาก 2567_06 Gantt สมบูรณ์.xlsx)
+const DEFAULT_COMPANIES = [
+  "ACE","ACG","ADEK","AFF","APD","BBT","BK","CCC","DB","JBM","MKP","OAP",
+  "PPP","PPPPA","PQ","PRS","PY","SPN","SUN","TAS","TB","TFP","TPO",
+  "TRIPLE-AUTO","TTS","คุณเก่ง","คุณเอ็กซ์","ธรรมนูญ","นก","สาโรจน์ A&T","ออโต้บาย"
+];
+
+const DEFAULT_CAR_MODELS = [
+  "AH-R1","ALMERA","ALMERA 20","ALMERA 2020","ALMERA 2020 V4","ALMERA NISMO","ALPHARD",
+  "ALTIS 17 V1","ALTIS TAXI","ALTIS V3","AMAZE/ ALTIS","ATIV 17","ATIV 17 V1","ATIV 17 V2",
+  "ATIV 2021 V1","ATIV 2021 V2","ATTRAGE","ATTRAGE 12 V1","ATTRAGE 17","ATTRAGE 20",
+  "ATTRAGE 2020","ATTRAGE R1","ATTRAGE R2","ATTRAGE R4","CAMRY","CH-R","CH-R 18",
+  "CIAZ","CITY","CIVIC","CROSS 2020","D-MAX","D-MAX 1.9","D-MAX 2021 V2","D-MAX ALL NEW",
+  "EVEREST","EVEREST 22","FORD RANGER","FORTUNER","FORTUNER 13","FORTUNER R1","HILUX CHAMP",
+  "HONDA CITY","HONDA CIVIC","ISUZU","MARCH","MARCH EURO","MARCH EURO SPORT",
+  "MAZDA 2","MAZDA 2 2020","MAZDA 2 4D","MAZDA 2 5D","MAZDA 3 2020","MG 5","MG ZS",
+  "MG ZS V9","MINI COOPER","MIRAGE","MIRAGE 2020","MITSU","MU-X","MU-X 2021",
+  "MU-X 2021 V1","MU-X 2021 V2","MU-X 2021 V3","NAVARA","NISSAN ALMERA","NISSAN ALMERA 2020",
+  "NISSAN MARCH EURO","NISSAN TERRA","NOTE 17","PAJERO SPORT","RANGER","REVO","REVO 2020",
+  "SIENTA","SUZUKI CIAZ","SUZUKI SWIFT","SUZUKI SWIFT 18","SUZUKI SWIFT 2020",
+  "SUZUKI SWIFT 2021 V3","TOYOTA ATIV","TOYOTA REVO","TOYOTA VELOZ 2022","TRITON",
+  "TRITON 19","TRITON 2020","VELOZ 2022","VIOS","VIOS 13","VIOS 17",
+  "X-PANDER","X-PANDER 18","X-PANDER 2020","YARIS","YARIS 17","YARIS 2020","YARIS 2021 S1",
+  "YARIS ATIV 17","YARIS ATIV 2020","YARIS ATIV 2021 V1","YARIS ATIV 2023 HB",
+  "รถกอฟล์","รถตู้","รถบัส","รถมอเตอร์ไซค์"
+];
+
+const DEFAULT_PART_TYPES = [
+  "กระจังหน้า","กันชน","กันชนหน้า","กันชนหน้า-หลัง",
+  "กาบ 4 ชิ้น","กาบ 6 ชิ้น","กาบข้าง L/R","กาบประตู","กาบประตู 4 ชิ้น",
+  "กาบประตูหน้า LH","กาบประตูหน้า RH","กาบประตูหลัง LH","กาบประตูหลัง RH",
+  "ครอบป้ายทะเบียน","ครอบฝาหน้า","ครอบไฟตัดหมอก L/R","ครอบไฟท้าย L/R",
+  "คาดเอว","คาดเอว มีไฟ","คิ้วล้อ","คิ้วล้อ 4 ชิ้น","คิ้วล้อ 8 ชิ้น",
+  "คิ้วล้อหน้า L/R","คิ้วล้อหลัง L/R","คิ้วบังโคลนหน้า","คิ้วบังโคลนหลัง L/R",
+  "บันได L/R","บันไดข้าง L/R",
+  "สปอยเลอร์","สปอยเลอร์ มีไฟ","สปอยเลอร์ ยกสูง","สปอยเลอร์ 6 ชิ้น",
+  "สเกิร์ต","สเกิร์ต 4 ชิ้น","สเกิร์ต 6 ชิ้น","สเกิร์ต+สปอยเลอร์",
+  "สเกิร์ตข้าง","สเกิร์ตข้าง L/R","สเกิร์ตรอบคัน",
+  "สเกิร์ตหน้า","สเกิร์ตหน้า-หลัง","สเกิร์ตหน้า-หลัง-ข้าง",
+  "สเกิร์ตหลัง","สเกิร์ตหลัง L/R",
+  "หน้ากระจัง","เดินกาว3M","เดินเทปกาว 2 หน้า","โรบาร์"
+];
+
+// 5 สถานะใหม่
+const ITEM_STATUSES = ["รับของแล้ว","กำลังผลิต","เตรียมส่ง","ส่งแล้ว","กลับมาแก้ไข"];
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      // backward-compat: ถ้า db เก่าไม่มี master lists ให้ใส่ default
+      if (!d.masterCompanies) d.masterCompanies = [...DEFAULT_COMPANIES];
+      if (!d.masterModels)    d.masterModels    = [...DEFAULT_CAR_MODELS];
+      if (!d.masterParts)     d.masterParts     = [...DEFAULT_PART_TYPES];
+
+      // ── v2 → v3 migration: ถ้า v3 ไม่มี PO แต่ v2 มี ให้ดึงมา ──
+      if ((!d.pos || d.pos.length === 0) && (!d.items || d.items.length === 0)) {
+        const v2raw = localStorage.getItem('po_tracker_v2');
+        if (v2raw) {
+          try {
+            const v2 = JSON.parse(v2raw);
+            if (v2.pos && v2.pos.length > 0)   d.pos   = v2.pos;
+            if (v2.items && v2.items.length > 0) d.items = v2.items;
+            console.log('📦 Migrated ' + (d.pos||[]).length + ' POs from v2 → v3');
+          } catch(e2) { console.warn('v2 migration failed:', e2); }
+        }
+      }
+      return d;
+    }
+  } catch(e) {}
+  return getInitialData();
+}
+
+// ★ skipPush = true เมื่อดึงข้อมูลมาจาก Sheet (ไม่ต้อง push กลับ ป้องกันวนแปลง)
+let _skipPush = false;
+// ★ _pushing = true ขณะกำลัง push ข้อมูลขึ้น Sheet → ห้าม auto-refresh ทับ
+let _pushing = false;
+
+function saveData(d, skipPush) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(d));
+  if (GAS_URL && !skipPush && !_skipPush) pushToSheet(d);
+}
+
+function getInitialData() {
+  return {
+    masterCompanies: [...DEFAULT_COMPANIES],
+    masterModels:    [...DEFAULT_CAR_MODELS],
+    masterParts:     [...DEFAULT_PART_TYPES],
+    pos: [
+      { id:'PO-67-001', company:'สาโรจน์ A&T', model:'ATTRAGE',      recv:'2024-03-21', due:'2024-03-28', urgent:true,  status:'Partial Send', remark:'ชุดสเกิร์ต' },
+      { id:'PO-67-002', company:'AFF',          model:'MU-X 2021',    recv:'2024-03-22', due:'2024-03-30', urgent:false, status:'In progress',  remark:'' },
+      { id:'PO-67-003', company:'PPP',          model:'TRITON',       recv:'2024-03-23', due:'2024-04-05', urgent:false, status:'Order',        remark:'กันชนชุดใหญ่' },
+      { id:'PO-67-004', company:'สาโรจน์ A&T', model:'PAJERO SPORT', recv:'2024-03-24', due:'2024-03-31', urgent:true,  status:'Partial Send', remark:'' },
+    ],
+    items: [
+      { po:'PO-67-001', part:'สเกิร์ตหน้า',   color:'สีขาว W85',    urgent:true,  status:'ส่งแล้ว',       sentDate:'2024-03-26', bundlePO:'', remark:'ด่วน ส่งก่อน' },
+      { po:'PO-67-001', part:'สเกิร์ตหลัง',   color:'สีขาว W85',    urgent:true,  status:'ส่งแล้ว',       sentDate:'2024-03-26', bundlePO:'', remark:'ด่วน ส่งก่อน' },
+      { po:'PO-67-001', part:'สเกิร์ตข้าง L', color:'สีขาว W85',    urgent:false, status:'กำลังผลิต',     sentDate:'', bundlePO:'', remark:'' },
+      { po:'PO-67-001', part:'สเกิร์ตข้าง R', color:'สีขาว W85',    urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'PO-67-003', remark:'รวมส่งกับ 67-003' },
+      { po:'PO-67-002', part:'สเกิร์ตหน้า',   color:'สีดำ 569',     urgent:false, status:'กำลังผลิต',     sentDate:'', bundlePO:'', remark:'' },
+      { po:'PO-67-002', part:'สเกิร์ตหลัง',   color:'สีดำ 569',     urgent:false, status:'กลับมาแก้ไข',   sentDate:'', bundlePO:'', remark:'สีไม่สม่ำเสมอ' },
+      { po:'PO-67-002', part:'สเกิร์ตข้าง L', color:'สีดำ 569',     urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
+      { po:'PO-67-002', part:'สเกิร์ตข้าง R', color:'สีดำ 569',     urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
+      { po:'PO-67-003', part:'บันเปอร์หน้า',  color:'สีเงิน A33',   urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
+      { po:'PO-67-003', part:'บันเปอร์หลัง',  color:'สีเงิน A33',   urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
+      { po:'PO-67-003', part:'กันชนหน้า',      color:'สีเงิน A33',   urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
+      { po:'PO-67-004', part:'สเกิร์ตหน้า',   color:'สีขาวมุก W85', urgent:true,  status:'ส่งแล้ว',       sentDate:'2024-03-25', bundlePO:'', remark:'ด่วนมาก' },
+      { po:'PO-67-004', part:'สเกิร์ตหลัง',   color:'สีขาวมุก W85', urgent:false, status:'เตรียมส่ง',     sentDate:'', bundlePO:'PO-67-001', remark:'รวมส่งกับ 67-001' },
+      { po:'PO-67-004', part:'บันเปอร์หน้า',  color:'สีขาวมุก W85', urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
+    ]
+  };
+}
+
+let db = loadData();
+let selectedStatus    = '';
+let selectedStatusSel = '';
+let urgentOn     = false;
+let addItemCount = 0;
+let selectedItems = new Set();
+let currentPoId   = '';
+let modalPoId     = '';
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+// แปลงวันที่จาก GAS/Sheet ที่อาจมาหลายรูปแบบ ให้เป็น yyyy-mm-dd
+function fixDateStr(v) {
+  if (v === null || v === undefined || v === '') return '';
+  // ★ FIX BUG3: รองรับ Unix timestamp (milliseconds) จาก GAS
+  if (typeof v === 'number' || (typeof v === 'string' && /^\d{10,13}$/.test(v.trim()))) {
+    const ms = typeof v === 'number' ? v : parseInt(v);
+    // GAS บางครั้งส่ง seconds (10 หลัก) แทน milliseconds (13 หลัก)
+    const d = new Date(ms > 9999999999 ? ms : ms * 1000);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  }
+  const s = String(v).trim();
+  // ถ้าเป็น ISO อยู่แล้ว (yyyy-mm-dd) → ใช้เลย
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // ถ้า GAS ส่งมาเป็น Date string เช่น "Sat Mar 14 2026 ..."
+  if (s.includes(' ') && !s.includes('/')) {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  }
+  // ถ้าเป็น d/m/y หรือ d/m/-407 → แปลงกลับ
+  const parts = s.split('/');
+  if (parts.length === 3) {
+    let day = parseInt(parts[0]);
+    let mon = parseInt(parts[1]);
+    let yr  = parseInt(parts[2]);
+    if (isNaN(day) || isNaN(mon) || isNaN(yr)) return '';
+    // ถ้าปีเป็นลบ หรือ < 100 → คำนวณผิดจากสูตรเก่า
+    if (yr < 0) yr = yr + 2500 - 67; // reverse: getFullYear()-2500+67 → yr; so getFullYear() = yr+2500-67
+    // ถ้าปี พ.ศ. (>2400) → แปลงเป็น ค.ศ.
+    if (yr > 2400) yr = yr - 543;
+    if (yr < 1900 || yr > 2100) return ''; // ค่าผิดปกติ
+    return `${yr}-${String(mon).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  }
+  return '';
+}
+
+function thaiDate(isoStr) {
+  if (!isoStr) return '—';
+  const fixed = fixDateStr(isoStr);
+  if (!fixed) return '—';
+  const d = new Date(fixed + 'T00:00:00');
+  if (isNaN(d.getTime())) return '—';
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
+function todayISO() { return new Date().toISOString().split('T')[0]; }
+
+function daysLeft(dueStr) {
+  if (!dueStr) return null;
+  const fixed = fixDateStr(dueStr);
+  if (!fixed) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(fixed + 'T00:00:00');
+  if (isNaN(due.getTime())) return null;
+  return Math.ceil((due - today) / 86400000);
+}
+
+function daysLeftLabel(dueStr) {
+  const d = daysLeft(dueStr);
+  if (d === null) return '';
+  if (d < 0) return `<span style="color:var(--red);font-weight:700;">⚠️ เลยกำหนด ${Math.abs(d)} วัน</span>`;
+  if (d === 0) return `<span style="color:var(--red);font-weight:700;">🔴 วันนี้!</span>`;
+  if (d <= 3) return `<span style="color:var(--amber);font-weight:700;">⏰ อีก ${d} วัน</span>`;
+  return `<span style="color:var(--muted);">อีก ${d} วัน</span>`;
+}
+
+function toast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function statusBadge(s) {
+  const map = {
+    'รับของแล้ว':   ['badge-recv',   '📥 รับของแล้ว'],
+    'กำลังผลิต':    ['badge-prod',   '🔄 กำลังผลิต'],
+    'เตรียมส่ง':    ['badge-ready',  '📦 เตรียมส่ง'],
+    'ส่งแล้ว':      ['badge-sent',   '✅ ส่งแล้ว'],
+    'กลับมาแก้ไข': ['badge-rework', '🔁 กลับมาแก้ไข'],
+  };
+  const [cls, label] = map[s] || ['badge-recv', s];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function poBadge(s) {
+  const map = {
+    'Complete':     ['badge-po-done',    '✅ Complete'],
+    'Partial Send': ['badge-po-partial', '🌸 บางส่วน'],
+    'In progress':  ['badge-po-inprog',  '🔄 กำลังผลิต'],
+    'Order':        ['badge-po-order',   '📦 รอเริ่ม'],
+  };
+  const [cls, label] = map[s] || ['badge-po-order', s];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function itemsOfPO(poId) { return db.items.filter(i => i.po === poId); }
+
+function poStatusAuto(poId) {
+  const items = itemsOfPO(poId);
+  if (!items.length) return 'Order';
+  if (items.every(i => i.status === 'ส่งแล้ว')) return 'Complete';
+  if (items.some(i => i.status === 'ส่งแล้ว'))  return 'Partial Send';
+  if (items.some(i => ['กำลังผลิต','เตรียมส่ง','กลับมาแก้ไข'].includes(i.status))) return 'In progress';
+  return 'Order';
+}
+
+function syncPOStatuses(pushToCloud) {
+  db.pos.forEach(po => { po.status = poStatusAuto(po.id); });
+  if (pushToCloud) {
+    saveData(db);  // push ขึ้น Sheet ด้วย
+  } else {
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));  // save local เท่านั้น
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tabnav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const idx = ['dashboard','update','addpo','master'].indexOf(name);
+  document.querySelectorAll('.tabnav button')[idx].classList.add('active');
+
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'update')    initUpdateTab();
+  if (name === 'addpo')     initAddPOTab();
+  if (name === 'master')    renderMasterTab();
+}
+
+// ═══════════════════════════════════════════════════
+//  DASHBOARD (รวม list แล้ว)
+// ═══════════════════════════════════════════════════
+function renderDashboard() {
+  syncPOStatuses(false);  // คำนวณสถานะใหม่แต่ไม่ push ขึ้น Sheet
+  const items   = db.items;
+  const sent    = items.filter(i => i.status === 'ส่งแล้ว').length;
+  const prod    = items.filter(i => i.status === 'กำลังผลิต').length;
+  const ready   = items.filter(i => i.status === 'เตรียมส่ง').length;
+  const rework  = items.filter(i => i.status === 'กลับมาแก้ไข').length;
+
+  document.getElementById('kpi-total-po').textContent    = db.pos.length;
+  document.getElementById('kpi-total-items').textContent = items.length;
+  document.getElementById('kpi-sent').textContent        = sent;
+  document.getElementById('kpi-prod').textContent        = prod;
+  document.getElementById('kpi-ready').textContent       = ready;
+  document.getElementById('kpi-rework').textContent      = rework;
+
+  // Urgent
+  const urgItems = items.filter(i => i.urgent && i.status !== 'ส่งแล้ว');
+  const urgSec = document.getElementById('urgent-section');
+  if (urgItems.length) {
+    // เรียงงานด่วนตามวันกำหนดส่ง (itemDue ก่อน, ถ้าไม่มีใช้ PO due)
+    urgItems.sort((a, b) => {
+      const aPo = db.pos.find(p => p.id === a.po);
+      const bPo = db.pos.find(p => p.id === b.po);
+      const aDue = a.itemDue || (aPo && aPo.due) || '9999';
+      const bDue = b.itemDue || (bPo && bPo.due) || '9999';
+      return aDue.localeCompare(bDue);
+    });
+    urgSec.innerHTML = `
+      <div class="section-label" style="color:var(--red);font-size:13px;">🔥 ชิ้นด่วนที่ยังไม่ส่ง (${urgItems.length})</div>
+      ${urgItems.map(i => {
+        const po = db.pos.find(p => p.id === i.po);
+        const dueDateStr = i.itemDue || (po && po.due) || '';
+        return `
+        <div class="po-card partial" style="border-left-color:var(--red);padding:14px 16px;">
+          <div class="po-card-header">
+            <div>
+              <div class="po-card-no" style="color:var(--red);font-size:16px;">${i.po}</div>
+              <div style="font-size:14px;font-weight:600;margin-top:2px;">🔩 ${i.part} — ${i.color}</div>
+            </div>
+            ${statusBadge(i.status)}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <div style="font-size:13px;color:var(--muted);">📅 กำหนดส่ง: <strong>${thaiDate(dueDateStr)}</strong></div>
+            <div style="font-size:13px;">${daysLeftLabel(dueDateStr)}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  } else { urgSec.innerHTML = ''; }
+
+  // Filter / Search
+  const q  = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const sf = document.getElementById('filter-status')?.value || '';
+
+  const filtered = db.pos.filter(po => {
+    if (po.deleted) return false;  // ลบแล้วไม่แสดง
+    const matchQ  = !q || po.id.toLowerCase().includes(q) || po.company.toLowerCase().includes(q) || po.model.toLowerCase().includes(q);
+    let matchSF;
+    if (sf === 'active') matchSF = po.status !== 'Complete';  // ซ่อน PO เสร็จแล้ว
+    else matchSF = !sf || po.status === sf;
+    return matchQ && matchSF;
+  });
+
+  const container = document.getElementById('po-cards');
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-state"><span class="emoji">📋</span><p>ไม่พบ PO</p></div>';
+    return;
+  }
+
+  // เรียงตามวันกำหนดส่ง — ใกล้ส่งที่สุดอยู่บน, ไม่มีวันที่ไว้ท้าย
+  filtered.sort((a, b) => {
+    if (!a.due && !b.due) return 0;
+    if (!a.due) return 1;
+    if (!b.due) return -1;
+    return a.due.localeCompare(b.due);
+  });
+
+  container.innerHTML = filtered.map(po => {
+    const its = itemsOfPO(po.id);
+    const sentCount = its.filter(i => i.status === 'ส่งแล้ว').length;
+    const total = its.length;
+    const pct = total ? Math.round(sentCount / total * 100) : 0;
+    const cls = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
+    const reworkCount = its.filter(i => i.status === 'กลับมาแก้ไข').length;
+    return `
+      <div class="po-card ${cls}" onclick="openDetailModal('${po.id}')">
+        <div class="po-card-header">
+          <div>
+            <div class="po-card-no">${po.id} ${po.urgent ? '🔥' : ''}${reworkCount > 0 ? ' <span style="font-size:11px;color:var(--red)">🔁×'+reworkCount+'</span>' : ''}</div>
+            <div class="po-card-company">${po.company} · ${po.model}</div>
+          </div>
+          ${poBadge(po.status)}
+        </div>
+        <div class="po-card-progress">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div class="po-card-stats">
+          <div>ส่งแล้ว <span style="color:var(--green)">${sentCount}/${total}</span></div>
+          <div>กำหนดส่ง <span>${thaiDate(po.due)}</span></div>
+          <div style="margin-left:auto;font-size:11px;">${daysLeftLabel(po.due)}</div>
+        </div>
+        ${po.remark ? `<div style="font-size:12px;color:var(--muted);margin-top:5px;">💬 ${po.remark}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  DETAIL MODAL
+// ═══════════════════════════════════════════════════
+function openDetailModal(poId) {
+  modalPoId = poId;
+  const po = db.pos.find(p => p.id === poId);
+  if (!po) return;
+  const its = itemsOfPO(poId);
+  document.getElementById('modal-po-title').textContent = `🔩 ${poId} — ${po.company}`;
+  document.getElementById('modal-items-detail').innerHTML = `
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+      ${po.model} · กำหนดส่ง ${thaiDate(po.due)} ${po.urgent ? '· <strong style="color:var(--red)">🔥 ด่วน</strong>' : ''}
+    </div>
+    ${its.length ? its.map(it => `
+      <div style="padding:10px 12px;border-radius:9px;border:1.5px solid var(--border);margin-bottom:8px;background:#fafafa;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:700;font-size:14px;">${it.part} ${it.urgent ? '🔥' : ''}</div>
+            <div style="font-size:12px;color:var(--muted);">${it.color}</div>
+          </div>
+          ${statusBadge(it.status)}
+        </div>
+        ${it.itemDue ? `<div style="font-size:12px;color:var(--red);margin-top:5px;font-weight:600;">⏰ กำหนดส่งชิ้นนี้: ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue)}</div>` : ''}
+        ${it.sentDate ? `<div style="font-size:12px;color:var(--muted);margin-top:5px;">📅 ส่ง: ${thaiDate(it.sentDate)}</div>` : ''}
+        ${it.bundlePO ? `<div style="font-size:12px;color:var(--blue);margin-top:3px;">📦 ส่งกับ: ${it.bundlePO}</div>` : ''}
+        ${it.remark   ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">💬 ${it.remark}</div>` : ''}
+      </div>
+    `).join('') : '<div style="color:var(--muted);text-align:center;padding:20px;">ยังไม่มีชิ้นงาน</div>'}
+  `;
+  document.getElementById('detail-modal').classList.add('open');
+  applyRole(); // ซ่อนปุ่มลบถ้าเป็น Staff
+}
+
+function closeModal(e) { if (e.target.id === 'detail-modal') closeDetailModal(); }
+function closeDetailModal() { document.getElementById('detail-modal').classList.remove('open'); }
+
+// ปุ่ม "อัพเดทสถานะ" ใน modal → ข้ามไปแท็บอัพเดทพร้อมเลือก PO ทันที
+function goUpdateFromModal() {
+  closeDetailModal();
+  switchTab('update');
+  openPoItems(modalPoId);
+}
+
+// ลบ PO (ยืนยันก่อนลบ)
+async function deletePO(poId) {
+  const po = db.pos.find(p => p.id === poId);
+  if (!po) return;
+  const its = itemsOfPO(poId);
+  const msg = `⚠️ ยืนยันลบ PO "${poId}" (${po.company})\nชิ้นงาน ${its.length} ชิ้นจะถูกลบด้วย\n\nลบแล้วกู้คืนไม่ได้!`;
+  if (!confirm(msg)) return;
+
+  // ★ FIX BUG2: Soft delete — ทำสำเนาไว้ก่อน ถ้า sync ล้มเหลวสามารถกู้คืนได้
+  const deletedPos   = db.pos.filter(p => p.id === poId);
+  const deletedItems = db.items.filter(i => i.po === poId);
+
+  db.pos   = db.pos.filter(p => p.id !== poId);
+  db.items = db.items.filter(i => i.po !== poId);
+
+  closeDetailModal();
+  renderDashboard();
+  toast('🗑️ ลบ ' + poId + ' แล้ว — กำลัง sync...');
+
+  // Push ขึ้น Sheet แล้วเช็คผล
+  if (GAS_URL) {
+    try {
+      await pushToSheet(db);
+      toast('✅ ลบ ' + poId + ' และ sync สำเร็จ');
+    } catch(e) {
+      // ★ Rollback ถ้า push ล้มเหลว
+      db.pos.push(...deletedPos);
+      db.items.push(...deletedItems);
+      localStorage.setItem(STORE_KEY, JSON.stringify(db));
+      renderDashboard();
+      toast('❌ ลบล้มเหลว — กู้คืนแล้ว ลองใหม่อีกครั้ง', 4000);
+    }
+  } else {
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  UPDATE TAB — เลือก PO จากลิสต์ (ไม่ใช้ dropdown)
+// ═══════════════════════════════════════════════════
+function initUpdateTab() {
+  backToPoList();
+}
+
+function backToPoList() {
+  currentPoId = '';
+  selectedItems.clear();
+  selectedStatus = '';
+  document.getElementById('update-select-section').style.display = 'block';
+  document.getElementById('update-items-section').style.display  = 'none';
+
+  const list = document.getElementById('update-po-list');
+  if (!db.pos.length) {
+    list.innerHTML = '<div class="empty-state"><span class="emoji">📋</span><p>ยังไม่มี PO</p></div>';
+    return;
+  }
+  const updateFiltered = db.pos.filter(po => !po.deleted);
+  updateFiltered.sort((a, b) => {
+    if (!a.due && !b.due) return 0;
+    if (!a.due) return 1;
+    if (!b.due) return -1;
+    return a.due.localeCompare(b.due);
+  });
+  list.innerHTML = updateFiltered.map(po => {
+    const its     = itemsOfPO(po.id);
+    const pending = its.filter(i => i.status !== 'ส่งแล้ว').length;
+    const rework  = its.filter(i => i.status === 'กลับมาแก้ไข').length;
+    const cls     = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
+    return `
+      <div class="po-card ${cls}" onclick="openPoItems('${po.id}')">
+        <div class="po-card-header">
+          <div>
+            <div class="po-card-no">${po.id} ${po.urgent ? '🔥' : ''}${rework > 0 ? ` <span style="font-size:11px;color:var(--red)">🔁×${rework}</span>` : ''}</div>
+            <div class="po-card-company">${po.company} · ${po.model}</div>
+          </div>
+          ${poBadge(po.status)}
+        </div>
+        <div class="po-card-stats" style="margin-top:8px;">
+          <div>ค้าง <span style="color:var(--amber)">${pending}</span> ชิ้น</div>
+          <div>กำหนดส่ง <span>${thaiDate(po.due)}</span></div>
+          <div style="margin-left:auto;font-size:12px;color:var(--blue);font-weight:700;">แตะเลือก →</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openPoItems(poId) {
+  currentPoId = poId;
+  const po  = db.pos.find(p => p.id === poId);
+  const its = itemsOfPO(poId);
+
+  document.getElementById('update-select-section').style.display = 'none';
+  document.getElementById('update-items-section').style.display  = 'block';
+  document.getElementById('update-form-section').style.display   = 'none';
+
+  document.getElementById('update-po-badge').textContent =
+    `${poId} — ${po.company}`;
+  document.getElementById('update-po-detail').innerHTML =
+    `${po.model} · กำหนดส่ง ${thaiDate(po.due)} ${po.urgent ? '· <strong style="color:var(--red)">🔥 ด่วน</strong>' : ''}`;
+
+  // Bundle PO dropdown
+  const bSel = document.getElementById('bundle-po-select');
+  bSel.innerHTML = '<option value="">— ไม่มี / ส่งเดี่ยว —</option>';
+  db.pos.forEach(p => { bSel.innerHTML += `<option value="${p.id}">${p.id} — ${p.company}</option>`; });
+
+  selectedItems.clear();
+  selectedStatus = '';
+  document.querySelectorAll('.status-opt').forEach(e => {
+    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
+  });
+
+  const list = document.getElementById('items-list');
+  if (!its.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:20px"><span class="emoji">📭</span><p>ยังไม่มีชิ้นงาน</p></div>';
+    return;
+  }
+  list.innerHTML = its.map((it, idx) => `
+    <div class="item-row" id="item-row-${idx}" onclick="toggleItem(${idx})">
+      <div class="item-check" id="item-check-${idx}">✓</div>
+      ${it.urgent ? '<div class="item-urgent-dot"></div>' : ''}
+      <div style="flex:1">
+        <div class="item-name">${it.part}</div>
+        <div class="item-color">${it.color}</div>
+        ${it.itemDue ? `<div style="font-size:11px;color:var(--red);font-weight:600;">⏰ ส่งภายใน ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue)}</div>` : ''}
+        ${it.bundlePO ? `<div style="font-size:11px;color:var(--blue)">📦 กำหนดรวมกับ ${it.bundlePO}</div>` : ''}
+      </div>
+      ${statusBadge(it.status)}
+    </div>
+  `).join('');
+}
+
+function toggleItem(idx) {
+  if (selectedItems.has(idx)) {
+    selectedItems.delete(idx);
+    document.getElementById('item-row-' + idx).classList.remove('selected');
+  } else {
+    selectedItems.add(idx);
+    document.getElementById('item-row-' + idx).classList.add('selected');
+  }
+  document.getElementById('update-form-section').style.display =
+    selectedItems.size > 0 ? 'block' : 'none';
+}
+
+function selectStatus(status, selClass, el) {
+  selectedStatus    = status;
+  selectedStatusSel = selClass;
+  document.querySelectorAll('.status-opt').forEach(e => {
+    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
+  });
+  el.classList.add(selClass);
+
+  document.getElementById('sent-date-group').style.display =
+    status === 'ส่งแล้ว' ? 'block' : 'none';
+  document.getElementById('bundle-po-group').style.display =
+    (status === 'เตรียมส่ง') ? 'block' : 'none';
+  if (status === 'ส่งแล้ว') {
+    document.getElementById('sent-date').value = todayISO();
+  }
+}
+
+function saveUpdate() {
+  if (!selectedStatus)     { toast('⚠️ กรุณาเลือกสถานะก่อน'); return; }
+  if (!selectedItems.size) { toast('⚠️ กรุณาเลือกชิ้นงานก่อน'); return; }
+
+  const sentDate = document.getElementById('sent-date').value;
+  const bundlePO = document.getElementById('bundle-po-select').value;
+  const remark   = document.getElementById('update-remark').value.trim();
+
+  const poItemsGlobalIdx = [];
+  db.items.forEach((it, gi) => { if (it.po === currentPoId) poItemsGlobalIdx.push(gi); });
+
+  selectedItems.forEach(idx => {
+    const gi = poItemsGlobalIdx[idx];
+    if (gi !== undefined) {
+      db.items[gi].status = selectedStatus;
+      if (sentDate && selectedStatus === 'ส่งแล้ว') db.items[gi].sentDate = sentDate;
+      if (bundlePO) db.items[gi].bundlePO = bundlePO;
+      if (remark)   db.items[gi].remark   = remark;
+    }
+  });
+
+  syncPOStatuses(true);  // ★ push ขึ้น Sheet เพราะผู้ใช้แก้ข้อมูล
+  toast(`✅ อัพเดท ${selectedItems.size} ชิ้น → "${selectedStatus}" แล้ว`);
+
+  // Reset แล้ว refresh รายการ
+  selectedItems.clear();
+  selectedStatus = '';
+  document.getElementById('update-remark').value = '';
+  document.getElementById('sent-date').value = '';
+  document.getElementById('bundle-po-select').value = '';
+  document.getElementById('update-form-section').style.display = 'none';
+  document.querySelectorAll('.status-opt').forEach(e => {
+    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
+  });
+  document.getElementById('sent-date-group').style.display  = 'none';
+  document.getElementById('bundle-po-group').style.display  = 'none';
+  openPoItems(currentPoId);
+}
+
+// ═══════════════════════════════════════════════════
+//  ADD PO TAB
+// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  SEARCHABLE DROPDOWN
+// ═══════════════════════════════════════════════════
+function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
+  const input  = document.getElementById(inputId);
+  const hidden = document.getElementById(hiddenId);
+  const list   = document.getElementById(listId);
+
+  // Reset
+  input.value  = '';
+  hidden.value = '';
+
+  function renderList(filter) {
+    const opts = getOptions();
+    const q = (filter || '').toLowerCase();
+    const filtered = q ? opts.filter(o => o.toLowerCase().includes(q)) : opts;
+    if (!filtered.length) {
+      list.innerHTML = '<div class="sdropdown-empty">ไม่พบรายการ</div>';
+    } else {
+      list.innerHTML = filtered.map(o =>
+        `<div class="sdropdown-item" data-val="${o}">${o}</div>`
+      ).join('');
+    }
+    // bind click
+    list.querySelectorAll('.sdropdown-item').forEach(el => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        input.value  = el.dataset.val;
+        hidden.value = el.dataset.val;
+        list.classList.remove('open');
+      });
+    });
+  }
+
+  input.addEventListener('focus', () => {
+    renderList(input.value);
+    list.classList.add('open');
+  });
+
+  input.addEventListener('input', () => {
+    hidden.value = input.value; // allow custom entry
+    renderList(input.value);
+    list.classList.add('open');
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      list.classList.remove('open');
+      // if typed value matches an option, set it
+      const opts = getOptions();
+      const match = opts.find(o => o.toLowerCase() === input.value.toLowerCase());
+      if (match) { input.value = match; hidden.value = match; }
+      else { hidden.value = input.value; }
+    }, 150);
+  });
+}
+
+function initAddPOTab() {
+  // Searchable dropdown — บริษัท
+  initSearchableDropdown('add-company-input', 'add-company', 'sd-company-list',
+    () => db.masterCompanies.slice().sort());
+
+  // Searchable dropdown — รุ่นรถ
+  initSearchableDropdown('add-model-input', 'add-model', 'sd-model-list',
+    () => db.masterModels.slice().sort());
+
+  document.getElementById('add-recv').value = todayISO();
+  urgentOn = false;
+  document.getElementById('add-urgent-toggle').classList.remove('on');
+  addItemCount = 0;
+  document.getElementById('add-items-list').innerHTML = '';
+  document.getElementById('add-pono').value = autoNextPO();
+
+  // ★ Populate bulk part dropdown
+  const bulkPartSel = document.getElementById('bulk-part');
+  bulkPartSel.innerHTML = '<option value="">— เลือกชิ้นงาน —</option>' +
+    db.masterParts.map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('bulk-color').value = '';
+  document.getElementById('bulk-qty').value = 1;
+
+  addItemRow();
+}
+
+// ★ เพิ่มหลายชิ้นพร้อมกัน
+function addBulkItems() {
+  const part  = document.getElementById('bulk-part').value;
+  const color = document.getElementById('bulk-color').value.trim();
+  const qty   = parseInt(document.getElementById('bulk-qty').value) || 1;
+
+  if (!part) { toast('⚠️ กรุณาเลือกชิ้นงานก่อน'); return; }
+  if (qty < 1 || qty > 50) { toast('⚠️ จำนวนต้องอยู่ระหว่าง 1-50'); return; }
+
+  for (let i = 0; i < qty; i++) {
+    addItemRow(part, color);
+  }
+  toast(`✅ เพิ่ม "${part}" × ${qty} ชิ้นแล้ว`);
+
+  // Reset bulk form
+  document.getElementById('bulk-part').value = '';
+  document.getElementById('bulk-color').value = '';
+  document.getElementById('bulk-qty').value = 1;
+}
+
+function autoNextPO() {
+  if (!db.pos.length) return 'PO-67-001';
+  const nums = db.pos.map(p => {
+    const parts = p.id.split('-');
+    return parseInt(parts[parts.length - 1]) || 0;
+  });
+  const next = Math.max(...nums) + 1;
+  return `PO-67-${String(next).padStart(3,'0')}`;
+}
+
+function toggleUrgent() {
+  urgentOn = !urgentOn;
+  document.getElementById('add-urgent-toggle').classList.toggle('on', urgentOn);
+}
+
+function addItemRow(prefillPart, prefillColor) {
+  addItemCount++;
+  const idx = addItemCount;
+  const div = document.createElement('div');
+  div.id = `add-item-${idx}`;
+  div.style.cssText = 'padding:10px;border-radius:9px;border:1.5px solid var(--border);margin-bottom:8px;background:#fafafa;';
+
+  // ★★★ FIX: สร้าง <select> ด้วย DOM API โดยตรง — ไม่ใช้ innerHTML
+  // เพราะ innerHTML + selected attribute ไม่ทำงานถูกต้องบนเบราว์เซอร์มือถือบางรุ่น
+  const sel = document.createElement('select');
+  sel.id = `item-part-${idx}`;
+  sel.style.cssText = 'margin-bottom:8px;width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;';
+
+  // เพิ่ม option ว่าง
+  const emptyOpt = document.createElement('option');
+  emptyOpt.value = '';
+  emptyOpt.textContent = '— ชิ้นงาน —';
+  sel.appendChild(emptyOpt);
+
+  // เพิ่ม options จาก masterParts
+  db.masterParts.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    sel.appendChild(opt);
+  });
+
+  // ★ ตั้งค่า value ด้วย DOM API — การันตี 100% ทุกเบราว์เซอร์
+  if (prefillPart) sel.value = prefillPart;
+
+  // สร้างส่วน HTML ที่เหลือ (ไม่มี select)
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:13px;font-weight:700;color:var(--muted);">ชิ้นที่ ${idx}</span>
+      <button onclick="removeItem(${idx})" style="border:none;background:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px;">×</button>
+    </div>
+    <div id="item-sel-wrap-${idx}"></div>
+    <input type="text" id="item-color-${idx}" placeholder="สี เช่น สีขาว W85" style="margin-bottom:8px;" value="${prefillColor || ''}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div class="urgent-toggle" id="item-urg-${idx}" onclick="toggleItemUrgent(${idx})" style="padding:8px 12px;flex:1;">
+        <span style="font-size:16px;">🔥</span>
+        <span style="font-size:13px;font-weight:600;flex:1;">ด่วน</span>
+        <div class="toggle-switch"></div>
+      </div>
+    </div>
+    <div id="item-due-group-${idx}" style="display:none;">
+      <label style="font-size:12px;color:var(--red);font-weight:600;">📅 กำหนดส่งชิ้นนี้ (ถ้าต่างจาก PO)</label>
+      <input type="date" id="item-due-${idx}" style="margin-bottom:4px;">
+    </div>
+  `;
+
+  document.getElementById('add-items-list').appendChild(div);
+
+  // ★ ใส่ select element เข้า wrapper
+  document.getElementById(`item-sel-wrap-${idx}`).appendChild(sel);
+}
+
+function removeItem(idx) {
+  const el = document.getElementById(`add-item-${idx}`);
+  if (el) el.remove();
+}
+
+function toggleItemUrgent(idx) {
+  const el = document.getElementById(`item-urg-${idx}`);
+  if (el) el.classList.toggle('on');
+  // แสดง/ซ่อนช่องกำหนดส่งชิ้นงาน
+  const dueGroup = document.getElementById(`item-due-group-${idx}`);
+  if (dueGroup) {
+    dueGroup.style.display = el.classList.contains('on') ? 'block' : 'none';
+  }
+}
+
+function savePO() {
+  const poNo    = document.getElementById('add-pono').value.trim();
+  const company = document.getElementById('add-company').value;
+  const model   = document.getElementById('add-model').value;
+  const recv    = document.getElementById('add-recv').value;
+  const due     = document.getElementById('add-due').value;
+  const remark  = document.getElementById('add-remark').value.trim();
+
+  if (!poNo || !company || !recv || !due) {
+    toast('⚠️ กรุณากรอกข้อมูลให้ครบ (PO, บริษัท, วันที่)'); return;
+  }
+  if (db.pos.find(p => p.id === poNo)) {
+    toast('⚠️ เลขที่ PO นี้มีอยู่แล้ว'); return;
+  }
+
+  const newItems = [];
+  let skipped = 0;
+  for (let i = 1; i <= addItemCount; i++) {
+    const partEl  = document.getElementById(`item-part-${i}`);
+    const colorEl = document.getElementById(`item-color-${i}`);
+    const urgEl   = document.getElementById(`item-urg-${i}`);
+    if (!partEl) continue;
+    const part  = partEl.value;
+    const color = colorEl ? colorEl.value.trim() : '';
+    const urg   = urgEl ? urgEl.classList.contains('on') : false;
+    if (part) {
+      const itemDueEl = document.getElementById(`item-due-${i}`);
+      const itemDue = (itemDueEl && urg) ? itemDueEl.value : '';
+      newItems.push({ po: poNo, part, color, urgent: urg, itemDue: itemDue,
+        status: 'รับของแล้ว', sentDate: '', bundlePO: '', remark: '' });
+    } else {
+      skipped++;
+    }
+  }
+
+  // ★★★ ป้องกัน: ไม่ save PO ที่ไม่มี items เลย
+  if (newItems.length === 0) {
+    toast('⚠️ ไม่มีชิ้นงาน — กรุณาเลือกชิ้นงานอย่างน้อย 1 รายการ'); return;
+  }
+
+  db.pos.push({ id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark });
+  db.items.push(...newItems);
+
+  syncPOStatuses(true);  // ★ push ขึ้น Sheet เพราะผู้ใช้เพิ่ม PO ใหม่
+
+  toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
+  initAddPOTab();
+  setTimeout(() => switchTab('dashboard'), 1200);
+}
+
+// ═══════════════════════════════════════════════════
+//  QUICK REFRESH (ทุก role ใช้ได้)
+// ═══════════════════════════════════════════════════
+async function quickRefresh() {
+  if (!GAS_URL) { toast('⚠️ ยังไม่ได้ตั้งค่า URL (แจ้ง Admin)'); return; }
+  toast('🔄 กำลังดึงข้อมูลล่าสุด...');
+  const data = await fetchFromSheet();
+  if (data) {
+    db = data;
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    renderDashboard();
+    toast('✅ ข้อมูลอัพเดทแล้ว');
+  } else {
+    toast('❌ ดึงข้อมูลไม่สำเร็จ');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SYNC MODAL (Admin เท่านั้น)
+// ═══════════════════════════════════════════════════
+function openSyncModal() {
+  document.getElementById('sync-modal').style.display = 'flex';
+  document.getElementById('gas-url-input').value = GAS_URL;
+  document.getElementById('sync-test-result').textContent = '';
+}
+function closeSyncModal() {
+  document.getElementById('sync-modal').style.display = 'none';
+}
+function saveGasUrl() {
+  const url = document.getElementById('gas-url-input').value.trim();
+  setGasUrl(url);
+  const el = document.getElementById('sync-test-result');
+  if (url) { el.textContent = '✅ บันทึก URL แล้ว กด "ทดสอบ" เพื่อตรวจสอบ'; el.style.color = '#2E7D32'; }
+  else     { el.textContent = 'ลบ URL แล้ว — เก็บใน browser เท่านั้น'; el.style.color = '#78909C'; }
+}
+async function testConnection() {
+  const el = document.getElementById('sync-test-result');
+  if (!GAS_URL) { el.textContent = '⚠️ กรุณาบันทึก URL ก่อน'; el.style.color = '#F57F17'; return; }
+  el.textContent = '🔄 กำลังทดสอบ...'; el.style.color = '#1A73E8';
+  try {
+    const json = await jsonpCall(GAS_URL + '?action=ping');
+    if (json.ok) { el.textContent = '✅ เชื่อมต่อสำเร็จ! ' + json.message; el.style.color = '#2E7D32'; }
+    else         { el.textContent = '❌ Error: ' + json.error; el.style.color = '#C62828'; }
+  } catch(e) { el.textContent = '❌ เชื่อมต่อไม่ได้: ' + e.message; el.style.color = '#C62828'; }
+}
+async function syncNow() {
+  const el = document.getElementById('sync-test-result');
+  if (!GAS_URL) { el.textContent = '⚠️ กรุณาบันทึก URL ก่อน'; el.style.color = '#F57F17'; return; }
+  el.textContent = '🔄 กำลังดึงข้อมูล...'; el.style.color = '#1A73E8';
+  const data = await fetchFromSheet();
+  if (data) {
+    db = data; saveData(db, true); renderDashboard();
+    el.textContent = `✅ ดึงข้อมูลสำเร็จ — ${db.pos.length} PO, ${db.items.length} ชิ้น`;
+    el.style.color = '#2E7D32';
+  } else {
+    el.textContent = '❌ ดึงข้อมูลไม่ได้ ตรวจสอบ URL หรือสิทธิ์';
+    el.style.color = '#C62828';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MASTER DATA MANAGEMENT
+// ═══════════════════════════════════════════════════
+function renderMasterTab() {
+  renderMasterSection('company', db.masterCompanies, 'tag-company');
+  renderMasterSection('model',   db.masterModels,    'tag-model');
+  renderMasterSection('part',    db.masterParts,     'tag-part');
+}
+
+function renderMasterSection(type, list, tagClass) {
+  const wrap = document.getElementById(`master-${type}-tags`);
+  wrap.innerHTML = '';
+  if (!list || list.length === 0) {
+    wrap.innerHTML = `<span style="color:var(--muted);font-size:13px;">ยังไม่มีรายการ</span>`;
+    return;
+  }
+  list.forEach((item, i) => {
+    const tag = document.createElement('div');
+    tag.className = `master-tag ${tagClass}`;
+    tag.innerHTML = `
+      <span>${item}</span>
+      <button class="master-tag-del" onclick="removeMasterItem('${type}',${i})" title="ลบ">×</button>
+    `;
+    wrap.appendChild(tag);
+  });
+}
+
+function addMasterItem(type) {
+  const input = document.getElementById(`master-${type}-input`);
+  const val   = input.value.trim();
+  if (!val) { toast('⚠️ กรุณากรอกชื่อก่อน'); return; }
+
+  const listMap = { company: 'masterCompanies', model: 'masterModels', part: 'masterParts' };
+  const key = listMap[type];
+  if (!db[key]) db[key] = [];
+
+  if (db[key].includes(val)) {
+    toast('⚠️ มีรายการนี้อยู่แล้ว'); return;
+  }
+
+  db[key].push(val);
+  saveData(db);
+  input.value = '';
+  renderMasterTab();
+
+  const names = { company: 'บริษัท', model: 'รุ่นรถ', part: 'ชิ้นงาน' };
+  toast(`✅ เพิ่ม${names[type]}: ${val}`);
+}
+
+function removeMasterItem(type, idx) {
+  const listMap = { company: 'masterCompanies', model: 'masterModels', part: 'masterParts' };
+  const key  = listMap[type];
+  const item = db[key][idx];
+  db[key].splice(idx, 1);
+  saveData(db);
+  renderMasterTab();
+  toast(`🗑️ ลบแล้ว: ${item}`);
+}
+
+// กด Enter ใน input เพื่อเพิ่มได้เลย
+function masterInputEnter(type, event) {
+  if (event.key === 'Enter') addMasterItem(type);
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT — Cloud-first: ดึงข้อมูลจาก Sheet อัตโนมัติทุกครั้ง
+// ═══════════════════════════════════════════════════
+function showLoading(show) {
+  const el = document.getElementById('loading-overlay');
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // ★ FIX BUG5: Register Service Worker สำหรับ PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/po-tracker/sw.js')
+      .then(() => console.log('✅ SW registered'))
+      .catch(e => console.warn('SW registration failed:', e));
+  }
+
+  const now = new Date();
+  document.getElementById('topbar-date').textContent =
+    `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+
+  // ถ้า login ไว้แล้ว (มี role ใน localStorage) ข้ามหน้า login
+  if (currentRole === 'admin' || currentRole === 'staff') {
+    showApp();
+  }
+
+  // ★ Cloud-first: ดึงข้อมูลจาก Sheet อัตโนมัติทุกครั้งที่เปิดแอป
+  if (GAS_URL) {
+    showLoading(true);
+    showSyncStatus('syncing');
+    try {
+      const sheetData = await fetchFromSheet();
+      if (sheetData) {
+        db = sheetData;
+        localStorage.setItem(STORE_KEY, JSON.stringify(db));
+        showSyncStatus('ok');
+      }
+    } catch(e) {
+      console.warn('Auto-fetch failed, using local data:', e);
+      showSyncStatus('error', e.message);
+    }
+    showLoading(false);
+  }
+  if (currentRole) renderDashboard();
+
+  // ★ Auto-refresh ทุก 30 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
+  if (GAS_URL) {
+    setInterval(async () => {
+      if (!document.hidden && currentRole && !_pushing) {  // ★ ห้าม refresh ขณะ push
+        const data = await fetchFromSheet();
+        if (data && !_pushing) {  // ★ เช็คอีกทีหลัง fetch เสร็จ กันกรณี push เริ่มระหว่าง fetch
+          // ★ Safety: ถ้า Sheet มี items น้อยกว่า local → อาจเป็นข้อมูลระหว่าง write → ข้าม
+          if (data.items.length < db.items.length && db.items.length > 0) {
+            console.warn('⚠️ Auto-refresh skipped: Sheet items (' + data.items.length + ') < local (' + db.items.length + ')');
+          } else {
+            db = data;
+            localStorage.setItem(STORE_KEY, JSON.stringify(db));
+            renderDashboard();
+          }
+        }
+      }
+    }, 30000);
+  }
+});
+</script>
+</body>
+</html>
