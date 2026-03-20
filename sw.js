@@ -38,8 +38,12 @@ self.addEventListener('activate', (event) => {
 // ── Fetch: Network First strategy ──
 // พยายามดึงจาก network ก่อนเสมอ ถ้าไม่มีเน็ตค่อย fallback cache
 self.addEventListener('fetch', (event) => {
+  const url = event.request.url;
+
+  // ✅ FIX: รับเฉพาะ http/https เท่านั้น — ข้าม chrome-extension://, data:, blob: ฯลฯ
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return;
   // ไม่ cache GAS API calls (script.google.com)
-  if (event.request.url.includes('script.google.com')) return;
+  if (url.includes('script.google.com')) return;
   // ไม่ cache POST requests
   if (event.request.method !== 'GET') return;
 
