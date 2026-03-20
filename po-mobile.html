@@ -399,6 +399,54 @@
   .role-badge-admin { background: #E8F0FE; color: var(--blue); }
   .role-badge-staff { background: #FFF3E0; color: var(--orange); }
   .admin-only { /* ซ่อนเมื่อ staff */ }
+
+  /* ── Archive ── */
+  .archive-month-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+  }
+  .archive-month-btn {
+    background: #fff; border: 2px solid var(--border); border-radius: 12px;
+    padding: 14px 10px; text-align: center; cursor: pointer;
+    transition: all .15s; font-size: 14px; font-weight: 700; color: var(--text);
+  }
+  .archive-month-btn:hover { border-color: var(--purple); color: var(--purple); }
+  .archive-month-btn.selected { border-color: var(--purple); background: #F3E5F5; color: var(--purple); }
+  .archive-month-btn .arc-count { font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 3px; }
+
+  .archive-po-card {
+    border-radius: 10px; padding: 13px 14px; margin-bottom: 10px;
+    border-left: 5px solid var(--purple); background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.1);
+  }
+  .archive-po-card .arc-header { display: flex; justify-content: space-between; align-items: center; }
+  .archive-po-card .arc-pono { font-size: 15px; font-weight: 700; }
+  .archive-po-card .arc-company { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .archive-po-card .arc-items-wrap { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .archive-item-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5;
+  }
+  .archive-item-row:last-child { border-bottom: none; }
+  .archive-item-row .arc-part { font-weight: 600; flex: 1; }
+  .archive-item-row .arc-color { font-size: 12px; color: var(--muted); margin: 0 8px; }
+  .archive-item-row .arc-sent { font-size: 12px; color: var(--green); white-space: nowrap; }
+
+  .archive-back-btn {
+    background: #EDE7F6; color: var(--purple); border: none; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+    margin-bottom: 12px;
+  }
+  .archive-loading { text-align: center; padding: 30px; color: var(--muted); font-size: 14px; }
+  .archive-stats-row {
+    display: flex; gap: 10px; background: #F3E5F5; border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 12px;
+    font-size: 13px; color: var(--purple);
+  }
+  .archive-stats-row strong { font-size: 18px; font-weight: 800; display: block; }
+  .archive-no-gas {
+    background: #FFF3E0; border-radius: 10px; padding: 16px; margin-top: 14px;
+    font-size: 13px; color: var(--orange); line-height: 1.7; text-align: center;
+  }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -471,11 +519,12 @@
   </div>
 </div>
 
-<!-- ═══ TAB NAV (4 แท็บ) ═══ -->
+<!-- ═══ TAB NAV (5 แท็บ) ═══ -->
 <nav class="tabnav">
   <button class="active" onclick="switchTab('dashboard')">📊 ภาพรวม</button>
   <button onclick="switchTab('update')">✏️ อัพเดทชิ้น</button>
   <button onclick="switchTab('addpo')">➕ เพิ่ม PO</button>
+  <button onclick="switchTab('archive')">📦 Archive</button>
   <button onclick="switchTab('master')">⚙️ จัดการ</button>
 </nav>
 
@@ -670,6 +719,62 @@
   <button class="btn btn-green" onclick="savePO()">✅ บันทึก PO ใหม่</button>
 </div>
 
+<!-- ═══════════════ TAB: ARCHIVE ═══════════════ -->
+<div id="tab-archive" class="page">
+
+  <!-- หน้าหลัก: เลือกเดือน -->
+  <div id="archive-home">
+    <div class="card" style="padding:14px;">
+      <div class="card-title">📦 Archive รายเดือน</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+        PO ที่ปิดรอบ (สถานะ Complete) จะถูกย้ายมาไว้ที่นี่อัตโนมัติในวันที่ 1 ของทุกเดือน
+      </p>
+      <div id="archive-month-list">
+        <!-- โหลดอัตโนมัติเมื่อเปิด tab -->
+        <div class="archive-loading">⏳ กำลังดึงรายการ Archive...</div>
+      </div>
+      <div id="archive-no-gas" class="archive-no-gas" style="display:none;">
+        ⚠️ ยังไม่ได้เชื่อมต่อ Google Sheets<br>
+        กด <strong>⚙️ Sync</strong> ด้านบนเพื่อตั้งค่า GAS URL ก่อน
+      </div>
+    </div>
+
+    <!-- ปุ่ม Archive ด้วยตัวเอง (Admin เท่านั้น) -->
+    <div class="card admin-only" style="padding:14px;">
+      <div class="card-title">⚡ จัดการ Archive</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+        ระบบจะ Archive อัตโนมัติวันที่ 1 ของทุกเดือน<br>
+        หรือกด Archive เดี๋ยวนี้ได้เลย (เฉพาะ PO ที่ Complete แล้ว)
+      </p>
+      <button onclick="manualArchive()"
+        style="width:100%;background:var(--purple);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">
+        📦 Archive PO ที่เสร็จแล้วตอนนี้
+      </button>
+      <div id="archive-manual-result" style="text-align:center;font-size:13px;min-height:20px;margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- หน้ารายละเอียด: แสดง PO ในเดือนที่เลือก -->
+  <div id="archive-detail" style="display:none;">
+    <button class="archive-back-btn" onclick="backToArchiveHome()">← กลับ</button>
+    <div id="archive-detail-title" style="font-size:16px;font-weight:700;color:var(--purple);margin-bottom:10px;"></div>
+    <div id="archive-stats" class="archive-stats-row" style="display:none;">
+      <div style="flex:1;text-align:center;">
+        <strong id="arc-stat-po">–</strong>
+        PO ทั้งหมด
+      </div>
+      <div style="flex:1;text-align:center;">
+        <strong id="arc-stat-items">–</strong>
+        ชิ้นงาน
+      </div>
+    </div>
+    <div id="archive-po-list">
+      <div class="archive-loading">⏳ กำลังโหลด...</div>
+    </div>
+  </div>
+
+</div>
+
 <!-- ═══════════════ TAB: MASTER DATA ═══════════════ -->
 <div id="tab-master" class="page">
 
@@ -801,8 +906,8 @@ function applyRole() {
     el.style.display = currentRole === 'admin' ? '' : 'none';
   });
 
-  // แท็บ "จัดการ" — ซ่อนสำหรับ Staff
-  const masterTab = document.querySelectorAll('.tabnav button')[3]; // แท็บที่ 4
+  // แท็บ "จัดการ" — ซ่อนสำหรับ Staff (แท็บที่ 5, index=4)
+  const masterTab = document.querySelectorAll('.tabnav button')[4];
   if (masterTab) {
     masterTab.style.display = currentRole === 'admin' ? '' : 'none';
   }
@@ -815,7 +920,7 @@ function applyRole() {
 // ═══════════════════════════════════════════════════
 // ★ ใส่ URL ของ Apps Script Web App ตรงนี้ → ทุกเครื่องจะใช้ค่าเดียวกัน
 // ★★★ VERSION STAMP — ถ้าเห็นเลขนี้ใน console = โค้ดใหม่ทำงานแล้ว
-const APP_VERSION = 'v3.6-BUGFIX-2026-03-20';
+const APP_VERSION = 'v4.3-ARCHIVE-UI-2026-03-20';
 console.log('🚀 PO Tracker Mobile ' + APP_VERSION + ' loaded at ' + new Date().toISOString());
 
 const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbwTvCm7tOQ8gT3yQDZcL_BCwaX9M_G-AS3eMbPN5FWDLOgoHKdBnRfbEvaDxGZy6DI/exec';
@@ -1211,12 +1316,14 @@ function switchTab(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tabnav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  const idx = ['dashboard','update','addpo','master'].indexOf(name);
-  document.querySelectorAll('.tabnav button')[idx].classList.add('active');
+  // ★ อัพเดท: 5 แท็บ (เพิ่ม archive ลำดับที่ 4, master เลื่อนเป็น 5)
+  const idx = ['dashboard','update','addpo','archive','master'].indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.tabnav button')[idx].classList.add('active');
 
   if (name === 'dashboard') renderDashboard();
   if (name === 'update')    initUpdateTab();
   if (name === 'addpo')     initAddPOTab();
+  if (name === 'archive')   initArchiveTab();
   if (name === 'master')    renderMasterTab();
 }
 
@@ -1985,6 +2092,196 @@ document.addEventListener('DOMContentLoaded', async () => {
     showLoading(false);
   }
   if (currentRole) renderDashboard();
+
+// ═══════════════════════════════════════════════════
+//  ARCHIVE SYSTEM
+// ═══════════════════════════════════════════════════
+
+// ── เพิ่มฟังก์ชันแปลงชื่อ sheet → ชื่อเดือนภาษาไทย ──
+function arcSheetToLabel(sheetName) {
+  // รูปแบบ: "📦 Archive_2026_03"
+  const m = sheetName.match(/Archive_(\d{4})_(\d{2})/);
+  if (!m) return sheetName;
+  const thMonths = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
+                    'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const year  = parseInt(m[1]) + 543; // แปลง ค.ศ. → พ.ศ.
+  const month = parseInt(m[2]);
+  return `${thMonths[month]} ${year}`;
+}
+
+// ── เริ่มต้น Archive tab ──
+async function initArchiveTab() {
+  // รีเซ็ตกลับหน้าหลักทุกครั้งที่เปิด tab
+  showArchiveHome();
+  await loadArchiveList();
+}
+
+function showArchiveHome() {
+  document.getElementById('archive-home').style.display   = '';
+  document.getElementById('archive-detail').style.display = 'none';
+}
+
+function backToArchiveHome() {
+  showArchiveHome();
+  // โหลดรายการใหม่ (กรณีมีการ Archive เพิ่ม)
+  loadArchiveList();
+}
+
+// ── โหลดรายการเดือน Archive จาก GAS ──
+async function loadArchiveList() {
+  const listEl = document.getElementById('archive-month-list');
+  const noGasEl = document.getElementById('archive-no-gas');
+
+  if (!GAS_URL) {
+    listEl.innerHTML = '';
+    noGasEl.style.display = '';
+    return;
+  }
+  noGasEl.style.display = 'none';
+  listEl.innerHTML = '<div class="archive-loading">⏳ กำลังดึงรายการ Archive...</div>';
+
+  try {
+    const json = await jsonpCall(GAS_URL + '?action=getArchiveList');
+    if (!json.ok) {
+      listEl.innerHTML = `<div class="empty-state"><span class="emoji">⚠️</span><p>${json.error || 'โหลดรายการไม่ได้'}</p></div>`;
+      return;
+    }
+
+    const sheets = json.data || [];  // [ { sheet: "📦 Archive_2026_03", poCount: 5, itemCount: 28 }, ... ]
+
+    if (sheets.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <span class="emoji">📭</span>
+          <p>ยังไม่มีข้อมูล Archive</p>
+          <p style="font-size:12px;margin-top:6px;">PO ที่สถานะ Complete จะถูก Archive<br>อัตโนมัติในวันที่ 1 ของเดือนถัดไป</p>
+        </div>`;
+      return;
+    }
+
+    // เรียงล่าสุดขึ้นก่อน
+    sheets.sort((a, b) => b.sheet.localeCompare(a.sheet));
+
+    let html = '<div class="archive-month-grid">';
+    sheets.forEach(s => {
+      const label = arcSheetToLabel(s.sheet);
+      html += `
+        <div class="archive-month-btn" onclick="openArchiveMonth('${s.sheet}','${label}')">
+          📦 ${label}
+          <div class="arc-count">${s.poCount || 0} PO · ${s.itemCount || 0} ชิ้น</div>
+        </div>`;
+    });
+    html += '</div>';
+    listEl.innerHTML = html;
+
+  } catch(e) {
+    listEl.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>เชื่อมต่อไม่ได้: ${e.message}</p></div>`;
+  }
+}
+
+// ── เปิดรายละเอียด Archive ของเดือนที่เลือก ──
+async function openArchiveMonth(sheetName, label) {
+  document.getElementById('archive-home').style.display   = 'none';
+  document.getElementById('archive-detail').style.display = '';
+
+  const titleEl   = document.getElementById('archive-detail-title');
+  const statsEl   = document.getElementById('archive-stats');
+  const listEl    = document.getElementById('archive-po-list');
+
+  titleEl.textContent = `📦 Archive — ${label}`;
+  statsEl.style.display = 'none';
+  listEl.innerHTML = '<div class="archive-loading">⏳ กำลังโหลดข้อมูล...</div>';
+
+  try {
+    const json = await jsonpCall(GAS_URL + '?action=getArchive&sheet=' + encodeURIComponent(sheetName));
+    if (!json.ok) {
+      listEl.innerHTML = `<div class="empty-state"><span class="emoji">⚠️</span><p>${json.error || 'โหลดไม่ได้'}</p></div>`;
+      return;
+    }
+
+    const raw = json.data || {};
+    const pos   = raw.pos   || [];
+    const items = raw.items || [];
+
+    if (pos.length === 0) {
+      listEl.innerHTML = '<div class="empty-state"><span class="emoji">📭</span><p>ไม่มีข้อมูลในเดือนนี้</p></div>';
+      return;
+    }
+
+    // แสดง stats
+    document.getElementById('arc-stat-po').textContent    = pos.length;
+    document.getElementById('arc-stat-items').textContent = items.length;
+    statsEl.style.display = '';
+
+    // render PO cards
+    let html = '';
+    pos.forEach(po => {
+      const poItems = items.filter(i => (i.po_id || i.po) === (po.po_id || po.id));
+      let itemsHtml = '';
+      poItems.forEach(it => {
+        const sentDate = fixDateStr(it.sent_date || it.sentDate || '');
+        itemsHtml += `
+          <div class="archive-item-row">
+            <span class="arc-part">${it.item_name || it.part || '–'}</span>
+            <span class="arc-color">${it.color || ''}</span>
+            <span class="arc-sent">${sentDate ? '✅ ' + sentDate : ''}</span>
+          </div>`;
+      });
+
+      const poNo   = po.po_id || po.id || '';
+      const company = po.company || '';
+      const model   = po.model   || '';
+      const recvDate = fixDateStr(po.recv_date || po.recv || '');
+
+      html += `
+        <div class="archive-po-card">
+          <div class="arc-header">
+            <div>
+              <div class="arc-pono">${poNo}</div>
+              <div class="arc-company">${company}${model ? ' · ' + model : ''}</div>
+            </div>
+            <span class="badge" style="background:#EDE7F6;color:var(--purple);">✅ Complete</span>
+          </div>
+          ${recvDate ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">รับของ: ${recvDate}</div>` : ''}
+          <div class="arc-items-wrap">${itemsHtml || '<div style="font-size:12px;color:var(--muted);">ไม่มีชิ้นงาน</div>'}</div>
+        </div>`;
+    });
+
+    listEl.innerHTML = html;
+
+  } catch(e) {
+    listEl.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>เชื่อมต่อไม่ได้: ${e.message}</p></div>`;
+  }
+}
+
+// ── Archive ด้วยมือทันที (Admin only) ──
+async function manualArchive() {
+  if (!GAS_URL) { showToast('⚠️ ยังไม่ได้เชื่อมต่อ GAS URL'); return; }
+  const resultEl = document.getElementById('archive-manual-result');
+  resultEl.textContent = '⏳ กำลัง Archive...';
+
+  try {
+    const json = await jsonpCall(GAS_URL + '?action=archiveNow');
+    if (json.ok) {
+      const count = json.archived || 0;
+      if (count === 0) {
+        resultEl.style.color = 'var(--muted)';
+        resultEl.textContent = 'ℹ️ ไม่มี PO ที่ Complete รอ Archive';
+      } else {
+        resultEl.style.color = 'var(--green)';
+        resultEl.textContent = `✅ Archive สำเร็จ ${count} PO`;
+        // รีโหลดรายการ
+        setTimeout(() => loadArchiveList(), 800);
+      }
+    } else {
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = '❌ ' + (json.error || 'เกิดข้อผิดพลาด');
+    }
+  } catch(e) {
+    resultEl.style.color = 'var(--red)';
+    resultEl.textContent = '❌ ' + e.message;
+  }
+}
 
   // ★ Auto-refresh ทุก 30 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
   if (GAS_URL) {
