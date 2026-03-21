@@ -2106,8 +2106,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (currentRole) renderDashboard();
 
+  // ★ Auto-refresh ทุก 30 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
+  if (GAS_URL) {
+    setInterval(async () => {
+      if (!document.hidden && currentRole && !_pushing) {  // ★ ห้าม refresh ขณะ push
+        const data = await fetchFromSheet();
+        if (data && !_pushing) {  // ★ เช็คอีกทีหลัง fetch เสร็จ กันกรณี push เริ่มระหว่าง fetch
+          // ★ Safety: ถ้า Sheet มี items น้อยกว่า local → อาจเป็นข้อมูลระหว่าง write → ข้าม
+          if (data.items.length < db.items.length && db.items.length > 0) {
+            console.warn('⚠️ Auto-refresh skipped: Sheet items (' + data.items.length + ') < local (' + db.items.length + ')');
+          } else {
+            db = data;
+            localStorage.setItem(STORE_KEY, JSON.stringify(db));
+            renderDashboard();
+          }
+        }
+      }
+    }, 30000);
+  }
+});
+// ═══════════════════ END DOMContentLoaded ═══════════════════
+
 // ═══════════════════════════════════════════════════
-//  ARCHIVE SYSTEM
+//  ARCHIVE SYSTEM (global scope — ต้องอยู่นอก DOMContentLoaded)
 // ═══════════════════════════════════════════════════
 
 // ── เพิ่มฟังก์ชันแปลงชื่อ sheet → ชื่อเดือนภาษาไทย ──
@@ -2299,25 +2320,7 @@ async function manualArchive() {
   }
 }
 
-  // ★ Auto-refresh ทุก 30 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
-  if (GAS_URL) {
-    setInterval(async () => {
-      if (!document.hidden && currentRole && !_pushing) {  // ★ ห้าม refresh ขณะ push
-        const data = await fetchFromSheet();
-        if (data && !_pushing) {  // ★ เช็คอีกทีหลัง fetch เสร็จ กันกรณี push เริ่มระหว่าง fetch
-          // ★ Safety: ถ้า Sheet มี items น้อยกว่า local → อาจเป็นข้อมูลระหว่าง write → ข้าม
-          if (data.items.length < db.items.length && db.items.length > 0) {
-            console.warn('⚠️ Auto-refresh skipped: Sheet items (' + data.items.length + ') < local (' + db.items.length + ')');
-          } else {
-            db = data;
-            localStorage.setItem(STORE_KEY, JSON.stringify(db));
-            renderDashboard();
-          }
-        }
-      }
-    }, 30000);
-  }
-});
+
 </script>
 </body>
 </html>
