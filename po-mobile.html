@@ -920,10 +920,10 @@ function applyRole() {
 // ═══════════════════════════════════════════════════
 // ★ ใส่ URL ของ Apps Script Web App ตรงนี้ → ทุกเครื่องจะใช้ค่าเดียวกัน
 // ★★★ VERSION STAMP — ถ้าเห็นเลขนี้ใน console = โค้ดใหม่ทำงานแล้ว
-const APP_VERSION = 'v4.3-ARCHIVE-UI-2026-03-20';
+const APP_VERSION = 'v4.4-ARCHIVE-FIX-2026-03-22';
 console.log('🚀 PO Tracker Mobile ' + APP_VERSION + ' loaded at ' + new Date().toISOString());
 
-const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbwTvCm7tOQ8gT3yQDZcL_BCwaX9M_G-AS3eMbPN5FWDLOgoHKdBnRfbEvaDxGZy6DI/exec';
+const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbzWrQYJ9FE8cK8-PgE1-fHjJHRpEmnYpp6t0NZgv6uDz-HYzE-HyLu0Tb7CWZsn9llZ/exec';
 let GAS_URL = HARDCODED_GAS_URL || localStorage.getItem('gas_url') || '';
 
 function setGasUrl(url) {
@@ -934,17 +934,30 @@ function setGasUrl(url) {
 // ★ FIX CHROME: เปลี่ยนจาก JSONP เป็น fetch() + credentials:'omit'
 // JSONP ทำให้ Chrome ส่ง Google session cookie → GAS redirect loop
 // credentials:'omit' = ไม่ส่ง cookie → GAS ตอบกลับโดยตรงในฐานะ Anonymous
-async function jsonpCall(url) {
+async function jsonpCall(url, timeoutMs) {
   // ตัด ?callback=... ออกถ้ามี (GAS จะ return JSON ล้วนเมื่อไม่มี callback param)
   const fetchUrl = url.replace(/[&?]callback=[^&]*/g, '');
-  const response = await fetch(fetchUrl, {
-    method: 'GET',
-    credentials: 'omit',   // ★ สำคัญ: ไม่ส่ง cookie ใดๆ ป้องกัน redirect loop
-    redirect: 'follow',
-    headers: { 'Accept': 'application/json' }
-  });
-  if (!response.ok) throw new Error('HTTP ' + response.status);
-  return await response.json();
+  const controller = new AbortController();
+  const ms = timeoutMs || 20000;  // default 20 วินาที
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const response = await fetch(fetchUrl, {
+      method: 'GET',
+      credentials: 'omit',   // ★ สำคัญ: ไม่ส่ง cookie ใดๆ ป้องกัน redirect loop
+      redirect: 'follow',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const text = await response.text();
+    try { return JSON.parse(text); }
+    catch(pe) { throw new Error('GAS ไม่ได้ตอบ JSON — อาจต้อง Redeploy ใหม่'); }
+  } catch(e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('หมดเวลาเชื่อมต่อ (' + (ms/1000) + 's) — ลองใหม่อีกครั้ง');
+    throw e;
+  }
 }
 
 async function fetchFromSheet() {
@@ -2141,7 +2154,9 @@ async function loadArchiveList() {
   listEl.innerHTML = '<div class="archive-loading">⏳ กำลังดึงรายการ Archive...</div>';
 
   try {
+    console.log('[Archive] Loading list from:', GAS_URL + '?action=getArchiveList');
     const json = await jsonpCall(GAS_URL + '?action=getArchiveList');
+    console.log('[Archive] Response:', JSON.stringify(json));
     if (!json.ok) {
       listEl.innerHTML = `<div class="empty-state"><span class="emoji">⚠️</span><p>${json.error || 'โหลดรายการไม่ได้'}</p></div>`;
       return;
@@ -2175,6 +2190,7 @@ async function loadArchiveList() {
     listEl.innerHTML = html;
 
   } catch(e) {
+    console.error('[Archive] loadArchiveList error:', e);
     listEl.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>เชื่อมต่อไม่ได้: ${e.message}</p></div>`;
   }
 }
