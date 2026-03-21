@@ -17,9 +17,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── ชื่อ Sheets ──
-var SHEET_PO      = 'PO';
-var SHEET_ITEMS   = 'Items';
-var SHEET_CONFIG  = 'CONFIG';
+var SHEET_PO      = '📋 PO_LIST';
+var SHEET_ITEMS   = '🔧 PO_ITEMS';
+var SHEET_CONFIG  = '🔑 CONFIG';
 var ARCHIVE_PREFIX = '📦 Archive_';
 
 // ── Column headers ──
