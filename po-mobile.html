@@ -937,10 +937,10 @@ function applyRole() {
 // ═══════════════════════════════════════════════════
 // ★ ใส่ URL ของ Apps Script Web App ตรงนี้ → ทุกเครื่องจะใช้ค่าเดียวกัน
 // ★★★ VERSION STAMP — ถ้าเห็นเลขนี้ใน console = โค้ดใหม่ทำงานแล้ว
-const APP_VERSION = 'v4.7-NEW-GAS-2026-03-23';
+const APP_VERSION = 'v4.8-FIX-OVERDUE-ARCHIVE-2026-03-23';
 console.log('🚀 PO Tracker Mobile ' + APP_VERSION + ' loaded at ' + new Date().toISOString());
 
-const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbzMJyPiNHYF8SmzPaILUkdMcyzb0OJBsbXQxN9k_qJ7Ex_EF1E_S0jBtJAFpNaAXbTY/exec';
+const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbysdu30Jb93M5n0xHIgS-cjXXlL6UAK8G8FFZma5vN5OokeXoAT_9hzTxbMhWwdMTpz/exec';
 let GAS_URL = HARDCODED_GAS_URL || localStorage.getItem('gas_url') || '';
 
 function setGasUrl(url) {
@@ -1280,9 +1280,11 @@ function daysLeft(dueStr) {
   return Math.ceil((due - today) / 86400000);
 }
 
-function daysLeftLabel(dueStr) {
+function daysLeftLabel(dueStr, poStatus) {
   const d = daysLeft(dueStr);
   if (d === null) return '';
+  // ถ้า PO สถานะ Complete → ไม่ต้องแสดงเตือนเลยกำหนด
+  if (poStatus === 'Complete') return `<span style="color:var(--green);font-weight:600;">✅ ส่งครบแล้ว</span>`;
   if (d < 0) return `<span style="color:var(--red);font-weight:700;">⚠️ เลยกำหนด ${Math.abs(d)} วัน</span>`;
   if (d === 0) return `<span style="color:var(--red);font-weight:700;">🔴 วันนี้!</span>`;
   if (d <= 3) return `<span style="color:var(--amber);font-weight:700;">⏰ อีก ${d} วัน</span>`;
@@ -1403,7 +1405,7 @@ function renderDashboard() {
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
             <div style="font-size:13px;color:var(--muted);">📅 กำหนดส่ง: <strong>${thaiDate(dueDateStr)}</strong></div>
-            <div style="font-size:13px;">${daysLeftLabel(dueDateStr)}</div>
+            <div style="font-size:13px;">${daysLeftLabel(dueDateStr, po && po.status)}</div>
           </div>
         </div>`;
       }).join('')}
@@ -1461,7 +1463,7 @@ function renderDashboard() {
         <div class="po-card-stats">
           <div>ส่งแล้ว <span style="color:var(--green)">${sentCount}/${total}</span></div>
           <div>กำหนดส่ง <span>${thaiDate(po.due)}</span></div>
-          <div style="margin-left:auto;font-size:11px;">${daysLeftLabel(po.due)}</div>
+          <div style="margin-left:auto;font-size:11px;">${daysLeftLabel(po.due, po.status)}</div>
         </div>
         ${po.remark ? `<div style="font-size:12px;color:var(--muted);margin-top:5px;">💬 ${po.remark}</div>` : ''}
       </div>
@@ -1491,7 +1493,7 @@ function openDetailModal(poId) {
           </div>
           ${statusBadge(it.status)}
         </div>
-        ${it.itemDue ? `<div style="font-size:12px;color:var(--red);margin-top:5px;font-weight:600;">⏰ กำหนดส่งชิ้นนี้: ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue)}</div>` : ''}
+        ${it.itemDue ? `<div style="font-size:12px;color:var(--red);margin-top:5px;font-weight:600;">⏰ กำหนดส่งชิ้นนี้: ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue, po.status)}</div>` : ''}
         ${it.sentDate ? `<div style="font-size:12px;color:var(--muted);margin-top:5px;">📅 ส่ง: ${thaiDate(it.sentDate)}</div>` : ''}
         ${it.bundlePO ? `<div style="font-size:12px;color:var(--blue);margin-top:3px;">📦 ส่งกับ: ${it.bundlePO}</div>` : ''}
         ${it.remark   ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">💬 ${it.remark}</div>` : ''}
@@ -1636,7 +1638,7 @@ function openPoItems(poId) {
       <div style="flex:1">
         <div class="item-name">${it.part}</div>
         <div class="item-color">${it.color}</div>
-        ${it.itemDue ? `<div style="font-size:11px;color:var(--red);font-weight:600;">⏰ ส่งภายใน ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue)}</div>` : ''}
+        ${it.itemDue ? `<div style="font-size:11px;color:var(--red);font-weight:600;">⏰ ส่งภายใน ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue, po.status)}</div>` : ''}
         ${it.bundlePO ? `<div style="font-size:11px;color:var(--blue)">📦 กำหนดรวมกับ ${it.bundlePO}</div>` : ''}
       </div>
       ${statusBadge(it.status)}
