@@ -13,14 +13,14 @@ const SHEET_CONFIG    = '⚙️ CONFIG';
 
 // ── Column keys ──
 const PO_KEYS    = ['id','company','model','recv','due','urgent','status','remark'];
-const ITEM_KEYS  = ['po','part','color','urgent','status','sentDate','bundlePO','order','due','remark'];
+const ITEM_KEYS  = ['po','part','color','urgent','status','sentDate','bundlePO','order','due','remark','rework'];
 
 // ── Header ภาษาไทย (แถวที่ 2 ของแต่ละ sheet) ──
 const PO_HEADERS_TH   = ['No.','เลขที่ PO','บริษัท / ลูกค้า','รุ่นรถ','สี / หมายเหตุ',
                           'รับมาทั้งหมด\n(ชิ้น)','ส่งแล้ว\n(ชิ้น)','ยังค้าง\n(ชิ้น)',
                           'กำลังผลิต\n(ชิ้น)','สถานะ PO','วันที่รับ','กำหนดส่ง','ด่วน'];
 const ITEM_HEADERS_TH = ['เลขที่ PO','ชิ้นงาน / Part','สี','ด่วน','สถานะชิ้น',
-                          'วันส่งจริง','ส่งไปกับ PO','ลำดับชิ้น\nใน PO','กำหนดส่ง PO','หมายเหตุ'];
+                          'วันส่งจริง','ส่งไปกับ PO','ลำดับชิ้น\nใน PO','กำหนดส่ง PO','หมายเหตุ','แก้ไข'];
 
 // ── สถานะ map emoji (ตรงกับ v2) ──
 const STATUS_EMOJI = {
@@ -155,7 +155,8 @@ function getAllData() {
         status:   stripEmoji(String(row[4] || 'รับของแล้ว')),
         sentDate: formatDateOut(row[5]),
         bundlePO: String(row[6] || ''),
-        remark:   String(row[9] || '')
+        remark:   String(row[9] || ''),
+        rework:   row[10] === true || row[10] === 'Y' || row[10] === 'TRUE'
       });
     }
   }
@@ -256,7 +257,8 @@ function saveAllData(data) {
         it.bundlePO || '',
         orderMap[it.po],
         formatDateIn(poDue),
-        it.remark || ''
+        it.remark || '',
+        it.rework ? 'Y' : ''
       ];
     });
     itemSheet.getRange(3, 1, rows.length, 10).setValues(rows);
@@ -365,7 +367,7 @@ function updateDashboard(ss, pos, items) {
   const prodItems    = items.filter(i => i.status === 'กำลังผลิต').length;
   const readyItems   = items.filter(i => i.status === 'เตรียมส่ง').length;
   const recvItems    = items.filter(i => i.status === 'รับของแล้ว').length;
-  const reworkItems  = items.filter(i => i.status === 'กลับมาแก้ไข').length;
+  const reworkItems  = items.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
   const urgentItems  = items.filter(i => i.urgent && i.status !== 'ส่งแล้ว').length;
 
   const itemHdr = ['','🔩 ชิ้นทั้งหมด','✅ ส่งแล้ว','🔄 กำลังผลิต',
@@ -394,7 +396,7 @@ function updateDashboard(ss, pos, items) {
     const sent      = its.filter(i => i.status === 'ส่งแล้ว').length;
     const prod      = its.filter(i => i.status === 'กำลังผลิต').length;
     const waiting   = its.filter(i => ['รับของแล้ว','เตรียมส่ง'].includes(i.status)).length;
-    const rework    = its.filter(i => i.status === 'กลับมาแก้ไข').length;
+    const rework    = its.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
     const dataRow   = [p.id, p.company, p.model, total, sent, prod, waiting, rework,
                        p.status, p.urgent ? 'Y' : ''];
     sheet.getRange(row, 1, 1, 10).setValues([dataRow]);
