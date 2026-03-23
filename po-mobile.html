@@ -123,8 +123,7 @@
   .badge-prod     { background: #FFF9C4; color: #795548; }   /* กำลังผลิต */
   .badge-ready    { background: #E8EAF6; color: #3949AB; }   /* เตรียมส่ง */
   .badge-sent     { background: #C8E6C9; color: var(--green); } /* ส่งแล้ว */
-  .badge-rework   { background: #FCE4EC; color: var(--red); }  /* กลับมาแก้ไข */
-  .badge-rework2  { background: #FFCDD2; color: #B71C1C; }   /* กลับมาแก้ไข รอบ 2 */
+  .badge-rework   { background: #FFCDD2; color: #B71C1C; }  /* กลับมาแก้ไข — แดงเด่นชัด */
 
   .badge-po-partial { background: #FCE4EC; color: var(--red); }
   .badge-po-inprog  { background: #FFF8E1; color: var(--amber); }
@@ -257,8 +256,7 @@
   .status-opt.sel-prod   { border-color: #795548; background: #EFEBE9; color: #795548; }
   .status-opt.sel-ready  { border-color: #3949AB; background: #E8EAF6; color: #3949AB; }
   .status-opt.sel-sent   { border-color: var(--green); background: #E8F5E9; color: var(--green); }
-  .status-opt.sel-rework { border-color: var(--red); background: #FFEBEE; color: var(--red); }
-  .status-opt.sel-rework2 { border-color: #B71C1C; background: #FFCDD2; color: #B71C1C; }
+  .status-opt.sel-rework { border-color: #B71C1C; background: #FFCDD2; color: #B71C1C; }
 
   /* ── Urgent toggle ── */
   .urgent-toggle {
@@ -617,14 +615,13 @@
       <div class="card-title">✏️ เปลี่ยนสถานะ</div>
 
       <div class="section-label">สถานะใหม่</div>
-      <!-- 6 สถานะ: 2+2+2 -->
+      <!-- 5 สถานะ: 2+2+1 -->
       <div class="status-grid">
         <div class="status-opt" data-status="รับของแล้ว"   data-sel="sel-recv"   onclick="selectStatus('รับของแล้ว','sel-recv',this)">📥 รับของแล้ว</div>
         <div class="status-opt" data-status="กำลังผลิต"    data-sel="sel-prod"   onclick="selectStatus('กำลังผลิต','sel-prod',this)">🔄 กำลังผลิต</div>
         <div class="status-opt" data-status="เตรียมส่ง"    data-sel="sel-ready"  onclick="selectStatus('เตรียมส่ง','sel-ready',this)">📦 เตรียมส่ง</div>
         <div class="status-opt" data-status="ส่งแล้ว"      data-sel="sel-sent"   onclick="selectStatus('ส่งแล้ว','sel-sent',this)">✅ ส่งแล้ว</div>
-        <div class="status-opt" data-status="กลับมาแก้ไข" data-sel="sel-rework" onclick="selectStatus('กลับมาแก้ไข','sel-rework',this)">🔁 กลับมาแก้ไข</div>
-        <div class="status-opt" data-status="กลับมาแก้ไข รอบ 2" data-sel="sel-rework2" onclick="selectStatus('กลับมาแก้ไข รอบ 2','sel-rework2',this)">🔁② แก้ไขรอบ 2</div>
+        <div class="status-opt" data-status="กลับมาแก้ไข" data-sel="sel-rework" onclick="selectStatus('กลับมาแก้ไข','sel-rework',this)" style="grid-column:1/-1;">🔁 กลับมาแก้ไข</div>
       </div>
 
       <div id="sent-date-group" style="display:none;">
@@ -712,9 +709,6 @@
     </div>
 
     <div id="add-items-list"></div>
-    <button class="btn btn-outline" onclick="addItemRow()" style="margin-bottom:10px;">
-      ➕ เพิ่มชิ้นทีละ 1
-    </button>
   </div>
 
   <button class="btn btn-green" onclick="savePO()">✅ บันทึก PO ใหม่</button>
@@ -1143,7 +1137,7 @@ const DEFAULT_PART_TYPES = [
 ];
 
 // 5 สถานะใหม่
-const ITEM_STATUSES = ["รับของแล้ว","กำลังผลิต","เตรียมส่ง","ส่งแล้ว","กลับมาแก้ไข","กลับมาแก้ไข รอบ 2"];
+const ITEM_STATUSES = ["รับของแล้ว","กำลังผลิต","เตรียมส่ง","ส่งแล้ว","กลับมาแก้ไข"];
 
 function loadData() {
   try {
@@ -1306,7 +1300,6 @@ function statusBadge(s) {
     'เตรียมส่ง':    ['badge-ready',  '📦 เตรียมส่ง'],
     'ส่งแล้ว':      ['badge-sent',   '✅ ส่งแล้ว'],
     'กลับมาแก้ไข': ['badge-rework', '🔁 กลับมาแก้ไข'],
-    'กลับมาแก้ไข รอบ 2': ['badge-rework2', '🔁② แก้ไขรอบ 2'],
   };
   const [cls, label] = map[s] || ['badge-recv', s];
   return `<span class="badge ${cls}">${label}</span>`;
@@ -1330,7 +1323,7 @@ function poStatusAuto(poId) {
   if (!items.length) return 'Order';
   if (items.every(i => i.status === 'ส่งแล้ว')) return 'Complete';
   if (items.some(i => i.status === 'ส่งแล้ว'))  return 'Partial Send';
-  if (items.some(i => ['กำลังผลิต','เตรียมส่ง','กลับมาแก้ไข','กลับมาแก้ไข รอบ 2'].includes(i.status))) return 'In progress';
+  if (items.some(i => ['กำลังผลิต','เตรียมส่ง','กลับมาแก้ไข'].includes(i.status))) return 'In progress';
   return 'Order';
 }
 
@@ -1370,7 +1363,7 @@ function renderDashboard() {
   const sent    = items.filter(i => i.status === 'ส่งแล้ว').length;
   const prod    = items.filter(i => i.status === 'กำลังผลิต').length;
   const ready   = items.filter(i => i.status === 'เตรียมส่ง').length;
-  const rework  = items.filter(i => i.status === 'กลับมาแก้ไข' || i.status === 'กลับมาแก้ไข รอบ 2').length;
+  const rework  = items.filter(i => i.status === 'กลับมาแก้ไข').length;
 
   document.getElementById('kpi-total-po').textContent    = db.pos.length;
   document.getElementById('kpi-total-items').textContent = items.length;
@@ -1447,7 +1440,7 @@ function renderDashboard() {
     const total = its.length;
     const pct = total ? Math.round(sentCount / total * 100) : 0;
     const cls = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
-    const reworkCount = its.filter(i => i.status === 'กลับมาแก้ไข' || i.status === 'กลับมาแก้ไข รอบ 2').length;
+    const reworkCount = its.filter(i => i.status === 'กลับมาแก้ไข').length;
     return `
       <div class="po-card ${cls}" onclick="openDetailModal('${po.id}')">
         <div class="po-card-header">
@@ -1582,7 +1575,7 @@ function backToPoList() {
   list.innerHTML = updateFiltered.map(po => {
     const its     = itemsOfPO(po.id);
     const pending = its.filter(i => i.status !== 'ส่งแล้ว').length;
-    const rework  = its.filter(i => i.status === 'กลับมาแก้ไข' || i.status === 'กลับมาแก้ไข รอบ 2').length;
+    const rework  = its.filter(i => i.status === 'กลับมาแก้ไข').length;
     const cls     = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
     return `
       <div class="po-card ${cls}" onclick="openPoItems('${po.id}')">
@@ -1625,7 +1618,7 @@ function openPoItems(poId) {
   selectedItems.clear();
   selectedStatus = '';
   document.querySelectorAll('.status-opt').forEach(e => {
-    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework','sel-rework2');
+    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
   });
 
   const list = document.getElementById('items-list');
@@ -1664,7 +1657,7 @@ function selectStatus(status, selClass, el) {
   selectedStatus    = status;
   selectedStatusSel = selClass;
   document.querySelectorAll('.status-opt').forEach(e => {
-    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework','sel-rework2');
+    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
   });
   el.classList.add(selClass);
 
@@ -1709,7 +1702,7 @@ function saveUpdate() {
   document.getElementById('bundle-po-select').value = '';
   document.getElementById('update-form-section').style.display = 'none';
   document.querySelectorAll('.status-opt').forEach(e => {
-    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework','sel-rework2');
+    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
   });
   document.getElementById('sent-date-group').style.display  = 'none';
   document.getElementById('bundle-po-group').style.display  = 'none';
@@ -1798,8 +1791,6 @@ function initAddPOTab() {
     db.masterParts.map(p => `<option value="${p}">${p}</option>`).join('');
   document.getElementById('bulk-color').value = '';
   document.getElementById('bulk-qty').value = 1;
-
-  addItemRow();
 }
 
 // ★ เพิ่มหลายชิ้นพร้อมกัน
