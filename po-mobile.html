@@ -123,7 +123,10 @@
   .badge-prod     { background: #FFF9C4; color: #795548; }   /* กำลังผลิต */
   .badge-ready    { background: #E8EAF6; color: #3949AB; }   /* เตรียมส่ง */
   .badge-sent     { background: #C8E6C9; color: var(--green); } /* ส่งแล้ว */
-  .badge-rework   { background: #FFCDD2; color: #B71C1C; }  /* กลับมาแก้ไข — แดงเด่นชัด */
+  .badge-rework   { background: #FFCDD2; color: #B71C1C; }  /* กลับมาแก้ไข */
+  /* Toggle switch styling */
+  #rework-toggle:checked + span { background: #B71C1C !important; }
+  #rework-toggle:checked ~ #rework-toggle-knob { transform: translateX(22px); }
 
   .badge-po-partial { background: #FCE4EC; color: var(--red); }
   .badge-po-inprog  { background: #FFF8E1; color: var(--amber); }
@@ -256,7 +259,7 @@
   .status-opt.sel-prod   { border-color: #795548; background: #EFEBE9; color: #795548; }
   .status-opt.sel-ready  { border-color: #3949AB; background: #E8EAF6; color: #3949AB; }
   .status-opt.sel-sent   { border-color: var(--green); background: #E8F5E9; color: var(--green); }
-  .status-opt.sel-rework { border-color: #B71C1C; background: #FFCDD2; color: #B71C1C; }
+  /* sel-rework removed — rework is now a toggle, not a status */
 
   /* ── Urgent toggle ── */
   .urgent-toggle {
@@ -614,14 +617,23 @@
     <div id="update-form-section" style="display:none;" class="card">
       <div class="card-title">✏️ เปลี่ยนสถานะ</div>
 
+      <!-- ★ Toggle งานกลับมาแก้ไข -->
+      <div id="rework-toggle-row" style="display:flex;align-items:center;justify-content:space-between;background:#FFEBEE;border:1.5px solid #EF9A9A;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+        <span style="font-weight:700;color:#B71C1C;font-size:14px;">🔁 งานกลับมาแก้ไข</span>
+        <label style="position:relative;width:50px;height:28px;margin:0;">
+          <input type="checkbox" id="rework-toggle" onchange="onReworkToggle()" style="opacity:0;width:0;height:0;">
+          <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:28px;transition:.3s;"></span>
+          <span style="position:absolute;content:'';height:22px;width:22px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;pointer-events:none;" id="rework-toggle-knob"></span>
+        </label>
+      </div>
+
       <div class="section-label">สถานะใหม่</div>
-      <!-- 5 สถานะ: 2+2+1 -->
+      <!-- 4 สถานะ: 2+2 -->
       <div class="status-grid">
         <div class="status-opt" data-status="รับของแล้ว"   data-sel="sel-recv"   onclick="selectStatus('รับของแล้ว','sel-recv',this)">📥 รับของแล้ว</div>
         <div class="status-opt" data-status="กำลังผลิต"    data-sel="sel-prod"   onclick="selectStatus('กำลังผลิต','sel-prod',this)">🔄 กำลังผลิต</div>
         <div class="status-opt" data-status="เตรียมส่ง"    data-sel="sel-ready"  onclick="selectStatus('เตรียมส่ง','sel-ready',this)">📦 เตรียมส่ง</div>
         <div class="status-opt" data-status="ส่งแล้ว"      data-sel="sel-sent"   onclick="selectStatus('ส่งแล้ว','sel-sent',this)">✅ ส่งแล้ว</div>
-        <div class="status-opt" data-status="กลับมาแก้ไข" data-sel="sel-rework" onclick="selectStatus('กลับมาแก้ไข','sel-rework',this)" style="grid-column:1/-1;">🔁 กลับมาแก้ไข</div>
       </div>
 
       <div id="sent-date-group" style="display:none;">
@@ -1137,7 +1149,7 @@ const DEFAULT_PART_TYPES = [
 ];
 
 // 5 สถานะใหม่
-const ITEM_STATUSES = ["รับของแล้ว","กำลังผลิต","เตรียมส่ง","ส่งแล้ว","กลับมาแก้ไข"];
+const ITEM_STATUSES = ["รับของแล้ว","กำลังผลิต","เตรียมส่ง","ส่งแล้ว"];
 
 function loadData() {
   try {
@@ -1293,7 +1305,7 @@ function toast(msg, duration=2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-function statusBadge(s) {
+function statusBadge(s, isRework) {
   const map = {
     'รับของแล้ว':   ['badge-recv',   '📥 รับของแล้ว'],
     'กำลังผลิต':    ['badge-prod',   '🔄 กำลังผลิต'],
@@ -1302,6 +1314,9 @@ function statusBadge(s) {
     'กลับมาแก้ไข': ['badge-rework', '🔁 กลับมาแก้ไข'],
   };
   const [cls, label] = map[s] || ['badge-recv', s];
+  if (isRework && s !== 'กลับมาแก้ไข') {
+    return `<span class="badge badge-rework">🔁 แก้ไข</span> <span class="badge ${cls}">${label}</span>`;
+  }
   return `<span class="badge ${cls}">${label}</span>`;
 }
 
@@ -1363,7 +1378,7 @@ function renderDashboard() {
   const sent    = items.filter(i => i.status === 'ส่งแล้ว').length;
   const prod    = items.filter(i => i.status === 'กำลังผลิต').length;
   const ready   = items.filter(i => i.status === 'เตรียมส่ง').length;
-  const rework  = items.filter(i => i.status === 'กลับมาแก้ไข').length;
+  const rework  = items.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
 
   document.getElementById('kpi-total-po').textContent    = db.pos.length;
   document.getElementById('kpi-total-items').textContent = items.length;
@@ -1396,7 +1411,7 @@ function renderDashboard() {
               <div class="po-card-no" style="color:var(--red);font-size:16px;">${i.po}</div>
               <div style="font-size:14px;font-weight:600;margin-top:2px;">🔩 ${i.part} — ${i.color}</div>
             </div>
-            ${statusBadge(i.status)}
+            ${statusBadge(i.status, i.rework)}
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
             <div style="font-size:13px;color:var(--muted);">📅 กำหนดส่ง: <strong>${thaiDate(dueDateStr)}</strong></div>
@@ -1440,7 +1455,7 @@ function renderDashboard() {
     const total = its.length;
     const pct = total ? Math.round(sentCount / total * 100) : 0;
     const cls = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
-    const reworkCount = its.filter(i => i.status === 'กลับมาแก้ไข').length;
+    const reworkCount = its.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
     return `
       <div class="po-card ${cls}" onclick="openDetailModal('${po.id}')">
         <div class="po-card-header">
@@ -1486,7 +1501,7 @@ function openDetailModal(poId) {
             <div style="font-weight:700;font-size:14px;">${it.part} ${it.urgent ? '🔥' : ''}</div>
             <div style="font-size:12px;color:var(--muted);">${it.color}</div>
           </div>
-          ${statusBadge(it.status)}
+          ${statusBadge(it.status, it.rework)}
         </div>
         ${it.itemDue ? `<div style="font-size:12px;color:var(--red);margin-top:5px;font-weight:600;">⏰ กำหนดส่งชิ้นนี้: ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue, po.status)}</div>` : ''}
         ${it.sentDate ? `<div style="font-size:12px;color:var(--muted);margin-top:5px;">📅 ส่ง: ${thaiDate(it.sentDate)}</div>` : ''}
@@ -1575,7 +1590,7 @@ function backToPoList() {
   list.innerHTML = updateFiltered.map(po => {
     const its     = itemsOfPO(po.id);
     const pending = its.filter(i => i.status !== 'ส่งแล้ว').length;
-    const rework  = its.filter(i => i.status === 'กลับมาแก้ไข').length;
+    const rework  = its.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
     const cls     = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
     return `
       <div class="po-card ${cls}" onclick="openPoItems('${po.id}')">
@@ -1636,7 +1651,7 @@ function openPoItems(poId) {
         ${it.itemDue ? `<div style="font-size:11px;color:var(--red);font-weight:600;">⏰ ส่งภายใน ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue, po.status)}</div>` : ''}
         ${it.bundlePO ? `<div style="font-size:11px;color:var(--blue)">📦 กำหนดรวมกับ ${it.bundlePO}</div>` : ''}
       </div>
-      ${statusBadge(it.status)}
+      ${statusBadge(it.status, it.rework)}
     </div>
   `).join('');
 }
@@ -1670,13 +1685,21 @@ function selectStatus(status, selClass, el) {
   }
 }
 
+// ★ Toggle งานกลับมาแก้ไข
+function onReworkToggle() {
+  const on = document.getElementById('rework-toggle').checked;
+  document.getElementById('rework-toggle-row').style.background = on ? '#FFCDD2' : '#FFEBEE';
+  document.getElementById('rework-toggle-row').style.borderColor = on ? '#B71C1C' : '#EF9A9A';
+}
+
 function saveUpdate() {
   if (!selectedStatus)     { toast('⚠️ กรุณาเลือกสถานะก่อน'); return; }
   if (!selectedItems.size) { toast('⚠️ กรุณาเลือกชิ้นงานก่อน'); return; }
 
-  const sentDate = document.getElementById('sent-date').value;
-  const bundlePO = document.getElementById('bundle-po-select').value;
-  const remark   = document.getElementById('update-remark').value.trim();
+  const sentDate  = document.getElementById('sent-date').value;
+  const bundlePO  = document.getElementById('bundle-po-select').value;
+  const remark    = document.getElementById('update-remark').value.trim();
+  const isRework  = document.getElementById('rework-toggle').checked;
 
   const poItemsGlobalIdx = [];
   db.items.forEach((it, gi) => { if (it.po === currentPoId) poItemsGlobalIdx.push(gi); });
@@ -1685,14 +1708,16 @@ function saveUpdate() {
     const gi = poItemsGlobalIdx[idx];
     if (gi !== undefined) {
       db.items[gi].status = selectedStatus;
+      db.items[gi].rework = isRework;  // ★ เก็บ flag กลับมาแก้ไข
       if (sentDate && selectedStatus === 'ส่งแล้ว') db.items[gi].sentDate = sentDate;
       if (bundlePO) db.items[gi].bundlePO = bundlePO;
       if (remark)   db.items[gi].remark   = remark;
     }
   });
 
-  syncPOStatuses(true);  // ★ push ขึ้น Sheet เพราะผู้ใช้แก้ข้อมูล
-  toast(`✅ อัพเดท ${selectedItems.size} ชิ้น → "${selectedStatus}" แล้ว`);
+  const reworkLabel = isRework ? ' (กลับมาแก้ไข)' : '';
+  syncPOStatuses(true);
+  toast(`✅ อัพเดท ${selectedItems.size} ชิ้น → "${selectedStatus}${reworkLabel}" แล้ว`);
 
   // Reset แล้ว refresh รายการ
   selectedItems.clear();
@@ -1700,9 +1725,11 @@ function saveUpdate() {
   document.getElementById('update-remark').value = '';
   document.getElementById('sent-date').value = '';
   document.getElementById('bundle-po-select').value = '';
+  document.getElementById('rework-toggle').checked = false;
+  onReworkToggle();
   document.getElementById('update-form-section').style.display = 'none';
   document.querySelectorAll('.status-opt').forEach(e => {
-    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
+    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent');
   });
   document.getElementById('sent-date-group').style.display  = 'none';
   document.getElementById('bundle-po-group').style.display  = 'none';
