@@ -1016,7 +1016,7 @@ async function loadFromSupabase() {
 
 // สร้าง PO ใหม่ (insert po_list + po_items)
 async function createPOInSupabase(po, items) {
-  const { error: e1 } = await sb.from('po_list').insert({
+  const { data: poRow, error: e1 } = await sb.from('po_list').insert({
     po_number:  po.id,
     company:    po.company,
     car_model:  po.model,
@@ -1025,12 +1025,14 @@ async function createPOInSupabase(po, items) {
     urgent:     po.urgent || false,
     po_status:  po.status || 'Order',
     remark:     po.remark || ''
-  });
+  }).select('id').single();
   if (e1) throw new Error('po_list insert: ' + e1.message);
 
   if (items.length > 0) {
+    const poUuid = poRow.id; // UUID ที่ Supabase generate ให้
     const { error: e2 } = await sb.from('po_items').insert(
       items.map(i => ({
+        po_id:      poUuid,
         po_number:  i.po,
         part_name:  i.part,
         color:      i.color    || '',
@@ -1974,28 +1976,21 @@ async function savePO() {
   }
 
   const newPo = { id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark };
-  db.pos.push(newPo);
-  db.items.push(...newItems);
-  syncPOStatuses(false);  // คำนวณสถานะ PO local
 
-  toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
-  initAddPOTab();
-
-  // Insert ไป Supabase แล้ว reload เพื่อรับ _sbId
+  // INSERT po_list → รับ id กลับ → INSERT po_items ด้วย po_id นั้น → reload
+  showLoading(true);
   try {
     await createPOInSupabase(newPo, newItems);
     const fresh = await loadFromSupabase();
     if (fresh) { db = fresh; localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+    toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
+    initAddPOTab();
+    setTimeout(() => switchTab('dashboard'), 1200);
   } catch(e) {
-    // Rollback local ถ้า Supabase ล้มเหลว
-    db.pos   = db.pos.filter(p => p.id !== poNo);
-    db.items = db.items.filter(i => i.po !== poNo);
-    localStorage.setItem(STORE_KEY, JSON.stringify(db));
     toast('❌ เพิ่ม PO ล้มเหลว: ' + e.message, 5000);
-    return;
+  } finally {
+    showLoading(false);
   }
-
-  setTimeout(() => switchTab('dashboard'), 1200);
 }
 
 // ═══════════════════════════════════════════════════
