@@ -955,7 +955,7 @@ async function loadFromSupabase() {
     ] = await Promise.all([
       sb.from('po_list').select('*').order('due_date'),
       sb.from('po_items').select('*'),
-      sb.from('config').select('*').order('value')
+      sb.from('config').select('*').order('config_value')
     ]);
     if (e1) throw new Error('po_list: ' + e1.message);
     if (e2) throw new Error('po_items: ' + e2.message);
