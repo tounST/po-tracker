@@ -2231,10 +2231,11 @@ async function loadArchiveList() {
       return;
     }
 
-    // Group by YYYY-MM ของ due_date
+    // Group by YYYY-MM ของ due_date (ข้ามรายการที่ due_date เป็น null/ว่าง)
     const grouped = {};
     data.forEach(po => {
-      const ym = (po.due_date || '0000-00').slice(0, 7);
+      if (!po.due_date || po.due_date.length < 7) return;
+      const ym = po.due_date.slice(0, 7);
       if (!grouped[ym]) grouped[ym] = 0;
       grouped[ym]++;
     });
@@ -2269,6 +2270,7 @@ async function openArchiveMonth(yearMonth, label) {
 
   try {
     const [yr, mo] = yearMonth.split('-').map(Number);
+    if (!yr || !mo || yr < 2000 || mo < 1 || mo > 12) throw new Error('เดือนไม่ถูกต้อง: ' + yearMonth);
     const startDate = `${yr}-${String(mo).padStart(2,'0')}-01`;
     const endDate   = `${yr}-${String(mo).padStart(2,'0')}-31`;
 
