@@ -170,6 +170,7 @@
   .po-card.partial { border-left-color: var(--red); }
   .po-card.inprog  { border-left-color: var(--amber); }
   .po-card.done    { border-left-color: var(--green); }
+  .po-card.urgent  { border-left-color: var(--red); background: #fff5f5; border: 1.5px solid #ffcdd2; }
   .po-card-header { display: flex; justify-content: space-between; align-items: center; }
   .po-card-no { font-size: 15px; font-weight: 700; }
   .po-card-company { font-size: 13px; color: var(--muted); margin-top: 2px; }
@@ -1441,8 +1442,11 @@ function renderDashboard() {
     return;
   }
 
-  // เรียงตามวันกำหนดส่ง — ใกล้ส่งที่สุดอยู่บน, ไม่มีวันที่ไว้ท้าย
+  // เรียง: urgent PO ขึ้นก่อน → แล้วเรียงตามวันกำหนดส่ง (ใกล้ก่อน)
   filtered.sort((a, b) => {
+    const urgA = (a.urgent && a.status !== 'Complete') ? 0 : 1;
+    const urgB = (b.urgent && b.status !== 'Complete') ? 0 : 1;
+    if (urgA !== urgB) return urgA - urgB;
     if (!a.due && !b.due) return 0;
     if (!a.due) return 1;
     if (!b.due) return -1;
@@ -1455,9 +1459,10 @@ function renderDashboard() {
     const total = its.length;
     const pct = total ? Math.round(sentCount / total * 100) : 0;
     const cls = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
+    const urgCls = (po.urgent && po.status !== 'Complete') ? ' urgent' : '';
     const reworkCount = its.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
     return `
-      <div class="po-card ${cls}" onclick="openDetailModal('${po.id}')">
+      <div class="po-card ${cls}${urgCls}" onclick="openDetailModal('${po.id}')">
         <div class="po-card-header">
           <div>
             <div class="po-card-no">${po.id} ${po.urgent ? '🔥' : ''}${reworkCount > 0 ? ' <span style="font-size:11px;color:var(--red)">🔁×'+reworkCount+'</span>' : ''}</div>
