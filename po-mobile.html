@@ -453,6 +453,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
 </head>
 <body>
 
@@ -811,6 +812,20 @@
 
   <div style="text-align:center;font-size:12px;color:var(--muted);padding:8px 0 4px;">
     ข้อมูลบันทึกในเครื่องอัตโนมัติ · กดค้าง × เพื่อลบ
+  </div>
+
+  <!-- Export Excel (Admin เท่านั้น) -->
+  <div class="card admin-only" style="padding:14px;margin-top:12px;">
+    <div class="card-title">📊 Export ข้อมูล Excel</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+      Export ข้อมูล PO ทั้งหมดเป็นไฟล์ .xlsx<br>
+      Sheet 1: สรุป PO · Sheet 2: รายการชิ้นงานทั้งหมด
+    </p>
+    <button id="export-btn" onclick="exportToExcel()"
+      style="width:100%;background:#1565C0;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">
+      📥 Download Excel
+    </button>
+    <div id="export-status" style="text-align:center;font-size:13px;min-height:20px;margin-top:8px;color:var(--muted);"></div>
   </div>
 </div>
 
@@ -2000,6 +2015,114 @@ async function savePO() {
 
 // ═══════════════════════════════════════════════════
 //  QUICK REFRESH (ทุก role ใช้ได้)
+// ═══════════════════════════════════════════════════
+//  EXPORT EXCEL (Admin only)
+// ═══════════════════════════════════════════════════
+async function exportToExcel() {
+  if (currentRole !== 'admin') { toast('❌ เฉพาะ Admin เท่านั้น'); return; }
+  if (typeof XLSX === 'undefined') { toast('❌ โหลด library ไม่สำเร็จ'); return; }
+
+  const btn    = document.getElementById('export-btn');
+  const status = document.getElementById('export-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ กำลัง Export...';
+  status.textContent = '';
+
+  try {
+    // ── ดึงข้อมูลล่าสุดจาก Supabase ──────────────────
+    const [
+      { data: poRows,   error: e1 },
+      { data: itemRows, error: e2 }
+    ] = await Promise.all([
+      sb.from('po_list').select('*').order('due_date'),
+      sb.from('po_items').select('*').order('po_number')
+    ]);
+    if (e1) throw new Error('po_list: ' + e1.message);
+    if (e2) throw new Error('po_items: ' + e2.message);
+
+    // helper สี cell
+    const hdrStyle = { fill:{fgColor:{rgb:'1565C0'}}, font:{bold:true,color:{rgb:'FFFFFF'},sz:11}, alignment:{horizontal:'center',vertical:'center'} };
+    const altStyle = { fill:{fgColor:{rgb:'E3F2FD'}} };
+    const urgStyle = { fill:{fgColor:{rgb:'FFF9C4'}}, font:{bold:true} };
+    const sentStyle= { fill:{fgColor:{rgb:'C8E6C9'}} };
+
+    function cellS(v, style) { return { v, s: style }; }
+    function rowStyle(cells, style) { return cells.map(v => cellS(v, style)); }
+
+    // ── Sheet 1: สรุป PO ──────────────────────────────
+    const hdr1 = ['เลขที่ PO','บริษัท','รุ่นรถ','วันรับ','กำหนดส่ง','สถานะ PO','งานด่วน','ชิ้นทั้งหมด','ส่งแล้ว','คงเหลือ','หมายเหตุ'];
+    const data1 = [hdr1.map(h => cellS(h, hdrStyle))];
+
+    (poRows || []).forEach((po, ri) => {
+      const its     = (itemRows || []).filter(i => i.po_number === po.po_number);
+      const total   = its.length;
+      const sent    = its.filter(i => i.status === 'ส่งแล้ว').length;
+      const remain  = total - sent;
+      const isUrgent = po.urgent;
+      const isSent   = po.po_status === 'Complete';
+      const base = ri % 2 === 0 ? null : altStyle;
+      const style = isUrgent ? urgStyle : (isSent ? sentStyle : base);
+
+      const row = [
+        po.po_number, po.company, po.car_model,
+        po.order_date ? po.order_date.slice(0,10) : '',
+        po.due_date   ? po.due_date.slice(0,10)   : '',
+        po.po_status, isUrgent ? '🔥 ด่วน' : '',
+        total, sent, remain, po.remark || ''
+      ];
+      data1.push(style ? rowStyle(row, style) : row.map(v => ({ v })));
+    });
+
+    const ws1 = XLSX.utils.aoa_to_sheet(data1);
+    ws1['!cols'] = [10,20,16,12,12,14,10,10,10,10,20].map(w => ({ wch: w }));
+    ws1['!freeze'] = { xSplit:0, ySplit:1 };
+
+    // ── Sheet 2: รายการชิ้นงาน ───────────────────────
+    const hdr2 = ['เลขที่ PO','บริษัท','รุ่นรถ','ชิ้นงาน','สี','สถานะ','กลับมาแก้ไข','วันที่ส่ง','Bundle PO'];
+    const data2 = [hdr2.map(h => cellS(h, hdrStyle))];
+    const poMap = {};
+    (poRows || []).forEach(p => { poMap[p.po_number] = p; });
+
+    (itemRows || []).forEach((item, ri) => {
+      const po      = poMap[item.po_number] || {};
+      const isUrgent = item.urgent || po.urgent;
+      const isSent   = item.status === 'ส่งแล้ว';
+      const base = ri % 2 === 0 ? null : altStyle;
+      const style = isSent ? sentStyle : (isUrgent ? urgStyle : base);
+
+      const row = [
+        item.po_number, po.company || '', po.car_model || '',
+        item.part_name, item.color || '', item.status,
+        item.rework ? '🔁 ใช่' : '',
+        item.sent_date ? item.sent_date.slice(0,10) : '',
+        item.bundle_po || ''
+      ];
+      data2.push(style ? rowStyle(row, style) : row.map(v => ({ v })));
+    });
+
+    const ws2 = XLSX.utils.aoa_to_sheet(data2);
+    ws2['!cols'] = [12,20,16,20,12,14,14,12,14].map(w => ({ wch: w }));
+    ws2['!freeze'] = { xSplit:0, ySplit:1 };
+
+    // ── สร้างไฟล์ ──────────────────────────────────────
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'สรุป PO');
+    XLSX.utils.book_append_sheet(wb, ws2, 'รายการชิ้นงาน');
+
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `PO-Tracker-Export-${today}.xlsx`);
+
+    status.style.color = 'var(--green)';
+    status.textContent = `✅ Export สำเร็จ (${(poRows||[]).length} PO, ${(itemRows||[]).length} ชิ้น)`;
+  } catch(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 Download Excel';
+  }
+}
+
 // ═══════════════════════════════════════════════════
 async function quickRefresh() {
   toast('🔄 กำลังดึงข้อมูลล่าสุด...');
