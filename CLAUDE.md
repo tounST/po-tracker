@@ -82,24 +82,39 @@
 - ✅ PWA ติดตั้งเป็นแอปบนมือถือได้
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
+> **ทุกอย่างทำใน branch dev** → เทสผ่านแล้ว merge เข้า main
+> **ลำดับ:** ทำ Phase 2A ก่อน → 2B → 3 → 4 (อย่าข้ามขั้น)
 
-### ระดับ 1 — โหมดจุดงาน (ทำถัดไป ⭐)
-**เป้าหมาย:** ลูกน้องเปิดแอป → เลือกจุดงาน → เห็นเฉพาะงานที่เกี่ยวข้อง
-- หลัง login เลือก: 📥 จุดรับของ | 🔄 จุด QC/ผลิต | 📦 จุดส่งของ | 👑 Admin
-- แต่ละจุดเห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
-- ไม่ต้องเปลี่ยน stack — แก้ใน po-mobile.html เดิม
-- **ทำใน branch dev** → merge เข้า main เมื่อพร้อม
+### Phase 2A — โหมดจุดงาน + Partial Update (ทำถัดไป ⭐)
+**เป้าหมาย:** ลูกน้อง 5 คนใช้พร้อมกันได้โดยข้อมูลไม่ชนกัน
+1. **โหมดจุดงาน** — หลัง login เลือก: 📥 จุดรับของ | 🔄 จุด QC/ผลิต | 📦 จุดส่งของ | 👑 Admin
+   - แต่ละจุดเห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
+   - ไม่ต้องเปลี่ยน stack — แก้ใน po-mobile.html เดิม
+2. **Partial Update** — เปลี่ยนจาก "ส่งข้อมูลทั้งหมดเขียนทับ" → "ส่งเฉพาะชิ้นที่แก้"
+   - แก้ทั้ง GAS (รับ partial update) + po-mobile.html (ส่งเฉพาะที่แก้)
+   - ป้องกันข้อมูลชนกันเมื่อหลายคนใช้พร้อมกัน
 
-### ระดับ 2 — User Account + Activity Log (เมื่อพร้อม)
-- เพิ่ม sheet "👤 USERS" ใน Google Sheet (Username, PIN, Role, Station)
-- Login ด้วย ชื่อ + PIN 4 ตัว
-- เพิ่ม sheet "📝 LOG" เก็บว่า ใคร ทำอะไร เมื่อไหร่
-- แต่ละคนเห็นเฉพาะงานของจุดตัวเอง
+### Phase 2B — Migrate ไป Supabase (ก่อนเพิ่มฟีเจอร์ใหม่)
+**เป้าหมาย:** ย้ายฐานข้อมูลไป Supabase เพื่อรองรับฟีเจอร์ในอนาคต
+- สร้าง Supabase project (free tier: 500MB DB, unlimited users, realtime)
+- สร้าง tables: po_list, po_items, config, users, activity_log
+- ย้ายข้อมูลจาก Google Sheets → Supabase
+- แก้ po-mobile.html ให้ต่อ Supabase แทน GAS
+- เพิ่ม User Account + PIN login + Activity Log
+- **ทำไมต้องย้ายก่อนเพิ่มฟีเจอร์:** ถ้าสร้างฟีเจอร์ใหม่บน GAS แล้วค่อยย้าย → ต้อง rewrite ใหม่หมด เสียเวลา 2 เท่า
 
-### ระดับ 3 — Migrate ไป Supabase (ระยะยาว เมื่อธุรกิจโต)
-- PostgreSQL database + Authentication จริง
-- Row Level Security + Realtime sync
-- รองรับ mobile app จริง, 100+ users
+### Phase 3 — ฟีเจอร์ธุรกิจ (หลังย้าย Supabase แล้ว เพิ่มได้เรื่อยๆ)
+- ระบบสต๊อกวัตถุดิบ/สี (เพิ่ม table ใน Supabase)
+- ระบบคิดต้นทุน (SQL คำนวณได้เลย)
+- Line แจ้งเตือน (Supabase Edge Functions + Webhook)
+- เชื่อม n8n workflow (REST API พร้อมใช้)
+- Dashboard สรุปยอดผลิต/ส่ง (SQL query เร็ว)
+
+### Phase 4 — Scale Up (เมื่อธุรกิจโตจริง)
+- Mobile app จริง (React Native / Flutter)
+- Row Level Security (แต่ละคนเห็นเฉพาะข้อมูลที่ควรเห็น)
+- Realtime sync (เหมือน Google Docs — ทุกคนเห็นการเปลี่ยนแปลงทันที)
+- รองรับ 100+ users
 
 ## Architecture & Decision Log
 - **ทำไมใช้ JSONP → fetch + credentials:omit**: Chrome ส่ง Google session cookie กับ JSONP → GAS redirect loop
