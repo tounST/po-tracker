@@ -992,12 +992,12 @@ async function loadFromSupabase() {
     _configIdMap = {};
     (cfgRows || []).forEach(c => {
       if (!_configIdMap[c.config_type]) _configIdMap[c.config_type] = {};
-      _configIdMap[c.config_type][c.value] = c.id;
+      _configIdMap[c.config_type][c.config_value] = c.id;
     });
 
-    const masterCompanies = (cfgRows || []).filter(c => c.config_type === 'company')  .map(c => c.value);
-    const masterModels    = (cfgRows || []).filter(c => c.config_type === 'car_model').map(c => c.value);
-    const masterParts     = (cfgRows || []).filter(c => c.config_type === 'part_name').map(c => c.value);
+    const masterCompanies = (cfgRows || []).filter(c => c.config_type === 'company')  .map(c => c.config_value);
+    const masterModels    = (cfgRows || []).filter(c => c.config_type === 'car_model').map(c => c.config_value);
+    const masterParts     = (cfgRows || []).filter(c => c.config_type === 'part_name').map(c => c.config_value);
 
     showSyncStatus('ok');
     return {
@@ -1080,8 +1080,8 @@ async function deletePOInSupabase(poId) {
 // เพิ่ม master data (config table)
 async function addConfigInSupabase(cfgType, value) {
   const { data, error } = await sb.from('config').insert({
-    config_type: cfgType,
-    value:       value
+    config_type:  cfgType,
+    config_value: value
   }).select('id').single();
   if (error) throw new Error('config insert: ' + error.message);
   if (!_configIdMap[cfgType]) _configIdMap[cfgType] = {};
@@ -1093,7 +1093,7 @@ async function removeConfigInSupabase(cfgType, value) {
   const id = _configIdMap[cfgType]?.[value];
   const { error } = id
     ? await sb.from('config').delete().eq('id', id)
-    : await sb.from('config').delete().eq('config_type', cfgType).eq('value', value);
+    : await sb.from('config').delete().eq('config_type', cfgType).eq('config_value', value);
   if (error) throw new Error('config delete: ' + error.message);
   if (_configIdMap[cfgType]) delete _configIdMap[cfgType][value];
 }
