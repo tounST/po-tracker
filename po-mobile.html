@@ -2271,8 +2271,9 @@ async function openArchiveMonth(yearMonth, label) {
   try {
     const [yr, mo] = yearMonth.split('-').map(Number);
     if (!yr || !mo || yr < 2000 || mo < 1 || mo > 12) throw new Error('เดือนไม่ถูกต้อง: ' + yearMonth);
+    const lastDay   = new Date(yr, mo, 0).getDate(); // วันสุดท้ายของเดือน (0 = วันก่อนเดือนถัดไป)
     const startDate = `${yr}-${String(mo).padStart(2,'0')}-01`;
-    const endDate   = `${yr}-${String(mo).padStart(2,'0')}-31`;
+    const endDate   = `${yr}-${String(mo).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
 
     const { data: poData, error: e1 } = await sb
       .from('po_list')
