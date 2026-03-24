@@ -982,7 +982,7 @@ async function loadFromSupabase() {
       urgent:   i.urgent     || false,
       status:   i.status     || 'รับของแล้ว',
       rework:   i.rework     || false,
-      itemDue:  fixDateStr(i.item_due   || ''),
+      itemDue:  fixDateStr(i.due_date    || ''),
       sentDate: fixDateStr(i.sent_date  || ''),
       bundlePO: i.bundle_po  || '',
       remark:   i.remark     || ''
@@ -1037,7 +1037,7 @@ async function createPOInSupabase(po, items) {
         urgent:     i.urgent   || false,
         status:     i.status   || 'รับของแล้ว',
         rework:     i.rework   || false,
-        item_due:   i.itemDue  || null,
+        due_date:   i.itemDue  || null,
         sent_date:  i.sentDate || null,
         bundle_po:  i.bundlePO || '',
         remark:     i.remark   || ''
