@@ -451,6 +451,7 @@
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -494,28 +495,20 @@
   </div>
 </div>
 
-<!-- ═══ SYNC MODAL ═══ -->
+<!-- ═══ SYNC MODAL (Supabase) ═══ -->
 <div id="sync-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:flex-end">
   <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-height:90vh;overflow-y:auto">
-    <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">☁️ เชื่อมต่อ Google Sheets</h3>
-    <p style="font-size:13px;color:#78909C;margin-bottom:16px">ใส่ URL ของ Apps Script Web App เพื่อ sync ข้อมูลกับทุกอุปกรณ์</p>
-    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Apps Script Web App URL</label>
-    <input id="gas-url-input" type="url" placeholder="https://script.google.com/macros/s/..."
-      style="width:100%;padding:12px;border:1px solid #E0E0E0;border-radius:10px;font-size:13px;margin-bottom:12px">
-    <div style="display:flex;gap:10px;margin-bottom:16px">
-      <button onclick="saveGasUrl()" style="flex:1;background:#1A73E8;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">💾 บันทึก URL</button>
-      <button onclick="testConnection()" style="flex:1;background:#2E7D32;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">🔌 ทดสอบ</button>
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">☁️ การเชื่อมต่อ Supabase</h3>
+    <p style="font-size:13px;color:#78909C;margin-bottom:16px">ข้อมูลทั้งหมดเชื่อมต่อกับ Supabase (PostgreSQL) โดยอัตโนมัติ</p>
+    <div style="background:#E8F5E9;border-radius:10px;padding:12px;margin-bottom:16px;">
+      <div style="font-size:13px;color:#2E7D32;font-weight:700;">✅ Supabase (rkdxbxtakvisroxelrvq)</div>
+      <div style="font-size:12px;color:#78909C;margin-top:4px;">Region: ap-south-1 (Mumbai) · ข้อมูลซิงค์ real-time</div>
     </div>
-    <button onclick="syncNow()" style="width:100%;background:#F57F17;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:12px">🔄 ดึงข้อมูลล่าสุดจาก Sheet</button>
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <button onclick="testSupabaseConnection()" style="flex:1;background:#2E7D32;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">🔌 ทดสอบการเชื่อมต่อ</button>
+      <button onclick="syncNow()" style="flex:1;background:#F57F17;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">🔄 ดึงข้อมูลล่าสุด</button>
+    </div>
     <p id="sync-test-result" style="font-size:13px;text-align:center;min-height:20px;margin-bottom:12px"></p>
-    <div style="background:#FFF3E0;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#E65100;line-height:1.7">
-      <strong>วิธี Deploy Apps Script:</strong><br>
-      1. เปิด Google Sheet → Extensions → Apps Script<br>
-      2. วาง code จากไฟล์ <code>po-tracker-gas.js</code><br>
-      3. Deploy → New deployment → Web app<br>
-      4. Execute as: <strong>Me</strong> | Access: <strong>Anyone</strong><br>
-      5. Copy URL มาวางตรงนี้
-    </div>
     <button onclick="closeSyncModal()" style="width:100%;background:#ECEFF1;color:#546E7A;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">ปิด</button>
   </div>
 </div>
@@ -881,22 +874,17 @@ async function doLogin() {
   }
   localStorage.setItem('po_role', currentRole);
   showApp();
-  // ★ ดึงข้อมูลจาก Sheet ทันทีหลัง login (กรณี DOMContentLoaded fetch ไม่มี role)
-  if (GAS_URL && (!db.pos || db.pos.length === 0)) {
-    console.log('[Login] db ว่าง — กำลังดึงข้อมูลจาก Sheet...');
-    showSyncStatus('syncing');
-    try {
-      const sheetData = await fetchFromSheet();
-      if (sheetData) {
-        db = sheetData;
-        localStorage.setItem(STORE_KEY, JSON.stringify(db));
-        showSyncStatus('ok');
-        renderDashboard();
-      }
-    } catch(e) {
-      console.warn('[Login] Fetch failed:', e);
-      showSyncStatus('error', e.message);
+  // ดึงข้อมูลล่าสุดจาก Supabase หลัง login
+  try {
+    const data = await loadFromSupabase();
+    if (data) {
+      db = data;
+      localStorage.setItem(STORE_KEY, JSON.stringify(db));
+      renderDashboard();
     }
+  } catch(e) {
+    console.warn('[Login] Supabase fetch failed:', e);
+    showSyncStatus('error', e.message);
   }
 }
 
@@ -940,150 +928,174 @@ function applyRole() {
 }
 
 // ═══════════════════════════════════════════════════
-//  GOOGLE SHEETS SYNC  — Cloud-first mode
+//  SUPABASE CLIENT
 // ═══════════════════════════════════════════════════
-// ★ ใส่ URL ของ Apps Script Web App ตรงนี้ → ทุกเครื่องจะใช้ค่าเดียวกัน
-// ★★★ VERSION STAMP — ถ้าเห็นเลขนี้ใน console = โค้ดใหม่ทำงานแล้ว
-const APP_VERSION = 'v4.8-FIX-OVERDUE-ARCHIVE-2026-03-23';
+const APP_VERSION = 'v4.9-SUPABASE-2026-03-24';
 console.log('🚀 PO Tracker Mobile ' + APP_VERSION + ' loaded at ' + new Date().toISOString());
 
-const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbxIJ5kQPLI_zbRpf7eIDaADs68jBaY8IZLn5IkqeHOrkIGqD_Tz1lAUa5EXQbbdGNGU/exec';
-let GAS_URL = HARDCODED_GAS_URL || localStorage.getItem('gas_url') || '';
+const SUPABASE_URL      = 'https://rkdxbxtakvisroxelrvq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHhieHRha3Zpc3JveGVscnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMzM2MjgsImV4cCI6MjA4OTkwOTYyOH0.KvTaFrdXCERYl77hVt5x5_udMQn7YSy6GFdDoyu9bOU';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function setGasUrl(url) {
-  GAS_URL = url.trim();
-  localStorage.setItem('gas_url', GAS_URL);
-}
+// Map ของ config table id: { 'company': { 'ACE': uuid }, 'car_model': {...}, 'part_name': {...} }
+let _configIdMap = {};
 
-// ★ FIX CHROME: เปลี่ยนจาก JSONP เป็น fetch() + credentials:'omit'
-// JSONP ทำให้ Chrome ส่ง Google session cookie → GAS redirect loop
-// credentials:'omit' = ไม่ส่ง cookie → GAS ตอบกลับโดยตรงในฐานะ Anonymous
-async function jsonpCall(url, timeoutMs) {
-  // ตัด ?callback=... ออกถ้ามี (GAS จะ return JSON ล้วนเมื่อไม่มี callback param)
-  const fetchUrl = url.replace(/[&?]callback=[^&]*/g, '');
-  const controller = new AbortController();
-  const ms = timeoutMs || 20000;  // default 20 วินาที
-  const timer = setTimeout(() => controller.abort(), ms);
+// ═══════════════════════════════════════════════════
+//  DATA LAYER — Supabase (แทน GAS + saveAll)
+// ═══════════════════════════════════════════════════
+
+// โหลดข้อมูลทั้งหมดจาก Supabase (แทน fetchFromSheet)
+async function loadFromSupabase() {
+  showSyncStatus('syncing');
   try {
-    const response = await fetch(fetchUrl, {
-      method: 'GET',
-      credentials: 'omit',   // ★ สำคัญ: ไม่ส่ง cookie ใดๆ ป้องกัน redirect loop
-      redirect: 'follow',
-      headers: { 'Accept': 'application/json' },
-      signal: controller.signal
+    const [
+      { data: poRows,   error: e1 },
+      { data: itemRows, error: e2 },
+      { data: cfgRows,  error: e3 }
+    ] = await Promise.all([
+      sb.from('po_list').select('*').order('due_date'),
+      sb.from('po_items').select('*'),
+      sb.from('config').select('*').order('value')
+    ]);
+    if (e1) throw new Error('po_list: ' + e1.message);
+    if (e2) throw new Error('po_items: ' + e2.message);
+    if (e3) throw new Error('config: ' + e3.message);
+
+    // แปลง Supabase column names → local field names + เก็บ _sbId สำหรับ partial update
+    const pos = (poRows || []).map(p => ({
+      _sbId:   p.id,
+      id:      p.po_number,
+      company: p.company   || '',
+      model:   p.car_model || '',
+      recv:    fixDateStr(p.order_date || ''),
+      due:     fixDateStr(p.due_date   || ''),
+      urgent:  p.urgent    || false,
+      status:  p.po_status || 'Order',
+      remark:  p.remark    || ''
+    })).filter(p => p.id);
+
+    const items = (itemRows || []).map(i => ({
+      _sbId:    i.id,
+      po:       i.po_number,
+      part:     i.part_name  || '',
+      color:    i.color      || '',
+      urgent:   i.urgent     || false,
+      status:   i.status     || 'รับของแล้ว',
+      rework:   i.rework     || false,
+      itemDue:  fixDateStr(i.item_due   || ''),
+      sentDate: fixDateStr(i.sent_date  || ''),
+      bundlePO: i.bundle_po  || '',
+      remark:   i.remark     || ''
+    })).filter(i => i.po && i.part);
+
+    // สร้าง configIdMap สำหรับ CRUD master data
+    _configIdMap = {};
+    (cfgRows || []).forEach(c => {
+      if (!_configIdMap[c.config_type]) _configIdMap[c.config_type] = {};
+      _configIdMap[c.config_type][c.value] = c.id;
     });
-    clearTimeout(timer);
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    const text = await response.text();
-    try { return JSON.parse(text); }
-    catch(pe) { throw new Error('GAS ไม่ได้ตอบ JSON — อาจต้อง Redeploy ใหม่'); }
-  } catch(e) {
-    clearTimeout(timer);
-    if (e.name === 'AbortError') throw new Error('หมดเวลาเชื่อมต่อ (' + (ms/1000) + 's) — ลองใหม่อีกครั้ง');
-    throw e;
-  }
-}
 
-async function fetchFromSheet() {
-  if (!GAS_URL) return null;
-  if (_pushing) {
-    console.log('[fetchFromSheet] Skipped — push in progress');
-    return null;  // ★ FIX BUG1: ห้าม fetch ขณะกำลัง push
-  }
-  try {
-    showSyncStatus('syncing');
-    const json = await jsonpCall(GAS_URL + '?action=getAll');
-    if (!json.ok) { showSyncStatus('error', json.error); return null; }
-
-    const raw = json.data;
-
-    // ── แปลง key: GAS ใช้ po_id, item_name, recv_date, due_date, sent_date, bundle_po
-    //              HTML ใช้  id,    part,      recv,      due,      sentDate,  bundlePO
-    const pos = (raw.pos || []).map(p => ({
-      id:     p.po_id   || p.id   || '',
-      company:p.company || '',
-      model:  p.model   || '',
-      recv:   fixDateStr(p.recv_date || p.recv || ''),
-      due:    fixDateStr(p.due_date  || p.due  || ''),
-      urgent: p.urgent === true || String(p.urgent).toUpperCase() === 'TRUE',
-      status: p.status  || 'Order',
-      remark: p.remark  || ''
-    })).filter(p => p.id);   // กรองแถวที่ไม่มี id ออก
-
-    const items = (raw.items || []).map(i => ({
-      po:       i.po_id    || i.po  || '',
-      part:     i.item_name|| i.part|| '',
-      color:    i.color    || '',
-      urgent:   i.urgent === true || String(i.urgent).toUpperCase() === 'TRUE',
-      status:   i.status   || 'รับของแล้ว',
-      itemDue:  fixDateStr(i.item_due || i.itemDue  || ''),
-      sentDate: fixDateStr(i.sent_date|| i.sentDate || ''),
-      bundlePO: i.bundle_po|| i.bundlePO || '',
-      remark:   i.remark   || ''
-    })).filter(i => i.po && i.part);   // กรองแถวที่ไม่มี po หรือไม่มีชิ้นงานออก
-
-    // ── ถ้า GAS v3 ส่ง master lists มา ให้ใช้จาก Sheet (CONFIG เป็น source of truth)
-    //    ถ้า GAS เก่าไม่ส่งมา ให้ fallback เป็น local db หรือ defaults
-    const merged = {
-      masterCompanies: (raw.masterCompanies && raw.masterCompanies.length > 0)
-                        ? raw.masterCompanies
-                        : (db.masterCompanies || [...DEFAULT_COMPANIES]),
-      masterModels:    (raw.masterModels    && raw.masterModels.length > 0)
-                        ? raw.masterModels
-                        : (db.masterModels    || [...DEFAULT_CAR_MODELS]),
-      masterParts:     (raw.masterParts     && raw.masterParts.length > 0)
-                        ? raw.masterParts
-                        : (db.masterParts     || [...DEFAULT_PART_TYPES]),
-      pos,
-      items
-    };
+    const masterCompanies = (cfgRows || []).filter(c => c.config_type === 'company')  .map(c => c.value);
+    const masterModels    = (cfgRows || []).filter(c => c.config_type === 'car_model').map(c => c.value);
+    const masterParts     = (cfgRows || []).filter(c => c.config_type === 'part_name').map(c => c.value);
 
     showSyncStatus('ok');
-    return merged;
-  } catch(e) { showSyncStatus('error', e.message); return null; }
+    return {
+      pos,
+      items,
+      masterCompanies: masterCompanies.length ? masterCompanies : [...DEFAULT_COMPANIES],
+      masterModels:    masterModels.length    ? masterModels    : [...DEFAULT_CAR_MODELS],
+      masterParts:     masterParts.length     ? masterParts     : [...DEFAULT_PART_TYPES]
+    };
+  } catch(e) {
+    console.error('[Supabase] loadFromSupabase:', e);
+    showSyncStatus('error', e.message);
+    return null;
+  }
 }
 
-async function pushToSheet(data) {
-  if (!GAS_URL) return;
-  _pushing = true;  // ★ ล็อก — ห้าม auto-refresh ทับข้อมูลขณะ push
-  try {
-    showSyncStatus('syncing');
-    // ★ กรอง items ที่ไม่มีชื่อชิ้นงานออกก่อนส่ง — ป้องกัน row ว่างใน Sheet
-    const rawItems = data.items || [];
-    const filteredItems = rawItems.filter(i => i.po && i.part);
-    console.log(`[pushToSheet] items before filter: ${rawItems.length}, after filter: ${filteredItems.length}`);
-    if (rawItems.length !== filteredItems.length) {
-      console.warn(`[pushToSheet] ⚠️ ${rawItems.length - filteredItems.length} empty items filtered out!`);
-      rawItems.forEach((it, idx) => {
-        if (!it.po || !it.part) console.warn(`  [filtered] item ${idx}: po="${it.po}" part="${it.part}"`);
-      });
-    }
-    const cleanData = Object.assign({}, data, {
-      items: filteredItems,
-      masterCompanies: db.masterCompanies || [...DEFAULT_COMPANIES],
-      masterModels:    db.masterModels    || [...DEFAULT_CAR_MODELS],
-      masterParts:     db.masterParts     || [...DEFAULT_PART_TYPES]
-    });
-    const payload = {
-      action: 'saveAll',
-      data: cleanData
-    };
+// สร้าง PO ใหม่ (insert po_list + po_items)
+async function createPOInSupabase(po, items) {
+  const { error: e1 } = await sb.from('po_list').insert({
+    po_number:  po.id,
+    company:    po.company,
+    car_model:  po.model,
+    order_date: po.recv  || null,
+    due_date:   po.due   || null,
+    urgent:     po.urgent || false,
+    po_status:  po.status || 'Order',
+    remark:     po.remark || ''
+  });
+  if (e1) throw new Error('po_list insert: ' + e1.message);
 
-    // ใช้ POST แทน GET — ไม่จำกัด URL length, ส่ง JSON body ได้ไม่จำกัดขนาด
-    // credentials:'omit' ป้องกัน Chrome ส่ง Google session cookie → redirect loop
-    const resp = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      credentials: 'omit',   // ★ FIX CHROME: ไม่ส่ง cookie
-      redirect: 'follow'
-    });
-    const json = await resp.json();
+  if (items.length > 0) {
+    const { error: e2 } = await sb.from('po_items').insert(
+      items.map(i => ({
+        po_number:  i.po,
+        part_name:  i.part,
+        color:      i.color    || '',
+        urgent:     i.urgent   || false,
+        status:     i.status   || 'รับของแล้ว',
+        rework:     i.rework   || false,
+        item_due:   i.itemDue  || null,
+        sent_date:  i.sentDate || null,
+        bundle_po:  i.bundlePO || '',
+        remark:     i.remark   || ''
+      }))
+    );
+    if (e2) throw new Error('po_items insert: ' + e2.message);
+  }
+}
 
-    if (json.ok) showSyncStatus('ok');
-    else showSyncStatus('error', json.error || 'GAS error');
-  } catch(e) { showSyncStatus('error', e.message); }
-  finally { _pushing = false; }  // ★ ปลดล็อก
+// อัพเดทชิ้นงาน 1 รายการ (partial update — แทน saveAll)
+async function updateItemInSupabase(item) {
+  if (!item._sbId) {
+    console.warn('[Supabase] updateItem: ไม่พบ _sbId สำหรับ', item.part, 'PO', item.po);
+    return;
+  }
+  const { error } = await sb.from('po_items').update({
+    status:    item.status,
+    rework:    item.rework    || false,
+    sent_date: item.sentDate  || null,
+    bundle_po: item.bundlePO  || '',
+    remark:    item.remark    || ''
+  }).eq('id', item._sbId);
+  if (error) throw new Error('po_items update: ' + error.message);
+}
+
+// อัพเดทสถานะ PO (คำนวณอัตโนมัติ)
+async function updatePOStatusInSupabase(poId, status) {
+  const { error } = await sb.from('po_list').update({ po_status: status }).eq('po_number', poId);
+  if (error) console.warn('[Supabase] updatePOStatus:', error.message);
+}
+
+// ลบ PO + ชิ้นงานทั้งหมด
+async function deletePOInSupabase(poId) {
+  const { error: e1 } = await sb.from('po_items').delete().eq('po_number', poId);
+  if (e1) throw new Error('po_items delete: ' + e1.message);
+  const { error: e2 } = await sb.from('po_list').delete().eq('po_number', poId);
+  if (e2) throw new Error('po_list delete: ' + e2.message);
+}
+
+// เพิ่ม master data (config table)
+async function addConfigInSupabase(cfgType, value) {
+  const { data, error } = await sb.from('config').insert({
+    config_type: cfgType,
+    value:       value
+  }).select('id').single();
+  if (error) throw new Error('config insert: ' + error.message);
+  if (!_configIdMap[cfgType]) _configIdMap[cfgType] = {};
+  _configIdMap[cfgType][value] = data.id;
+}
+
+// ลบ master data (config table)
+async function removeConfigInSupabase(cfgType, value) {
+  const id = _configIdMap[cfgType]?.[value];
+  const { error } = id
+    ? await sb.from('config').delete().eq('id', id)
+    : await sb.from('config').delete().eq('config_type', cfgType).eq('value', value);
+  if (error) throw new Error('config delete: ' + error.message);
+  if (_configIdMap[cfgType]) delete _configIdMap[cfgType][value];
 }
 
 function showSyncStatus(state, msg) {
@@ -1156,37 +1168,17 @@ function loadData() {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const d = JSON.parse(raw);
-      // backward-compat: ถ้า db เก่าไม่มี master lists ให้ใส่ default
       if (!d.masterCompanies) d.masterCompanies = [...DEFAULT_COMPANIES];
       if (!d.masterModels)    d.masterModels    = [...DEFAULT_CAR_MODELS];
       if (!d.masterParts)     d.masterParts     = [...DEFAULT_PART_TYPES];
-
-      // ── v2 → v3 migration: ถ้า v3 ไม่มี PO แต่ v2 มี ให้ดึงมา ──
-      if ((!d.pos || d.pos.length === 0) && (!d.items || d.items.length === 0)) {
-        const v2raw = localStorage.getItem('po_tracker_v2');
-        if (v2raw) {
-          try {
-            const v2 = JSON.parse(v2raw);
-            if (v2.pos && v2.pos.length > 0)   d.pos   = v2.pos;
-            if (v2.items && v2.items.length > 0) d.items = v2.items;
-            console.log('📦 Migrated ' + (d.pos||[]).length + ' POs from v2 → v3');
-          } catch(e2) { console.warn('v2 migration failed:', e2); }
-        }
-      }
       return d;
     }
   } catch(e) {}
   return getInitialData();
 }
 
-// ★ skipPush = true เมื่อดึงข้อมูลมาจาก Sheet (ไม่ต้อง push กลับ ป้องกันวนแปลง)
-let _skipPush = false;
-// ★ _pushing = true ขณะกำลัง push ข้อมูลขึ้น Sheet → ห้าม auto-refresh ทับ
-let _pushing = false;
-
-function saveData(d, skipPush) {
+function saveData(d) {
   localStorage.setItem(STORE_KEY, JSON.stringify(d));
-  if (GAS_URL && !skipPush && !_skipPush) pushToSheet(d);
 }
 
 function getInitialData() {
@@ -1343,11 +1335,17 @@ function poStatusAuto(poId) {
 }
 
 function syncPOStatuses(pushToCloud) {
-  db.pos.forEach(po => { po.status = poStatusAuto(po.id); });
-  if (pushToCloud) {
-    saveData(db);  // push ขึ้น Sheet ด้วย
-  } else {
-    localStorage.setItem(STORE_KEY, JSON.stringify(db));  // save local เท่านั้น
+  const changed = [];
+  db.pos.forEach(po => {
+    const newStatus = poStatusAuto(po.id);
+    if (newStatus !== po.status) changed.push({ id: po.id, status: newStatus });
+    po.status = newStatus;
+  });
+  localStorage.setItem(STORE_KEY, JSON.stringify(db));
+  // อัพเดท Supabase แบบ fire-and-forget (ไม่ block UI)
+  if (pushToCloud && changed.length > 0) {
+    Promise.all(changed.map(({ id, status }) => updatePOStatusInSupabase(id, status)))
+      .catch(e => console.warn('[Supabase] syncPOStatuses error:', e));
   }
 }
 
@@ -1543,21 +1541,17 @@ async function deletePO(poId) {
   renderDashboard();
   toast('🗑️ ลบ ' + poId + ' แล้ว — กำลัง sync...');
 
-  // Push ขึ้น Sheet แล้วเช็คผล
-  if (GAS_URL) {
-    try {
-      await pushToSheet(db);
-      toast('✅ ลบ ' + poId + ' และ sync สำเร็จ');
-    } catch(e) {
-      // ★ Rollback ถ้า push ล้มเหลว
-      db.pos.push(...deletedPos);
-      db.items.push(...deletedItems);
-      localStorage.setItem(STORE_KEY, JSON.stringify(db));
-      renderDashboard();
-      toast('❌ ลบล้มเหลว — กู้คืนแล้ว ลองใหม่อีกครั้ง', 4000);
-    }
-  } else {
+  try {
+    await deletePOInSupabase(poId);
     localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    toast('✅ ลบ ' + poId + ' และ sync สำเร็จ');
+  } catch(e) {
+    // Rollback ถ้า Supabase ล้มเหลว
+    db.pos.push(...deletedPos);
+    db.items.push(...deletedItems);
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    renderDashboard();
+    toast('❌ ลบล้มเหลว — กู้คืนแล้ว: ' + e.message, 4000);
   }
 }
 
@@ -1692,7 +1686,7 @@ function onReworkToggle() {
   document.getElementById('rework-toggle-row').style.borderColor = on ? '#B71C1C' : '#EF9A9A';
 }
 
-function saveUpdate() {
+async function saveUpdate() {
   if (!selectedStatus)     { toast('⚠️ กรุณาเลือกสถานะก่อน'); return; }
   if (!selectedItems.size) { toast('⚠️ กรุณาเลือกชิ้นงานก่อน'); return; }
 
@@ -1704,20 +1698,32 @@ function saveUpdate() {
   const poItemsGlobalIdx = [];
   db.items.forEach((it, gi) => { if (it.po === currentPoId) poItemsGlobalIdx.push(gi); });
 
+  const changedItems = [];
   selectedItems.forEach(idx => {
     const gi = poItemsGlobalIdx[idx];
     if (gi !== undefined) {
       db.items[gi].status = selectedStatus;
-      db.items[gi].rework = isRework;  // ★ เก็บ flag กลับมาแก้ไข
+      db.items[gi].rework = isRework;
       if (sentDate && selectedStatus === 'ส่งแล้ว') db.items[gi].sentDate = sentDate;
       if (bundlePO) db.items[gi].bundlePO = bundlePO;
       if (remark)   db.items[gi].remark   = remark;
+      changedItems.push(db.items[gi]);
     }
   });
 
   const reworkLabel = isRework ? ' (กลับมาแก้ไข)' : '';
-  syncPOStatuses(true);
-  toast(`✅ อัพเดท ${selectedItems.size} ชิ้น → "${selectedStatus}${reworkLabel}" แล้ว`);
+  syncPOStatuses(true);  // อัพเดทสถานะ PO + push Supabase
+  toast(`✅ อัพเดท ${changedItems.length} ชิ้น → "${selectedStatus}${reworkLabel}" แล้ว`);
+
+  // Partial update — ส่งเฉพาะ row ที่เปลี่ยน (ไม่ใช่ saveAll ทั้งหมด)
+  for (const item of changedItems) {
+    try {
+      await updateItemInSupabase(item);
+    } catch(e) {
+      console.error('[Supabase] updateItem error:', e);
+      toast('⚠️ บางรายการ sync ไม่สำเร็จ', 3000);
+    }
+  }
 
   // Reset แล้ว refresh รายการ
   selectedItems.clear();
@@ -1927,7 +1933,7 @@ function toggleItemUrgent(idx) {
   }
 }
 
-function savePO() {
+async function savePO() {
   const poNo    = document.getElementById('add-pono').value.trim();
   const company = document.getElementById('add-company').value;
   const model   = document.getElementById('add-model').value;
@@ -1967,13 +1973,28 @@ function savePO() {
     toast('⚠️ ไม่มีชิ้นงาน — กรุณาเลือกชิ้นงานอย่างน้อย 1 รายการ'); return;
   }
 
-  db.pos.push({ id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark });
+  const newPo = { id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark };
+  db.pos.push(newPo);
   db.items.push(...newItems);
-
-  syncPOStatuses(true);  // ★ push ขึ้น Sheet เพราะผู้ใช้เพิ่ม PO ใหม่
+  syncPOStatuses(false);  // คำนวณสถานะ PO local
 
   toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
   initAddPOTab();
+
+  // Insert ไป Supabase แล้ว reload เพื่อรับ _sbId
+  try {
+    await createPOInSupabase(newPo, newItems);
+    const fresh = await loadFromSupabase();
+    if (fresh) { db = fresh; localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+  } catch(e) {
+    // Rollback local ถ้า Supabase ล้มเหลว
+    db.pos   = db.pos.filter(p => p.id !== poNo);
+    db.items = db.items.filter(i => i.po !== poNo);
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    toast('❌ เพิ่ม PO ล้มเหลว: ' + e.message, 5000);
+    return;
+  }
+
   setTimeout(() => switchTab('dashboard'), 1200);
 }
 
@@ -1981,9 +2002,8 @@ function savePO() {
 //  QUICK REFRESH (ทุก role ใช้ได้)
 // ═══════════════════════════════════════════════════
 async function quickRefresh() {
-  if (!GAS_URL) { toast('⚠️ ยังไม่ได้ตั้งค่า URL (แจ้ง Admin)'); return; }
   toast('🔄 กำลังดึงข้อมูลล่าสุด...');
-  const data = await fetchFromSheet();
+  const data = await loadFromSupabase();
   if (data) {
     db = data;
     localStorage.setItem(STORE_KEY, JSON.stringify(db));
@@ -1999,40 +2019,30 @@ async function quickRefresh() {
 // ═══════════════════════════════════════════════════
 function openSyncModal() {
   document.getElementById('sync-modal').style.display = 'flex';
-  document.getElementById('gas-url-input').value = GAS_URL;
   document.getElementById('sync-test-result').textContent = '';
 }
 function closeSyncModal() {
   document.getElementById('sync-modal').style.display = 'none';
 }
-function saveGasUrl() {
-  const url = document.getElementById('gas-url-input').value.trim();
-  setGasUrl(url);
+async function testSupabaseConnection() {
   const el = document.getElementById('sync-test-result');
-  if (url) { el.textContent = '✅ บันทึก URL แล้ว กด "ทดสอบ" เพื่อตรวจสอบ'; el.style.color = '#2E7D32'; }
-  else     { el.textContent = 'ลบ URL แล้ว — เก็บใน browser เท่านั้น'; el.style.color = '#78909C'; }
-}
-async function testConnection() {
-  const el = document.getElementById('sync-test-result');
-  if (!GAS_URL) { el.textContent = '⚠️ กรุณาบันทึก URL ก่อน'; el.style.color = '#F57F17'; return; }
   el.textContent = '🔄 กำลังทดสอบ...'; el.style.color = '#1A73E8';
   try {
-    const json = await jsonpCall(GAS_URL + '?action=ping');
-    if (json.ok) { el.textContent = '✅ เชื่อมต่อสำเร็จ! ' + json.message; el.style.color = '#2E7D32'; }
-    else         { el.textContent = '❌ Error: ' + json.error; el.style.color = '#C62828'; }
+    const { data, error } = await sb.from('po_list').select('po_number').limit(1);
+    if (error) { el.textContent = '❌ Error: ' + error.message; el.style.color = '#C62828'; }
+    else       { el.textContent = '✅ เชื่อมต่อ Supabase สำเร็จ!'; el.style.color = '#2E7D32'; }
   } catch(e) { el.textContent = '❌ เชื่อมต่อไม่ได้: ' + e.message; el.style.color = '#C62828'; }
 }
 async function syncNow() {
   const el = document.getElementById('sync-test-result');
-  if (!GAS_URL) { el.textContent = '⚠️ กรุณาบันทึก URL ก่อน'; el.style.color = '#F57F17'; return; }
   el.textContent = '🔄 กำลังดึงข้อมูล...'; el.style.color = '#1A73E8';
-  const data = await fetchFromSheet();
+  const data = await loadFromSupabase();
   if (data) {
-    db = data; saveData(db, true); renderDashboard();
+    db = data; saveData(db); renderDashboard();
     el.textContent = `✅ ดึงข้อมูลสำเร็จ — ${db.pos.length} PO, ${db.items.length} ชิ้น`;
     el.style.color = '#2E7D32';
   } else {
-    el.textContent = '❌ ดึงข้อมูลไม่ได้ ตรวจสอบ URL หรือสิทธิ์';
+    el.textContent = '❌ ดึงข้อมูลไม่ได้ ตรวจสอบการเชื่อมต่อ';
     el.style.color = '#C62828';
   }
 }
@@ -2064,36 +2074,57 @@ function renderMasterSection(type, list, tagClass) {
   });
 }
 
-function addMasterItem(type) {
+async function addMasterItem(type) {
   const input = document.getElementById(`master-${type}-input`);
   const val   = input.value.trim();
   if (!val) { toast('⚠️ กรุณากรอกชื่อก่อน'); return; }
 
   const listMap = { company: 'masterCompanies', model: 'masterModels', part: 'masterParts' };
-  const key = listMap[type];
+  const cfgMap  = { company: 'company',         model: 'car_model',    part: 'part_name'   };
+  const names   = { company: 'บริษัท',          model: 'รุ่นรถ',       part: 'ชิ้นงาน'     };
+  const key     = listMap[type];
+  const cfgType = cfgMap[type];
   if (!db[key]) db[key] = [];
 
-  if (db[key].includes(val)) {
-    toast('⚠️ มีรายการนี้อยู่แล้ว'); return;
-  }
+  if (db[key].includes(val)) { toast('⚠️ มีรายการนี้อยู่แล้ว'); return; }
 
   db[key].push(val);
   saveData(db);
   input.value = '';
   renderMasterTab();
 
-  const names = { company: 'บริษัท', model: 'รุ่นรถ', part: 'ชิ้นงาน' };
-  toast(`✅ เพิ่ม${names[type]}: ${val}`);
+  try {
+    await addConfigInSupabase(cfgType, val);
+    toast(`✅ เพิ่ม${names[type]}: ${val}`);
+  } catch(e) {
+    // Rollback local ถ้า Supabase ล้มเหลว
+    db[key] = db[key].filter(v => v !== val);
+    saveData(db);
+    renderMasterTab();
+    toast('❌ เพิ่มไม่สำเร็จ: ' + e.message, 3000);
+  }
 }
 
-function removeMasterItem(type, idx) {
+async function removeMasterItem(type, idx) {
   const listMap = { company: 'masterCompanies', model: 'masterModels', part: 'masterParts' };
-  const key  = listMap[type];
-  const item = db[key][idx];
+  const cfgMap  = { company: 'company',         model: 'car_model',    part: 'part_name'   };
+  const key     = listMap[type];
+  const cfgType = cfgMap[type];
+  const item    = db[key][idx];
   db[key].splice(idx, 1);
   saveData(db);
   renderMasterTab();
-  toast(`🗑️ ลบแล้ว: ${item}`);
+
+  try {
+    await removeConfigInSupabase(cfgType, item);
+    toast(`🗑️ ลบแล้ว: ${item}`);
+  } catch(e) {
+    // Rollback local ถ้า Supabase ล้มเหลว
+    db[key].splice(idx, 0, item);
+    saveData(db);
+    renderMasterTab();
+    toast('❌ ลบไม่สำเร็จ: ' + e.message, 3000);
+  }
 }
 
 // กด Enter ใน input เพื่อเพิ่มได้เลย
@@ -2102,7 +2133,7 @@ function masterInputEnter(type, event) {
 }
 
 // ═══════════════════════════════════════════════════
-//  INIT — Cloud-first: ดึงข้อมูลจาก Sheet อัตโนมัติทุกครั้ง
+//  INIT — Supabase cloud-first
 // ═══════════════════════════════════════════════════
 function showLoading(show) {
   const el = document.getElementById('loading-overlay');
@@ -2110,7 +2141,6 @@ function showLoading(show) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // ★ FIX BUG5: Register Service Worker สำหรับ PWA
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/po-tracker/sw.js')
       .then(() => console.log('✅ SW registered'))
@@ -2121,76 +2151,51 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('topbar-date').textContent =
     `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
 
-  // ถ้า login ไว้แล้ว (มี role ใน localStorage) ข้ามหน้า login
-  if (currentRole === 'admin' || currentRole === 'staff') {
-    showApp();
-  }
+  if (currentRole === 'admin' || currentRole === 'staff') showApp();
 
-  // ★ Cloud-first: ดึงข้อมูลจาก Sheet อัตโนมัติทุกครั้งที่เปิดแอป
-  console.log('[Init] GAS_URL:', GAS_URL ? 'set' : 'EMPTY', '| role:', currentRole || 'NONE');
-  if (GAS_URL) {
-    showLoading(true);
-    showSyncStatus('syncing');
-    try {
-      console.log('[Init] Fetching from Sheet...');
-      const sheetData = await fetchFromSheet();
-      console.log('[Init] Sheet data:', sheetData ? (sheetData.pos?.length + ' PO, ' + sheetData.items?.length + ' items') : 'NULL');
-      if (sheetData) {
-        db = sheetData;
-        localStorage.setItem(STORE_KEY, JSON.stringify(db));
-        showSyncStatus('ok');
-      }
-    } catch(e) {
-      console.warn('[Init] Auto-fetch failed:', e);
-      showSyncStatus('error', e.message);
+  // โหลดข้อมูลจาก Supabase ทุกครั้งที่เปิดแอป
+  showLoading(true);
+  try {
+    const data = await loadFromSupabase();
+    if (data) {
+      db = data;
+      localStorage.setItem(STORE_KEY, JSON.stringify(db));
     }
-    showLoading(false);
+  } catch(e) {
+    console.warn('[Init] Supabase fetch failed:', e);
+    showSyncStatus('error', e.message);
   }
-  if (currentRole) {
-    console.log('[Init] Rendering dashboard with', db.pos?.length, 'PO');
-    renderDashboard();
-  }
+  showLoading(false);
 
-  // ★ Auto-refresh ทุก 30 วินาที เพื่อให้เห็นข้อมูลใหม่จากเครื่องอื่น
-  if (GAS_URL) {
-    setInterval(async () => {
-      if (!document.hidden && currentRole && !_pushing) {  // ★ ห้าม refresh ขณะ push
-        const data = await fetchFromSheet();
-        if (data && !_pushing) {  // ★ เช็คอีกทีหลัง fetch เสร็จ กันกรณี push เริ่มระหว่าง fetch
-          // ★ Safety: ถ้า Sheet มี items น้อยกว่า local → อาจเป็นข้อมูลระหว่าง write → ข้าม
-          if (data.items.length < db.items.length && db.items.length > 0) {
-            console.warn('⚠️ Auto-refresh skipped: Sheet items (' + data.items.length + ') < local (' + db.items.length + ')');
-          } else {
-            db = data;
-            localStorage.setItem(STORE_KEY, JSON.stringify(db));
-            renderDashboard();
-          }
-        }
+  if (currentRole) renderDashboard();
+
+  // Auto-refresh ทุก 30 วินาที เพื่อซิงค์กับเครื่องอื่น
+  setInterval(async () => {
+    if (!document.hidden && currentRole) {
+      const data = await loadFromSupabase();
+      if (data && data.items.length >= db.items.length) {
+        db = data;
+        localStorage.setItem(STORE_KEY, JSON.stringify(db));
+        renderDashboard();
       }
-    }, 30000);
-  }
+    }
+  }, 30000);
 });
 // ═══════════════════ END DOMContentLoaded ═══════════════════
 
 // ═══════════════════════════════════════════════════
-//  ARCHIVE SYSTEM (global scope — ต้องอยู่นอก DOMContentLoaded)
+//  ARCHIVE SYSTEM — Supabase (query po_list where status=Complete)
 // ═══════════════════════════════════════════════════
 
-// ── เพิ่มฟังก์ชันแปลงชื่อ sheet → ชื่อเดือนภาษาไทย ──
-function arcSheetToLabel(sheetName) {
-  // รูปแบบ: "📦 Archive_2026_03"
-  const m = sheetName.match(/Archive_(\d{4})_(\d{2})/);
-  if (!m) return sheetName;
-  const thMonths = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
-                    'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const year  = parseInt(m[1]) + 543; // แปลง ค.ศ. → พ.ศ.
-  const month = parseInt(m[2]);
-  return `${thMonths[month]} ${year}`;
+const TH_MONTHS = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
+                   'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+function ymToLabel(ym) {
+  const [yr, mo] = ym.split('-').map(Number);
+  return `${TH_MONTHS[mo] || mo} ${yr + 543}`;
 }
 
-// ── เริ่มต้น Archive tab ──
 async function initArchiveTab() {
-  // รีเซ็ตกลับหน้าหลักทุกครั้งที่เปิด tab
   showArchiveHome();
   await loadArchiveList();
 }
@@ -2202,133 +2207,128 @@ function showArchiveHome() {
 
 function backToArchiveHome() {
   showArchiveHome();
-  // โหลดรายการใหม่ (กรณีมีการ Archive เพิ่ม)
   loadArchiveList();
 }
 
-// ── โหลดรายการเดือน Archive จาก GAS ──
+// โหลดรายการเดือน Archive จาก Supabase (po_status = 'Complete' grouping by due_date month)
 async function loadArchiveList() {
-  const listEl = document.getElementById('archive-month-list');
+  const listEl  = document.getElementById('archive-month-list');
   const noGasEl = document.getElementById('archive-no-gas');
-
-  if (!GAS_URL) {
-    listEl.innerHTML = '';
-    noGasEl.style.display = '';
-    return;
-  }
   noGasEl.style.display = 'none';
   listEl.innerHTML = '<div class="archive-loading">⏳ กำลังดึงรายการ Archive...</div>';
 
   try {
-    console.log('[Archive] Loading list from:', GAS_URL + '?action=getArchiveList');
-    const json = await jsonpCall(GAS_URL + '?action=getArchiveList');
-    console.log('[Archive] Response:', JSON.stringify(json));
-    if (!json.ok) {
-      listEl.innerHTML = `<div class="empty-state"><span class="emoji">⚠️</span><p>${json.error || 'โหลดรายการไม่ได้'}</p></div>`;
-      return;
-    }
+    const { data, error } = await sb
+      .from('po_list')
+      .select('po_number, due_date')
+      .eq('po_status', 'Complete')
+      .order('due_date', { ascending: false });
 
-    const sheets = json.data || [];  // [ { sheet: "📦 Archive_2026_03", poCount: 5, itemCount: 28 }, ... ]
+    if (error) throw new Error(error.message);
 
-    if (sheets.length === 0) {
+    if (!data || data.length === 0) {
       listEl.innerHTML = `
         <div class="empty-state">
           <span class="emoji">📭</span>
-          <p>ยังไม่มีข้อมูล Archive</p>
-          <p style="font-size:12px;margin-top:6px;">PO ที่สถานะ Complete จะถูก Archive<br>อัตโนมัติในวันที่ 1 ของเดือนถัดไป</p>
+          <p>ยังไม่มี PO ที่ Complete<br>
+          <span style="font-size:12px;">PO ที่สถานะ Complete จะแสดงที่นี่</span></p>
         </div>`;
       return;
     }
 
-    // เรียงล่าสุดขึ้นก่อน
-    sheets.sort((a, b) => b.sheet.localeCompare(a.sheet));
+    // Group by YYYY-MM ของ due_date
+    const grouped = {};
+    data.forEach(po => {
+      const ym = (po.due_date || '0000-00').slice(0, 7);
+      if (!grouped[ym]) grouped[ym] = 0;
+      grouped[ym]++;
+    });
 
+    const months = Object.keys(grouped).sort().reverse();
     let html = '<div class="archive-month-grid">';
-    sheets.forEach(s => {
-      const label = arcSheetToLabel(s.sheet);
+    months.forEach(ym => {
+      const label = ymToLabel(ym);
       html += `
-        <div class="archive-month-btn" onclick="openArchiveMonth('${s.sheet}','${label}')">
+        <div class="archive-month-btn" onclick="openArchiveMonth('${ym}','${label}')">
           📦 ${label}
-          <div class="arc-count">${s.poCount || 0} PO · ${s.itemCount || 0} ชิ้น</div>
+          <div class="arc-count">${grouped[ym]} PO</div>
         </div>`;
     });
     html += '</div>';
     listEl.innerHTML = html;
 
   } catch(e) {
-    console.error('[Archive] loadArchiveList error:', e);
-    listEl.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>เชื่อมต่อไม่ได้: ${e.message}</p></div>`;
+    listEl.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>โหลดไม่ได้: ${e.message}</p></div>`;
   }
 }
 
-// ── เปิดรายละเอียด Archive ของเดือนที่เลือก ──
-async function openArchiveMonth(sheetName, label) {
+// เปิดรายละเอียด Archive ของเดือนที่เลือก (query Supabase ตาม YYYY-MM)
+async function openArchiveMonth(yearMonth, label) {
   document.getElementById('archive-home').style.display   = 'none';
   document.getElementById('archive-detail').style.display = '';
 
-  const titleEl   = document.getElementById('archive-detail-title');
-  const statsEl   = document.getElementById('archive-stats');
-  const listEl    = document.getElementById('archive-po-list');
-
-  titleEl.textContent = `📦 Archive — ${label}`;
-  statsEl.style.display = 'none';
+  document.getElementById('archive-detail-title').textContent = `📦 Archive — ${label}`;
+  document.getElementById('archive-stats').style.display = 'none';
+  const listEl = document.getElementById('archive-po-list');
   listEl.innerHTML = '<div class="archive-loading">⏳ กำลังโหลดข้อมูล...</div>';
 
   try {
-    const json = await jsonpCall(GAS_URL + '?action=getArchive&sheet=' + encodeURIComponent(sheetName));
-    if (!json.ok) {
-      listEl.innerHTML = `<div class="empty-state"><span class="emoji">⚠️</span><p>${json.error || 'โหลดไม่ได้'}</p></div>`;
-      return;
-    }
+    const [yr, mo] = yearMonth.split('-').map(Number);
+    const startDate = `${yr}-${String(mo).padStart(2,'0')}-01`;
+    const endDate   = `${yr}-${String(mo).padStart(2,'0')}-31`;
 
-    const raw = json.data || {};
-    const pos   = raw.pos   || [];
-    const items = raw.items || [];
+    const { data: poData, error: e1 } = await sb
+      .from('po_list')
+      .select('*')
+      .eq('po_status', 'Complete')
+      .gte('due_date', startDate)
+      .lte('due_date', endDate)
+      .order('due_date');
 
-    if (pos.length === 0) {
+    if (e1) throw new Error(e1.message);
+    if (!poData || poData.length === 0) {
       listEl.innerHTML = '<div class="empty-state"><span class="emoji">📭</span><p>ไม่มีข้อมูลในเดือนนี้</p></div>';
       return;
     }
 
-    // แสดง stats
-    document.getElementById('arc-stat-po').textContent    = pos.length;
-    document.getElementById('arc-stat-items').textContent = items.length;
-    statsEl.style.display = '';
+    const poNums = poData.map(p => p.po_number);
+    const { data: itemData, error: e2 } = await sb
+      .from('po_items')
+      .select('*')
+      .in('po_number', poNums);
+    if (e2) throw new Error(e2.message);
 
-    // render PO cards
+    document.getElementById('arc-stat-po').textContent    = poData.length;
+    document.getElementById('arc-stat-items').textContent = (itemData || []).length;
+    document.getElementById('archive-stats').style.display = '';
+
     let html = '';
-    pos.forEach(po => {
-      const poItems = items.filter(i => (i.po_id || i.po) === (po.po_id || po.id));
+    poData.forEach(po => {
+      const poItems = (itemData || []).filter(i => i.po_number === po.po_number);
       let itemsHtml = '';
       poItems.forEach(it => {
-        const sentDate = fixDateStr(it.sent_date || it.sentDate || '');
+        const sentDate = fixDateStr(it.sent_date || '');
         itemsHtml += `
           <div class="archive-item-row">
-            <span class="arc-part">${it.item_name || it.part || '–'}</span>
+            <span class="arc-part">${it.part_name || '–'}</span>
             <span class="arc-color">${it.color || ''}</span>
-            <span class="arc-sent">${sentDate ? '✅ ' + sentDate : ''}</span>
+            <span class="arc-sent">${sentDate ? '✅ ' + thaiDate(sentDate) : ''}</span>
           </div>`;
       });
-
-      const poNo   = po.po_id || po.id || '';
-      const company = po.company || '';
-      const model   = po.model   || '';
-      const recvDate = fixDateStr(po.recv_date || po.recv || '');
-
+      const recvDate = fixDateStr(po.order_date || '');
       html += `
         <div class="archive-po-card">
           <div class="arc-header">
             <div>
-              <div class="arc-pono">${poNo}</div>
-              <div class="arc-company">${company}${model ? ' · ' + model : ''}</div>
+              <div class="arc-pono">${po.po_number}</div>
+              <div class="arc-company">${po.company}${po.car_model ? ' · ' + po.car_model : ''}</div>
             </div>
             <span class="badge" style="background:#EDE7F6;color:var(--purple);">✅ Complete</span>
           </div>
-          ${recvDate ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">รับของ: ${recvDate}</div>` : ''}
+          ${recvDate ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">รับของ: ${thaiDate(recvDate)}</div>` : ''}
           <div class="arc-items-wrap">${itemsHtml || '<div style="font-size:12px;color:var(--muted);">ไม่มีชิ้นงาน</div>'}</div>
         </div>`;
     });
-
     listEl.innerHTML = html;
 
   } catch(e) {
@@ -2336,33 +2336,14 @@ async function openArchiveMonth(sheetName, label) {
   }
 }
 
-// ── Archive ด้วยมือทันที (Admin only) ──
+// Archive manual — ใน Supabase ไม่ต้องทำอะไร PO Complete อยู่ใน po_list แล้ว
 async function manualArchive() {
-  if (!GAS_URL) { showToast('⚠️ ยังไม่ได้เชื่อมต่อ GAS URL'); return; }
   const resultEl = document.getElementById('archive-manual-result');
-  resultEl.textContent = '⏳ กำลัง Archive...';
-
-  try {
-    const json = await jsonpCall(GAS_URL + '?action=archiveNow');
-    if (json.ok) {
-      const count = json.archived || 0;
-      if (count === 0) {
-        resultEl.style.color = 'var(--muted)';
-        resultEl.textContent = 'ℹ️ ไม่มี PO ที่ Complete รอ Archive';
-      } else {
-        resultEl.style.color = 'var(--green)';
-        resultEl.textContent = `✅ Archive สำเร็จ ${count} PO`;
-        // รีโหลดรายการ
-        setTimeout(() => loadArchiveList(), 800);
-      }
-    } else {
-      resultEl.style.color = 'var(--red)';
-      resultEl.textContent = '❌ ' + (json.error || 'เกิดข้อผิดพลาด');
-    }
-  } catch(e) {
-    resultEl.style.color = 'var(--red)';
-    resultEl.textContent = '❌ ' + e.message;
-  }
+  resultEl.style.color = 'var(--blue)';
+  resultEl.textContent = '🔄 กำลังอัพเดทรายการ...';
+  await loadArchiveList();
+  resultEl.style.color = 'var(--green)';
+  resultEl.textContent = '✅ อัพเดทรายการ Archive แล้ว';
 }
 
 
