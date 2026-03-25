@@ -124,6 +124,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - 🗑️ ลบถาวร → DELETE po_items + po_list จาก database
   - บันทึก activity_log ทุกครั้ง
   - ลบจนเดือนว่าง → กลับ archive home อัตโนมัติ
+- ✅ **เลข PO format ใหม่** — default เปลี่ยนจาก `PO-67-xxx` เป็น `PO-YYMMDD-xx` (เช่น PO-260325-01)
+  - แต่ละวันเริ่มนับ 01 ใหม่, auto-increment ตาม PO ที่มีอยู่ในวันนั้น
+  - เป็นแค่ค่า default — user พิมพ์ทับได้ตลอดตามรูปแบบลูกค้า
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
