@@ -1181,16 +1181,22 @@ async function loadFromSupabase() {
   try {
     const [
       { data: poRows,   error: e1 },
-      { data: itemRows, error: e2 },
       { data: cfgRows,  error: e3 }
     ] = await Promise.all([
       sb.from('po_list').select('*').eq('is_archived', false).order('due_date'),
-      sb.from('po_items').select('*'),
       sb.from('config').select('*').order('config_value')
     ]);
     if (e1) throw new Error('po_list: ' + e1.message);
-    if (e2) throw new Error('po_items: ' + e2.message);
     if (e3) throw new Error('config: ' + e3.message);
+
+    // โหลด po_items เฉพาะ active POs เท่านั้น (ไม่โหลด archived items)
+    const activePONumbers = (poRows || []).map(p => p.po_number).filter(Boolean);
+    let itemRows = [];
+    if (activePONumbers.length > 0) {
+      const { data: iRows, error: e2 } = await sb.from('po_items').select('*').in('po_number', activePONumbers);
+      if (e2) throw new Error('po_items: ' + e2.message);
+      itemRows = iRows || [];
+    }
 
     // แปลง Supabase column names → local field names + เก็บ _sbId สำหรับ partial update
     const pos = (poRows || []).map(p => ({
@@ -2299,16 +2305,17 @@ async function exportToExcel() {
   status.textContent = '';
 
   try {
-    // ── ดึงข้อมูลล่าสุดจาก Supabase ──────────────────
-    const [
-      { data: poRows,   error: e1 },
-      { data: itemRows, error: e2 }
-    ] = await Promise.all([
-      sb.from('po_list').select('*').eq('is_archived', false).order('due_date'),
-      sb.from('po_items').select('*').order('po_number')
-    ]);
+    // ── ดึงข้อมูลล่าสุดจาก Supabase (เฉพาะ active POs) ──
+    const { data: poRows, error: e1 } = await sb.from('po_list').select('*').eq('is_archived', false).order('due_date');
     if (e1) throw new Error('po_list: ' + e1.message);
-    if (e2) throw new Error('po_items: ' + e2.message);
+
+    const activePONums = (poRows || []).map(p => p.po_number).filter(Boolean);
+    let itemRows = [];
+    if (activePONums.length > 0) {
+      const { data: iRows, error: e2 } = await sb.from('po_items').select('*').in('po_number', activePONums).order('po_number');
+      if (e2) throw new Error('po_items: ' + e2.message);
+      itemRows = iRows || [];
+    }
 
     // helper สี cell
     const hdrStyle = { fill:{fgColor:{rgb:'1565C0'}}, font:{bold:true,color:{rgb:'FFFFFF'},sz:11}, alignment:{horizontal:'center',vertical:'center'} };
