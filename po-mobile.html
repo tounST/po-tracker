@@ -359,47 +359,70 @@
   }
 
   /* ── Login Screen ── */
-  #login-screen {
+  #pin-login-screen {
     position: fixed; inset: 0; z-index: 9999;
     background: linear-gradient(135deg, #1A73E8 0%, #0D47A1 100%);
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; padding: 20px;
   }
-  #login-screen.hidden { display: none; }
-  .login-box {
-    background: #fff; border-radius: 20px; padding: 32px 24px;
+  #pin-login-screen.hidden { display: none; }
+  .pin-login-box {
+    background: #fff; border-radius: 20px; padding: 40px 24px;
     width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,.25);
     text-align: center;
   }
-  .login-box h2 { font-size: 22px; margin-bottom: 4px; color: var(--text); }
-  .login-box p { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
-  .login-box input[type=password] {
-    width: 100%; padding: 14px; border: 2px solid var(--border);
-    border-radius: 12px; font-size: 20px; text-align: center;
-    letter-spacing: 8px; margin-bottom: 16px;
+  .pin-login-box .pin-title {
+    font-size: 48px; margin-bottom: 12px;
   }
-  .login-box input[type=password]:focus {
-    outline: none; border-color: var(--blue);
-    box-shadow: 0 0 0 3px rgba(26,115,232,.2);
+  .pin-login-box h2 {
+    font-size: 24px; margin-bottom: 6px; color: var(--text); font-weight: 700;
   }
-  .login-btn {
-    width: 100%; padding: 14px; border: none; border-radius: 12px;
-    font-size: 16px; font-weight: 700; cursor: pointer;
-    transition: opacity .15s, transform .1s;
+  .pin-login-box p {
+    font-size: 13px; color: var(--muted); margin-bottom: 28px;
   }
-  .login-btn:active { transform: scale(.97); }
-  .login-btn-admin { background: var(--blue); color: #fff; margin-bottom: 10px; }
-  .login-btn-staff { background: #E8F0FE; color: var(--blue); }
-  .login-error {
+  .pin-dots {
+    display: flex; justify-content: center; gap: 16px; margin-bottom: 32px;
+  }
+  .pin-dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--border); background: #fff;
+    transition: all .2s ease;
+  }
+  .pin-dot.filled {
+    background: var(--blue); border-color: var(--blue);
+  }
+  .pin-keypad {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 12px;
+  }
+  .pin-key {
+    padding: 16px; background: #F3F3F3; border: 1px solid var(--border);
+    border-radius: 12px; font-size: 20px; font-weight: 600; cursor: pointer;
+    color: var(--text); transition: all .1s ease; min-height: 56px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-key:active { transform: scale(.96); background: var(--blue); color: #fff; }
+  .pin-key.backspace { font-size: 24px; }
+  .pin-error {
     color: var(--red); font-size: 13px; font-weight: 600;
-    min-height: 20px; margin-bottom: 10px;
+    min-height: 18px; margin-bottom: 10px; animation: shake .4s ease;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .pin-info {
+    font-size: 11px; color: var(--muted); margin-top: 12px;
   }
   .role-badge {
-    display: inline-block; padding: 2px 10px; border-radius: 12px;
-    font-size: 11px; font-weight: 700; margin-left: 6px;
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 10px; font-weight: 700; margin-left: 4px;
   }
-  .role-badge-admin { background: #E8F0FE; color: var(--blue); }
-  .role-badge-staff { background: #FFF3E0; color: var(--orange); }
+  .role-badge-admin { background: #FFEBEE; color: #C62828; }
+  .role-badge-supervisor { background: #FFF3E0; color: #E65100; }
+  .role-badge-manager { background: #E8F0FE; color: var(--blue); }
+  .role-badge-staff { background: #E8F5E9; color: #2E7D32; }
   .admin-only { /* ซ่อนเมื่อ staff */ }
 
   /* ── Archive ── */
@@ -420,13 +443,13 @@
     border-left: 5px solid var(--purple); background: #fff;
     box-shadow: 0 1px 4px rgba(0,0,0,.1);
   }
-  .archive-po-card .arc-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .archive-po-card .arc-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
   .archive-po-card .arc-pono { font-size: 15px; font-weight: 700; }
   .archive-po-card .arc-company { font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .arc-toggle-icon { display: inline-block; font-size: 12px; color: var(--muted); transition: transform .2s ease; margin-right: 6px; }
+  .archive-po-card .arc-toggle-icon { font-size: 12px; color: var(--muted); transition: transform .2s; margin-left: 8px; }
   .archive-po-card.arc-open .arc-toggle-icon { transform: rotate(90deg); }
-  .arc-summary { font-size: 12px; color: var(--muted); margin-top: 3px; }
-  .archive-po-card .arc-items-wrap { display: none; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .archive-po-card .arc-summary { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .archive-po-card .arc-items-wrap { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; display: none; }
   .archive-po-card.arc-open .arc-items-wrap { display: block; }
   .archive-item-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -469,18 +492,20 @@
 </div>
 
 <!-- ═══ LOGIN SCREEN ═══ -->
-<div id="login-screen">
-  <div class="login-box">
-    <div style="font-size:40px;margin-bottom:8px;">🔩</div>
+<div id="pin-login-screen">
+  <div class="pin-login-box">
+    <div class="pin-title">🔐</div>
     <h2>PO Tracker</h2>
-    <p>ร้านพ่นสี — ใส่รหัสผ่านเพื่อเข้าใช้งาน</p>
-    <input type="password" id="login-pass" placeholder="••••" maxlength="10"
-      onkeypress="if(event.key==='Enter')doLogin()">
-    <div class="login-error" id="login-error"></div>
-    <button class="login-btn login-btn-admin" onclick="doLogin()">🔓 เข้าสู่ระบบ</button>
-    <div style="font-size:11px;color:var(--muted);margin-top:12px;">
-      ถ้าไม่ทราบรหัส ติดต่อ Admin
+    <p>ใส่ PIN 4 หลักเพื่อเข้าใช้งาน</p>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pin-dot-0"></div>
+      <div class="pin-dot" id="pin-dot-1"></div>
+      <div class="pin-dot" id="pin-dot-2"></div>
+      <div class="pin-dot" id="pin-dot-3"></div>
     </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-keypad" id="pin-keypad"></div>
+    <div class="pin-info">👤 PIN เป็นหลัก 4 ตัวเลข</div>
   </div>
 </div>
 
@@ -864,87 +889,242 @@
 // 1234  → 03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4
 // 0000  → 9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0
 // แนะนำเปลี่ยนรหัสผ่านใหม่หลัง deploy
-const PASSWORDS = {
-  admin: '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
-  staff: '9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0'
-};
-let currentRole = localStorage.getItem('po_role') || '';
+// ═══════════════════════════════════════════════════
+// PIN LOGIN + ROLE/STATION PERMISSION SYSTEM
+// ═══════════════════════════════════════════════════
 
-async function hashPassword(plain) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+let currentUser = null; // { id, username, display_name, pin, role, station, is_active }
+let pinInput = '';
+
+// Permission matrix: role -> permissions
+const PERMISSIONS = {
+  admin:      { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: true,  archive: true  },
+  supervisor: { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: false, archive: true  },
+  manager:    { viewAll: true,  createPO: true, editAll: true,  delete: false, manage: false, archive: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, manage: false, archive: false }
+};
+
+// Station-based status permissions for staff
+const STATION_STATUS = {
+  'receiving':  ['รับของแล้ว'],
+  'production': ['กำลังผลิต'],
+  'qc':         ['เตรียมส่ง'],
+  'shipping':   ['ส่งแล้ว']
+};
+
+function hasPermission(permission) {
+  if (!currentUser) return false;
+  const perms = PERMISSIONS[currentUser.role] || PERMISSIONS.staff;
+  return perms[permission] === true;
 }
 
-async function doLogin() {
-  const pass = document.getElementById('login-pass').value.trim();
-  const errEl = document.getElementById('login-error');
-  if (!pass) { errEl.textContent = '⚠️ กรุณาใส่รหัสผ่าน'; return; }
-  const hashed = await hashPassword(pass);
-  if (hashed === PASSWORDS.admin) {
-    currentRole = 'admin';
-  } else if (hashed === PASSWORDS.staff) {
-    currentRole = 'staff';
-  } else {
-    errEl.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
-    document.getElementById('login-pass').value = '';
-    return;
-  }
-  localStorage.setItem('po_role', currentRole);
-  showApp();
-  // ดึงข้อมูลล่าสุดจาก Supabase หลัง login
-  try {
-    const data = await loadFromSupabase();
-    if (data) {
-      db = data;
-      localStorage.setItem(STORE_KEY, JSON.stringify(db));
-      renderDashboard();
+function canEditStatus(status) {
+  if (!currentUser) return false;
+  if (PERMISSIONS[currentUser.role].editAll) return true;
+  if (currentUser.role === 'staff' && currentUser.station) {
+    const stations = currentUser.station.split(',').map(s => s.trim());
+    for (const station of stations) {
+      const allowedStatuses = STATION_STATUS[station] || [];
+      if (allowedStatuses.includes(status)) return true;
     }
-  } catch(e) {
-    console.warn('[Login] Supabase fetch failed:', e);
-    showSyncStatus('error', e.message);
+    return false;
   }
+  return false;
+}
+
+function initPINKeypad() {
+  const keypadEl = document.getElementById('pin-keypad');
+  if (!keypadEl) return;
+
+  keypadEl.innerHTML = '';
+  // Numbers 1-9
+  for (let i = 1; i <= 9; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'pin-key';
+    btn.textContent = i;
+    btn.onclick = () => addPINDigit(i);
+    keypadEl.appendChild(btn);
+  }
+
+  // Backspace (row 4, col 1)
+  const backBtn = document.createElement('button');
+  backBtn.className = 'pin-key backspace';
+  backBtn.textContent = '⌫';
+  backBtn.onclick = backspacePIN;
+
+  // 0 (row 4, col 2)
+  const zeroBtn = document.createElement('button');
+  zeroBtn.className = 'pin-key';
+  zeroBtn.textContent = '0';
+  zeroBtn.onclick = () => addPINDigit(0);
+
+  // Create a container for the last row
+  const lastRow = document.createElement('div');
+  lastRow.style.display = 'contents';
+  lastRow.appendChild(backBtn);
+  lastRow.appendChild(zeroBtn);
+  keypadEl.appendChild(lastRow);
+}
+
+function addPINDigit(digit) {
+  if (pinInput.length >= 4) return;
+  pinInput += digit;
+  updatePINDots();
+  if (pinInput.length === 4) {
+    setTimeout(() => submitPIN(), 200);
+  }
+}
+
+function backspacePIN() {
+  if (pinInput.length > 0) {
+    pinInput = pinInput.slice(0, -1);
+    updatePINDots();
+  }
+}
+
+function updatePINDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`pin-dot-${i}`);
+    if (dot) {
+      if (i < pinInput.length) {
+        dot.classList.add('filled');
+      } else {
+        dot.classList.remove('filled');
+      }
+    }
+  }
+}
+
+async function submitPIN() {
+  const pin = pinInput;
+  pinInput = '';
+  updatePINDots();
+
+  const errEl = document.getElementById('pin-error');
+  errEl.textContent = '';
+
+  try {
+    showLoading(true);
+
+    // Query Supabase for user with matching PIN
+    const { data, error } = await sb.from('users')
+      .select('*')
+      .eq('pin', pin)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !data) {
+      errEl.textContent = '❌ PIN ไม่ถูกต้อง';
+      playShakeAnimation();
+      showLoading(false);
+      return;
+    }
+
+    // Login successful
+    currentUser = data;
+    sessionStorage.setItem('po_user_id', currentUser.id);
+
+    // Log login activity
+    await logActivity('login', 'system', { username: currentUser.username });
+
+    showApp();
+    showLoading(false);
+
+  } catch(e) {
+    console.error('[PIN Login] Error:', e);
+    errEl.textContent = '⚠️ เกิดข้อผิดพลาด';
+    showLoading(false);
+  }
+}
+
+function playShakeAnimation() {
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach(d => d.style.animation = 'none');
+  setTimeout(() => {
+    dots.forEach(d => d.style.animation = 'shake .4s ease');
+  }, 10);
 }
 
 function doLogout() {
   if (!confirm('ออกจากระบบ?')) return;
-  currentRole = '';
-  localStorage.removeItem('po_role');
+  logActivity('logout', 'system', {}).catch(e => console.warn('Logout activity log failed:', e));
+  currentUser = null;
+  sessionStorage.removeItem('po_user_id');
+  pinInput = '';
   document.getElementById('app-wrapper').style.display = 'none';
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('login-pass').value = '';
-  document.getElementById('login-error').textContent = '';
+  document.getElementById('pin-login-screen').classList.remove('hidden');
+  updatePINDots();
+  document.getElementById('pin-error').textContent = '';
 }
 
 function showApp() {
-  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('pin-login-screen').classList.add('hidden');
   document.getElementById('app-wrapper').style.display = 'block';
-  applyRole();
+  applyPermissions();
   renderDashboard();
 }
 
-function applyRole() {
+function applyPermissions() {
+  if (!currentUser) return;
+
   const badgeEl = document.getElementById('role-badge-display');
-  if (currentRole === 'admin') {
-    badgeEl.innerHTML = '<span class="role-badge role-badge-admin">👑 Admin</span>';
-  } else {
-    badgeEl.innerHTML = '<span class="role-badge role-badge-staff">👷 Staff</span>';
+  const roleText = currentUser.display_name || currentUser.username;
+  const badgeClass = `role-badge-${currentUser.role}`;
+  const roleLabels = {
+    admin: '👑 Admin',
+    supervisor: '⭐ Supervisor',
+    manager: '📋 Manager',
+    staff: '👷 Staff'
+  };
+
+  let stationText = '';
+  if (currentUser.station && currentUser.role === 'staff') {
+    stationText = ` (${currentUser.station})`;
   }
 
-  // ซ่อน/แสดงตาม role
+  badgeEl.innerHTML = `<span>${roleText}</span> <span class="role-badge ${badgeClass}">${roleLabels[currentUser.role]}${stationText}</span>`;
+
+  // Hide/show tabs based on role
+  const tabs = document.querySelectorAll('.tabnav button');
+
+  // Tab 0: Dashboard (always visible)
+  tabs[0].style.display = '';
+
+  // Tab 1: Update items (visible for all)
+  tabs[1].style.display = '';
+
+  // Tab 2: Add PO (visible for admin, supervisor, manager, staff with receiving station)
+  const canAddPO = hasPermission('createPO') ||
+    (currentUser.role === 'staff' && currentUser.station && currentUser.station.includes('receiving'));
+  tabs[2].style.display = canAddPO ? '' : 'none';
+
+  // Tab 3: Archive (visible for admin, supervisor only)
+  const canArchive = hasPermission('archive');
+  tabs[3].style.display = canArchive ? '' : 'none';
+
+  // Tab 4: Manage (visible for admin only)
+  const canManage = hasPermission('manage');
+  tabs[4].style.display = canManage ? '' : 'none';
+
+  // Hide admin-only buttons throughout the app
   document.querySelectorAll('.admin-only').forEach(el => {
-    el.style.display = currentRole === 'admin' ? '' : 'none';
+    el.style.display = hasPermission('manage') ? '' : 'none';
   });
+}
 
-  // แท็บ "จัดการ" — ซ่อนสำหรับ Staff (แท็บที่ 5, index=4)
-  const masterTab = document.querySelectorAll('.tabnav button')[4];
-  if (masterTab) {
-    masterTab.style.display = currentRole === 'admin' ? '' : 'none';
+async function logActivity(action, targetType, detail) {
+  if (!currentUser) return;
+  try {
+    await sb.from('activity_log').insert({
+      user_id: currentUser.id,
+      username: currentUser.username,
+      action: action,
+      target_type: targetType,
+      detail: detail
+    });
+  } catch(e) {
+    console.warn('[Activity Log]', e);
   }
-
-  // admin-only class จะจัดการซ่อน/แสดงปุ่ม Sync settings อัตโนมัติ
 }
 
 // ═══════════════════════════════════════════════════
@@ -1550,6 +1730,11 @@ function goUpdateFromModal() {
 
 // ลบ PO (ยืนยันก่อนลบ)
 async function deletePO(poId) {
+  if (!hasPermission('delete')) {
+    toast('❌ คุณไม่มีสิทธิ์ลบ PO');
+    return;
+  }
+
   const po = db.pos.find(p => p.id === poId);
   if (!po) return;
   const its = itemsOfPO(poId);
@@ -1569,6 +1754,7 @@ async function deletePO(poId) {
 
   try {
     await deletePOInSupabase(poId);
+    await logActivity('delete_po', 'po', { po_number: poId, company: po.company });
     localStorage.setItem(STORE_KEY, JSON.stringify(db));
     toast('✅ ลบ ' + poId + ' และ sync สำเร็จ');
   } catch(e) {
@@ -1631,6 +1817,34 @@ function backToPoList() {
   }).join('');
 }
 
+function applyStatusFilters() {
+  // Filter status options based on user permissions
+  const allStatuses = ['รับของแล้ว', 'กำลังผลิต', 'เตรียมส่ง', 'ส่งแล้ว'];
+  const statusElements = {
+    'รับของแล้ว': document.querySelector('[data-status="รับของแล้ว"]'),
+    'กำลังผลิต': document.querySelector('[data-status="กำลังผลิต"]'),
+    'เตรียมส่ง': document.querySelector('[data-status="เตรียมส่ง"]'),
+    'ส่งแล้ว': document.querySelector('[data-status="ส่งแล้ว"]')
+  };
+
+  allStatuses.forEach(status => {
+    const el = statusElements[status];
+    if (el) {
+      const canEdit = canEditStatus(status);
+      el.style.opacity = canEdit ? '1' : '0.4';
+      el.style.pointerEvents = canEdit ? 'auto' : 'none';
+      el.style.cursor = canEdit ? 'pointer' : 'not-allowed';
+      // Remove onclick temporarily if permission denied, restore if allowed
+      if (!canEdit) {
+        el.dataset.originalOnclick = el.getAttribute('onclick');
+        el.removeAttribute('onclick');
+      } else if (el.dataset.originalOnclick) {
+        el.setAttribute('onclick', el.dataset.originalOnclick);
+      }
+    }
+  });
+}
+
 function openPoItems(poId) {
   currentPoId = poId;
   const po  = db.pos.find(p => p.id === poId);
@@ -1655,6 +1869,9 @@ function openPoItems(poId) {
   document.querySelectorAll('.status-opt').forEach(e => {
     e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
   });
+
+  // Apply permission-based filters to status buttons
+  applyStatusFilters();
 
   const list = document.getElementById('items-list');
   if (!its.length) {
@@ -1716,6 +1933,12 @@ async function saveUpdate() {
   if (!selectedStatus)     { toast('⚠️ กรุณาเลือกสถานะก่อน'); return; }
   if (!selectedItems.size) { toast('⚠️ กรุณาเลือกชิ้นงานก่อน'); return; }
 
+  // Check permission for this status
+  if (!canEditStatus(selectedStatus)) {
+    toast('❌ คุณไม่มีสิทธิ์เปลี่ยนสถานะเป็น "' + selectedStatus + '"');
+    return;
+  }
+
   const sentDate  = document.getElementById('sent-date').value;
   const bundlePO  = document.getElementById('bundle-po-select').value;
   const remark    = document.getElementById('update-remark').value.trim();
@@ -1741,10 +1964,16 @@ async function saveUpdate() {
   syncPOStatuses(true);  // อัพเดทสถานะ PO + push Supabase
   toast(`✅ อัพเดท ${changedItems.length} ชิ้น → "${selectedStatus}${reworkLabel}" แล้ว`);
 
-  // Partial update — ส่งเฉพาะ row ที่เปลี่ยน (ไม่ใช่ saveAll ทั้งหมด)
+  // Log activity for status updates
   for (const item of changedItems) {
     try {
       await updateItemInSupabase(item);
+      await logActivity('update_status', 'item', {
+        po_number: item.po,
+        part_name: item.part,
+        status: selectedStatus,
+        rework: isRework
+      });
     } catch(e) {
       console.error('[Supabase] updateItem error:', e);
       toast('⚠️ บางรายการ sync ไม่สำเร็จ', 3000);
@@ -1960,6 +2189,11 @@ function toggleItemUrgent(idx) {
 }
 
 async function savePO() {
+  if (!hasPermission('createPO')) {
+    toast('❌ คุณไม่มีสิทธิ์สร้าง PO');
+    return;
+  }
+
   const poNo    = document.getElementById('add-pono').value.trim();
   const company = document.getElementById('add-company').value;
   const model   = document.getElementById('add-model').value;
@@ -2005,6 +2239,7 @@ async function savePO() {
   showLoading(true);
   try {
     await createPOInSupabase(newPo, newItems);
+    await logActivity('create_po', 'po', { po_number: poNo, company, item_count: newItems.length });
     const fresh = await loadFromSupabase();
     if (fresh) { db = fresh; localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
     toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
@@ -2023,7 +2258,7 @@ async function savePO() {
 //  EXPORT EXCEL (Admin only)
 // ═══════════════════════════════════════════════════
 async function exportToExcel() {
-  if (currentRole !== 'admin') { toast('❌ เฉพาะ Admin เท่านั้น'); return; }
+  if (!hasPermission('manage')) { toast('❌ คุณไม่มีสิทธิ์ export'); return; }
   if (typeof XLSX === 'undefined') { toast('❌ โหลด library ไม่สำเร็จ'); return; }
 
   const btn    = document.getElementById('export-btn');
@@ -2274,36 +2509,62 @@ document.addEventListener('DOMContentLoaded', async () => {
       .catch(e => console.warn('SW registration failed:', e));
   }
 
+  // Initialize PIN keypad
+  initPINKeypad();
+
   const now = new Date();
   document.getElementById('topbar-date').textContent =
     `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
 
-  if (currentRole === 'admin' || currentRole === 'staff') showApp();
+  // Check if user is already logged in (sessionStorage)
+  const userIdFromSession = sessionStorage.getItem('po_user_id');
+  if (userIdFromSession) {
+    try {
+      const { data, error } = await sb.from('users')
+        .select('*')
+        .eq('id', userIdFromSession)
+        .eq('is_active', true)
+        .single();
+
+      if (data && !error) {
+        currentUser = data;
+        showApp();
+      }
+    } catch(e) {
+      console.warn('[Session Recovery] Failed:', e);
+      sessionStorage.removeItem('po_user_id');
+    }
+  }
 
   // โหลดข้อมูลจาก Supabase ทุกครั้งที่เปิดแอป
-  showLoading(true);
-  try {
-    const data = await loadFromSupabase();
-    if (data) {
-      db = data;
-      localStorage.setItem(STORE_KEY, JSON.stringify(db));
+  if (currentUser) {
+    showLoading(true);
+    try {
+      const data = await loadFromSupabase();
+      if (data) {
+        db = data;
+        localStorage.setItem(STORE_KEY, JSON.stringify(db));
+      }
+    } catch(e) {
+      console.warn('[Init] Supabase fetch failed:', e);
+      showSyncStatus('error', e.message);
     }
-  } catch(e) {
-    console.warn('[Init] Supabase fetch failed:', e);
-    showSyncStatus('error', e.message);
+    showLoading(false);
+    renderDashboard();
   }
-  showLoading(false);
-
-  if (currentRole) renderDashboard();
 
   // Auto-refresh ทุก 30 วินาที เพื่อซิงค์กับเครื่องอื่น
   setInterval(async () => {
-    if (!document.hidden && currentRole) {
-      const data = await loadFromSupabase();
-      if (data && data.items.length >= db.items.length) {
-        db = data;
-        localStorage.setItem(STORE_KEY, JSON.stringify(db));
-        renderDashboard();
+    if (!document.hidden && currentUser) {
+      try {
+        const data = await loadFromSupabase();
+        if (data && data.items.length >= db.items.length) {
+          db = data;
+          localStorage.setItem(STORE_KEY, JSON.stringify(db));
+          renderDashboard();
+        }
+      } catch(e) {
+        console.warn('[Auto-refresh] Failed:', e);
       }
     }
   }, 30000);
@@ -2363,10 +2624,10 @@ async function loadArchiveList() {
       return;
     }
 
-    // Group by YYYY-MM ของ due_date (fallback order_date ถ้า due_date เป็น null)
+    // Group by YYYY-MM — ใช้ due_date หลัก, ถ้าไม่มีใช้ order_date แทน
     const grouped = {};
     data.forEach(po => {
-      const dateStr = po.due_date || po.order_date;
+      const dateStr = po.due_date || po.order_date || '';
       if (!dateStr || dateStr.length < 7) return;
       const ym = dateStr.slice(0, 7);
       if (!grouped[ym]) grouped[ym] = 0;
@@ -2402,20 +2663,24 @@ async function openArchiveMonth(yearMonth, label) {
   listEl.innerHTML = '<div class="archive-loading">⏳ กำลังโหลดข้อมูล...</div>';
 
   try {
-    // ดึง archived PO ทั้งหมดแล้ว filter ด้วย JS (เพราะ due_date อาจ null ต้อง fallback order_date)
+    const [yr, mo] = yearMonth.split('-').map(Number);
+    if (!yr || !mo || yr < 2000 || mo < 1 || mo > 12) throw new Error('เดือนไม่ถูกต้อง: ' + yearMonth);
+
+    // ดึง archived PO ทั้งหมด แล้ว filter ด้วย JS (รองรับ due_date=null → fallback order_date)
     const { data: allArchived, error: e1 } = await sb
       .from('po_list')
       .select('*')
-      .eq('is_archived', true)
-      .order('due_date');
+      .eq('is_archived', true);
 
+    if (e1) throw new Error(e1.message);
+
+    // filter เฉพาะ PO ที่ตรงเดือนที่เลือก
     const poData = (allArchived || []).filter(po => {
-      const dateStr = po.due_date || po.order_date;
+      const dateStr = po.due_date || po.order_date || '';
       return dateStr && dateStr.slice(0, 7) === yearMonth;
     });
 
-    if (e1) throw new Error(e1.message);
-    if (!poData || poData.length === 0) {
+    if (poData.length === 0) {
       listEl.innerHTML = '<div class="empty-state"><span class="emoji">📭</span><p>ไม่มีข้อมูลในเดือนนี้</p></div>';
       return;
     }
@@ -2445,18 +2710,21 @@ async function openArchiveMonth(yearMonth, label) {
           </div>`;
       });
       const recvDate = fixDateStr(po.order_date || '');
-      const itemCount = poItems.length;
+      const cardId = 'arc-card-' + po.po_number.replace(/[^a-zA-Z0-9-]/g, '');
       html += `
-        <div class="archive-po-card">
-          <div class="arc-header" onclick="this.parentElement.classList.toggle('arc-open')">
+        <div class="archive-po-card" id="${cardId}">
+          <div class="arc-header" onclick="document.getElementById('${cardId}').classList.toggle('arc-open')">
             <div>
-              <div class="arc-pono"><span class="arc-toggle-icon">▶</span>${po.po_number}</div>
+              <div class="arc-pono">${po.po_number}</div>
               <div class="arc-company">${po.company}${po.car_model ? ' · ' + po.car_model : ''}</div>
-              <div class="arc-summary">${itemCount} ชิ้นงาน · กดเพื่อดูรายละเอียด</div>
             </div>
-            <span class="badge" style="background:#EDE7F6;color:var(--purple);">✅ Complete</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="badge" style="background:#EDE7F6;color:var(--purple);">✅ Complete</span>
+              <span class="arc-toggle-icon">▶</span>
+            </div>
           </div>
           ${recvDate ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">รับของ: ${thaiDate(recvDate)}</div>` : ''}
+          <div class="arc-summary">${poItems.length} ชิ้นงาน · กดเพื่อดูรายละเอียด</div>
           <div class="arc-items-wrap">${itemsHtml || '<div style="font-size:12px;color:var(--muted);">ไม่มีชิ้นงาน</div>'}</div>
         </div>`;
     });
@@ -2467,42 +2735,52 @@ async function openArchiveMonth(yearMonth, label) {
   }
 }
 
-// Archive manual — query PO ที่ Complete + ยังไม่ archive → set is_archived=true
+// Archive manual — set is_archived=true ให้ PO ที่ Complete แล้วยังไม่ archive
 async function manualArchive() {
+  if (!hasPermission('archive')) {
+    toast('❌ คุณไม่มีสิทธิ์ archive');
+    return;
+  }
+
   const resultEl = document.getElementById('archive-manual-result');
   resultEl.style.color = 'var(--blue)';
-  resultEl.textContent = '🔄 กำลัง Archive...';
+  resultEl.textContent = '⏳ กำลัง Archive PO ที่ Complete...';
 
   try {
-    // หา PO ที่ Complete แต่ยังไม่ archive
-    const { data: toArchive, error: e1 } = await sb
+    // หา PO ที่ Complete แต่ยัง is_archived=false
+    const { data: completePOs, error: e1 } = await sb
       .from('po_list')
-      .select('po_number')
+      .select('id, po_number')
       .eq('po_status', 'Complete')
       .eq('is_archived', false);
+
     if (e1) throw new Error(e1.message);
 
-    if (!toArchive || toArchive.length === 0) {
+    if (!completePOs || completePOs.length === 0) {
       resultEl.style.color = 'var(--muted)';
-      resultEl.textContent = 'ℹ️ ไม่มี PO ที่พร้อม Archive';
+      resultEl.textContent = 'ℹ️ ไม่มี PO ที่ Complete รอ Archive';
       return;
     }
 
-    // อัพเดท is_archived=true ทั้งหมด
+    // set is_archived = true
+    const ids = completePOs.map(p => p.id);
     const { error: e2 } = await sb
       .from('po_list')
-      .update({ is_archived: true })
-      .eq('po_status', 'Complete')
-      .eq('is_archived', false);
+      .update({ is_archived: true, updated_at: new Date().toISOString() })
+      .in('id', ids);
+
     if (e2) throw new Error(e2.message);
 
-    // reload dashboard (ซ่อน PO ที่ archive แล้ว) + archive list
-    const fresh = await loadFromSupabase();
-    if (fresh) { db = fresh; localStorage.setItem(STORE_KEY, JSON.stringify(db)); renderDashboard(); }
-    await loadArchiveList();
-
     resultEl.style.color = 'var(--green)';
-    resultEl.textContent = `✅ Archive สำเร็จ ${toArchive.length} PO`;
+    resultEl.textContent = `✅ Archive สำเร็จ ${completePOs.length} PO`;
+
+    // Log archive activity
+    await logActivity('archive', 'po', { po_count: completePOs.length, po_numbers: completePOs.map(p => p.po_number) });
+
+    // รีโหลดทั้ง Archive list และ Dashboard
+    await loadArchiveList();
+    if (typeof loadFromSupabase === 'function') loadFromSupabase();
+
   } catch(e) {
     resultEl.style.color = 'var(--red)';
     resultEl.textContent = '❌ ' + e.message;
