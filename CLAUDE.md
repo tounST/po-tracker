@@ -26,10 +26,9 @@
 |---|---|
 | **URL (Production)** | https://tounst.github.io/po-tracker/po-mobile.html |
 | **Repo** | https://github.com/tounST/po-tracker |
-| **Stack (Production)** | GitHub Pages + Google Apps Script + Google Sheets |
-| **Stack (Dev/Target)** | GitHub Pages + Supabase (PostgreSQL) |
-| **Branch main** | v4.9-REWORK-TOGGLE — version ที่ใช้งานจริง (ยังใช้ GAS) |
-| **Branch dev** | สำหรับพัฒนา Supabase migration — merge เข้า main เมื่อพร้อม |
+| **Stack (Production)** | GitHub Pages + Supabase (PostgreSQL) |
+| **Stack (Legacy)** | Google Apps Script + Google Sheets (ไม่ใช้แล้ว เก็บเป็น backup) |
+| **Branch main** | Production — ต่อ Supabase แล้ว (po-mobile.html ~3300 lines) |
 | **GAS URL (Legacy)** | https://script.google.com/macros/s/AKfycbxIJ5kQPLI_zbRpf7eIDaADs68jBaY8IZLn5IkqeHOrkIGqD_Tz1lAUa5EXQbbdGNGU/exec |
 | **GAS Version** | v4.6-REWORK-FLAG-2026-03-24 |
 
@@ -66,6 +65,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | `manifest.json` | PWA — install เป็นแอปบนมือถือได้ |
 | `po-tracker-gas.js` | GAS backend code — copy วางใน Apps Script Editor |
 | `gas-code-to-paste.txt` | สำเนาของ po-tracker-gas.js สำหรับ copy วาง |
+| `docs/superpowers/specs/` | Design specs สำหรับฟีเจอร์ที่ brainstorm แล้ว |
 
 ## สถานะชิ้นงาน (Item Statuses)
 - 4 สถานะหลัก: **รับของแล้ว, กำลังผลิต, เตรียมส่ง, ส่งแล้ว**
@@ -106,32 +106,46 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 - ✅ "กลับมาแก้ไข" เปลี่ยนเป็น toggle flag (ไม่ใช่สถานะ)
 - ✅ ยุบช่องเพิ่มชิ้นงานเหลือ "เพิ่มหลายชิ้นพร้อมกัน" อันเดียว
 - ✅ PWA ติดตั้งเป็นแอปบนมือถือได้
+- ✅ ระบบ QC Inspection + defect tracking (defect reasons จาก config table)
+- ✅ Defect reason management ในหน้าจัดการ (CRUD สาเหตุ defect)
+- ✅ **Supabase migration เสร็จสมบูรณ์** — po-mobile.html ต่อ Supabase แทน GAS แล้ว
+- ✅ **PIN login + User account** — login ด้วย PIN 4 หลัก, ดึง user จาก Supabase table `users`
+- ✅ **Activity Log** — บันทึกทุก action (login, logout, add/edit/delete PO, archive, etc.)
+- ✅ **Role & Permission system** — admin/supervisor/manager/staff + station-based access
+- ✅ **User Management Panel** — หน้าจัดการผู้ใช้ (Admin only) ในหน้าจัดการ
+  - CRUD ผู้ใช้: เพิ่ม/แก้ไข/ลบ user + validation (username/PIN ห้ามซ้ำ)
+  - PIN toggle แสดง/ซ่อน (default ••••, กด 👁 เพื่อดู)
+  - Station checkbox group (all/receiving/production/qc/shipping)
+  - บันทึก activity_log ทุกการ add/edit/delete user
+- ✅ **UI Refresh** — topbar gradient + pill-tab nav + เพิ่ม font-size ทั้งแอป
+- ✅ **Archive: เอากลับ + ลบถาวร** (2026-03-25)
+  - ปุ่ม ⋯ dropdown menu บน PO card ใน Archive detail (Admin only)
+  - 🔄 เอากลับ → unarchive (is_archived=false) กลับหน้าหลัก
+  - 🗑️ ลบถาวร → DELETE po_items + po_list จาก database
+  - บันทึก activity_log ทุกครั้ง
+  - ลบจนเดือนว่าง → กลับ archive home อัตโนมัติ
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
-> **ทุกอย่างทำใน branch dev** → เทสผ่านแล้ว merge เข้า main
-> **ลำดับ:** ทำ Phase 2A ก่อน → 2B → 3 → 4 (อย่าข้ามขั้น)
 
-### Phase 2A — โหมดจุดงาน + Partial Update (ทำถัดไป ⭐)
-**เป้าหมาย:** ลูกน้อง 5 คนใช้พร้อมกันได้โดยข้อมูลไม่ชนกัน
-1. **โหมดจุดงาน** — หลัง login เลือก: 📥 จุดรับของ | 🔄 จุด QC/ผลิต | 📦 จุดส่งของ | 👑 Admin
-   - แต่ละจุดเห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
-   - ไม่ต้องเปลี่ยน stack — แก้ใน po-mobile.html เดิม
-2. **Partial Update** — เปลี่ยนจาก "ส่งข้อมูลทั้งหมดเขียนทับ" → "ส่งเฉพาะชิ้นที่แก้"
-   - แก้ทั้ง GAS (รับ partial update) + po-mobile.html (ส่งเฉพาะที่แก้)
-   - ป้องกันข้อมูลชนกันเมื่อหลายคนใช้พร้อมกัน
+### Phase 2A — โหมดจุดงาน + Partial Update (✅ เสร็จแล้ว)
+- ✅ โหมดจุดงาน — role/station-based access control
+- ✅ Partial Update — Supabase update ทีละ row (ไม่ overwrite ทั้ง sheet)
 
-### Phase 2B — Migrate ไป Supabase (กำลังทำ ⭐)
-**เป้าหมาย:** ย้ายฐานข้อมูลไป Supabase เพื่อรองรับฟีเจอร์ในอนาคต
-- ✅ สร้าง Supabase project (free tier, region: ap-south-1)
-- ✅ สร้าง tables: po_list, po_items, config, users, activity_log
-- ✅ ย้ายข้อมูลจาก Google Sheets → Supabase (7 POs, 130 items, 17 config, 4 users)
-- **🔥 TODO: แก้ po-mobile.html ให้ต่อ Supabase แทน GAS** ← ทำอันนี้ต่อ!
-  - เปลี่ยนจาก fetch GAS → supabase-js client
-  - CRUD operations: select/insert/update/delete ผ่าน Supabase REST API
-  - เปลี่ยน saveAll (overwrite ทั้ง sheet) → update เฉพาะ row ที่แก้
-- TODO: เพิ่ม User Account + PIN login + Activity Log (UI)
-- TODO: โหมดจุดงาน (receiving/production/shipping/admin)
-- **ทำไมต้องย้ายก่อนเพิ่มฟีเจอร์:** ถ้าสร้างฟีเจอร์ใหม่บน GAS แล้วค่อยย้าย → ต้อง rewrite ใหม่หมด เสียเวลา 2 เท่า
+### Phase 2B — Migrate ไป Supabase (✅ เสร็จแล้ว)
+- ✅ สร้าง Supabase project + tables + ย้ายข้อมูล
+- ✅ แก้ po-mobile.html ต่อ Supabase แทน GAS (supabase-js client)
+- ✅ PIN login + User account + Activity Log
+- ✅ Role & Permission system + User Management CRUD
+- ✅ QC Inspection + Defect tracking
+- ✅ Archive: เอากลับ + ลบถาวร
+
+### Phase 3 — ฟีเจอร์ธุรกิจ (ทำถัดไป ⭐ เพิ่มได้เรื่อยๆ)
+- TODO: โหมดจุดงาน UI จริง — หลัง login แต่ละ station เห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
+- TODO: ระบบสต๊อกวัตถุดิบ/สี (เพิ่ม table ใน Supabase)
+- TODO: ระบบคิดต้นทุน (SQL คำนวณได้เลย)
+- TODO: Line แจ้งเตือน (Supabase Edge Functions + Webhook)
+- TODO: เชื่อม n8n workflow (REST API พร้อมใช้)
+- TODO: Dashboard สรุปยอดผลิต/ส่ง (SQL query เร็ว)
 
 ### Phase 3 — ฟีเจอร์ธุรกิจ (หลังย้าย Supabase แล้ว เพิ่มได้เรื่อยๆ)
 - ระบบสต๊อกวัตถุดิบ/สี (เพิ่ม table ใน Supabase)
