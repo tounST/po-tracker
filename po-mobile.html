@@ -420,10 +420,14 @@
     border-left: 5px solid var(--purple); background: #fff;
     box-shadow: 0 1px 4px rgba(0,0,0,.1);
   }
-  .archive-po-card .arc-header { display: flex; justify-content: space-between; align-items: center; }
+  .archive-po-card .arc-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .archive-po-card .arc-pono { font-size: 15px; font-weight: 700; }
   .archive-po-card .arc-company { font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .archive-po-card .arc-items-wrap { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .arc-toggle-icon { display: inline-block; font-size: 12px; color: var(--muted); transition: transform .2s ease; margin-right: 6px; }
+  .archive-po-card.arc-open .arc-toggle-icon { transform: rotate(90deg); }
+  .arc-summary { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .archive-po-card .arc-items-wrap { display: none; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .archive-po-card.arc-open .arc-items-wrap { display: block; }
   .archive-item-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5;
@@ -2441,12 +2445,14 @@ async function openArchiveMonth(yearMonth, label) {
           </div>`;
       });
       const recvDate = fixDateStr(po.order_date || '');
+      const itemCount = poItems.length;
       html += `
         <div class="archive-po-card">
-          <div class="arc-header">
+          <div class="arc-header" onclick="this.parentElement.classList.toggle('arc-open')">
             <div>
-              <div class="arc-pono">${po.po_number}</div>
+              <div class="arc-pono"><span class="arc-toggle-icon">▶</span>${po.po_number}</div>
               <div class="arc-company">${po.company}${po.car_model ? ' · ' + po.car_model : ''}</div>
+              <div class="arc-summary">${itemCount} ชิ้นงาน · กดเพื่อดูรายละเอียด</div>
             </div>
             <span class="badge" style="background:#EDE7F6;color:var(--purple);">✅ Complete</span>
           </div>
