@@ -2343,7 +2343,7 @@ async function loadArchiveList() {
   try {
     const { data, error } = await sb
       .from('po_list')
-      .select('po_number, due_date')
+      .select('po_number, due_date, order_date')
       .eq('is_archived', true)
       .order('due_date', { ascending: false });
 
@@ -2359,11 +2359,12 @@ async function loadArchiveList() {
       return;
     }
 
-    // Group by YYYY-MM ของ due_date (ข้ามรายการที่ due_date เป็น null/ว่าง)
+    // Group by YYYY-MM ของ due_date (fallback order_date ถ้า due_date เป็น null)
     const grouped = {};
     data.forEach(po => {
-      if (!po.due_date || po.due_date.length < 7) return;
-      const ym = po.due_date.slice(0, 7);
+      const dateStr = po.due_date || po.order_date;
+      if (!dateStr || dateStr.length < 7) return;
+      const ym = dateStr.slice(0, 7);
       if (!grouped[ym]) grouped[ym] = 0;
       grouped[ym]++;
     });
@@ -2397,19 +2398,17 @@ async function openArchiveMonth(yearMonth, label) {
   listEl.innerHTML = '<div class="archive-loading">⏳ กำลังโหลดข้อมูล...</div>';
 
   try {
-    const [yr, mo] = yearMonth.split('-').map(Number);
-    if (!yr || !mo || yr < 2000 || mo < 1 || mo > 12) throw new Error('เดือนไม่ถูกต้อง: ' + yearMonth);
-    const lastDay   = new Date(yr, mo, 0).getDate(); // วันสุดท้ายของเดือน (0 = วันก่อนเดือนถัดไป)
-    const startDate = `${yr}-${String(mo).padStart(2,'0')}-01`;
-    const endDate   = `${yr}-${String(mo).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
-
-    const { data: poData, error: e1 } = await sb
+    // ดึง archived PO ทั้งหมดแล้ว filter ด้วย JS (เพราะ due_date อาจ null ต้อง fallback order_date)
+    const { data: allArchived, error: e1 } = await sb
       .from('po_list')
       .select('*')
       .eq('is_archived', true)
-      .gte('due_date', startDate)
-      .lte('due_date', endDate)
       .order('due_date');
+
+    const poData = (allArchived || []).filter(po => {
+      const dateStr = po.due_date || po.order_date;
+      return dateStr && dateStr.slice(0, 7) === yearMonth;
+    });
 
     if (e1) throw new Error(e1.message);
     if (!poData || poData.length === 0) {
