@@ -127,6 +127,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 - ✅ **เลข PO format ใหม่** — default เปลี่ยนจาก `PO-67-xxx` เป็น `PO-YYMMDD-xx` (เช่น PO-260325-01)
   - แต่ละวันเริ่มนับ 01 ใหม่, auto-increment ตาม PO ที่มีอยู่ในวันนั้น
   - เป็นแค่ค่า default — user พิมพ์ทับได้ตลอดตามรูปแบบลูกค้า
+- ✅ **Archive Export Excel** — ปุ่ม "📥 Export Excel" ในหน้า archive detail
+  - เลือกเดือนใน archive → กดปุ่ม → ได้ไฟล์ `Archive-YYYY-MM.xlsx`
+  - Sheet 1: สรุป PO (เลขที่, บริษัท, รุ่นรถ, วันรับ/ส่ง, สถานะ, จำนวนชิ้น)
+  - Sheet 2: รายการชิ้นงานทั้งหมด (สถานะ, สี, วันส่ง, bundle PO)
+  - Header สีม่วง (theme เข้ากับ Archive), แถวสลับสี, ชิ้นที่ส่งแล้วไฮไลท์เขียว
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
