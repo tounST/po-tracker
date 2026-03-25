@@ -44,8 +44,8 @@
     position: sticky; top: 0; z-index: 100;
     box-shadow: var(--shadow);
   }
-  .topbar h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
-  .topbar small { font-size: 12px; opacity: .85; }
+  .topbar h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+  .topbar small { font-size: 14px; opacity: .85; }
 
   /* ── Tab Nav ── */
   .tabnav {
@@ -56,8 +56,8 @@
     position: sticky; top: 62px; z-index: 99;
   }
   .tabnav button {
-    flex: 1; padding: 8px 4px; border: none; background: transparent;
-    font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
+    flex: 1; padding: 10px 4px; border: none; background: transparent;
+    font-size: 15px; font-weight: 600; color: var(--muted); cursor: pointer;
     border-radius: 20px; margin: 6px 3px;
     border-bottom: none; transition: all .2s;
   }
@@ -80,17 +80,17 @@
     margin-bottom: 14px;
   }
   .card-title {
-    font-size: 13px; font-weight: 700; color: var(--muted);
+    font-size: 15px; font-weight: 700; color: var(--muted);
     text-transform: uppercase; letter-spacing: .5px;
     margin-bottom: 12px;
   }
 
   /* ── Form elements ── */
-  label { font-size: 13px; font-weight: 600; color: var(--grey); display: block; margin-bottom: 5px; }
+  label { font-size: 15px; font-weight: 600; color: var(--grey); display: block; margin-bottom: 5px; }
   select, input[type=text], input[type=date], textarea {
-    width: 100%; padding: 11px 14px;
+    width: 100%; padding: 12px 14px;
     border: 1.5px solid var(--border); border-radius: 8px;
-    font-size: 15px; background: #fff; color: var(--text);
+    font-size: 16px; background: #fff; color: var(--text);
     -webkit-appearance: none; appearance: none;
     margin-bottom: 14px;
   }
@@ -118,8 +118,8 @@
 
   /* ── Status badges ── */
   .badge {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 12px; font-weight: 700;
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    font-size: 14px; font-weight: 700;
   }
   /* สถานะชิ้นงาน 5 แบบใหม่ */
   .badge-recv     { background: #E3F2FD; color: #1565C0; }   /* รับของแล้ว */
@@ -146,8 +146,8 @@
     cursor: pointer; transition: border-color .15s;
   }
   .item-row.selected { border-color: var(--blue); background: #E8F0FE; }
-  .item-row .item-name { flex: 1; font-size: 14px; font-weight: 600; }
-  .item-row .item-color { font-size: 12px; color: var(--muted); }
+  .item-row .item-name { flex: 1; font-size: 16px; font-weight: 600; }
+  .item-row .item-color { font-size: 14px; color: var(--muted); }
   .item-check {
     width: 22px; height: 22px; border-radius: 50%;
     border: 2px solid var(--border); background: #fff;
@@ -175,8 +175,8 @@
   .po-card.done    { border-left-color: var(--green); }
   .po-card.urgent  { border-left-color: var(--red); background: #fff5f5; border: 1.5px solid #ffcdd2; }
   .po-card-header { display: flex; justify-content: space-between; align-items: center; }
-  .po-card-no { font-size: 15px; font-weight: 700; }
-  .po-card-company { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .po-card-no { font-size: 17px; font-weight: 700; }
+  .po-card-company { font-size: 15px; color: var(--muted); margin-top: 2px; }
   .po-card-progress { margin-top: 10px; }
   .progress-bar-bg {
     height: 7px; background: var(--border); border-radius: 10px; overflow: hidden;
@@ -187,7 +187,7 @@
   }
   .po-card-stats {
     display: flex; gap: 12px; margin-top: 8px;
-    font-size: 12px; color: var(--muted);
+    font-size: 14px; color: var(--muted);
   }
   .po-card-stats span { font-weight: 700; }
 
@@ -198,7 +198,7 @@
     text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.09);
   }
   .kpi-num { font-size: 26px; font-weight: 800; }
-  .kpi-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .kpi-label { font-size: 13px; color: var(--muted); margin-top: 2px; }
   .kpi-blue   .kpi-num { color: var(--blue); }
   .kpi-green  .kpi-num { color: var(--green); }
   .kpi-amber  .kpi-num { color: var(--amber); }
@@ -208,8 +208,8 @@
   /* ── Toast ── */
   #toast {
     position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: #263238; color: #fff; padding: 11px 22px;
-    border-radius: 24px; font-size: 14px; font-weight: 600;
+    background: #263238; color: #fff; padding: 12px 24px;
+    border-radius: 24px; font-size: 15px; font-weight: 600;
     opacity: 0; transition: all .3s; z-index: 9999; white-space: nowrap;
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -231,12 +231,12 @@
     width: 40px; height: 4px; background: var(--border);
     border-radius: 10px; margin: 0 auto 16px;
   }
-  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
 
   /* ── Divider / labels ── */
   .divider { height: 1px; background: var(--border); margin: 14px 0; }
   .section-label {
-    font-size: 11px; font-weight: 700; color: var(--muted);
+    font-size: 13px; font-weight: 700; color: var(--muted);
     text-transform: uppercase; letter-spacing: .8px;
     margin-bottom: 8px; margin-top: 4px;
   }
@@ -244,7 +244,7 @@
   /* ── Empty state ── */
   .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
   .empty-state .emoji { font-size: 40px; display: block; margin-bottom: 10px; }
-  .empty-state p { font-size: 14px; }
+  .empty-state p { font-size: 16px; }
 
   /* ── Add PO Form ── */
   .form-group { margin-bottom: 14px; }
@@ -255,8 +255,8 @@
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
   }
   .status-opt {
-    padding: 11px 8px; border-radius: 10px; border: 2px solid var(--border);
-    text-align: center; font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 12px 8px; border-radius: 10px; border: 2px solid var(--border);
+    text-align: center; font-size: 15px; font-weight: 600; cursor: pointer;
     transition: all .15s; line-height: 1.4;
   }
   .status-opt.sel-recv   { border-color: #1565C0; background: #E3F2FD; color: #1565C0; }
@@ -273,7 +273,7 @@
   }
   .urgent-toggle.on { border-color: var(--red); background: #FFEBEE; }
   .urgent-toggle-icon { font-size: 20px; }
-  .urgent-toggle-text { font-size: 14px; font-weight: 600; flex: 1; }
+  .urgent-toggle-text { font-size: 16px; font-weight: 600; flex: 1; }
   .toggle-switch {
     width: 44px; height: 24px; border-radius: 12px; background: var(--border);
     position: relative; transition: background .2s;
@@ -289,14 +289,14 @@
   /* ── Quick-update hint chip ── */
   .hint-chip {
     display: inline-block; background: #E8F0FE; color: var(--blue);
-    font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+    font-size: 14px; font-weight: 600; padding: 4px 12px; border-radius: 12px;
     margin-bottom: 10px;
   }
 
   /* ── Master Data Management ── */
   .master-section { margin-bottom: 18px; }
   .master-section-title {
-    font-size: 14px; font-weight: 700; color: var(--text);
+    font-size: 16px; font-weight: 700; color: var(--text);
     margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
   }
   .master-tag-wrap {
@@ -306,7 +306,7 @@
   .master-tag {
     display: inline-flex; align-items: center; gap: 6px;
     background: #EEF2FF; color: #3730A3;
-    border-radius: 20px; padding: 6px 12px; font-size: 13px; font-weight: 600;
+    border-radius: 20px; padding: 7px 14px; font-size: 15px; font-weight: 600;
     border: 1.5px solid #C7D2FE;
   }
   .master-tag.tag-company  { background: #E0F2FE; color: #0369A1; border-color: #BAE6FD; }
@@ -421,7 +421,7 @@
   }
   .role-badge {
     display: inline-block; padding: 4px 12px; border-radius: 20px;
-    font-size: 10px; font-weight: 700; margin-left: 4px;
+    font-size: 12px; font-weight: 700; margin-left: 4px;
   }
   .role-badge-admin { background: #FFEBEE; color: #C62828; }
   .role-badge-supervisor { background: #FFF3E0; color: #E65100; }
@@ -521,32 +521,32 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.1);
   }
   .archive-po-card .arc-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-  .archive-po-card .arc-pono { font-size: 15px; font-weight: 700; }
-  .archive-po-card .arc-company { font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .archive-po-card .arc-toggle-icon { font-size: 12px; color: var(--muted); transition: transform .2s; margin-left: 8px; }
+  .archive-po-card .arc-pono { font-size: 17px; font-weight: 700; }
+  .archive-po-card .arc-company { font-size: 15px; color: var(--muted); margin-top: 2px; }
+  .archive-po-card .arc-toggle-icon { font-size: 14px; color: var(--muted); transition: transform .2s; margin-left: 8px; }
   .archive-po-card.arc-open .arc-toggle-icon { transform: rotate(90deg); }
-  .archive-po-card .arc-summary { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .archive-po-card .arc-summary { font-size: 14px; color: var(--muted); margin-top: 4px; }
   .archive-po-card .arc-items-wrap { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; display: none; }
   .archive-po-card.arc-open .arc-items-wrap { display: block; }
   .archive-item-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5;
+    padding: 5px 0; font-size: 15px; border-bottom: 1px solid #f5f5f5;
   }
   .archive-item-row:last-child { border-bottom: none; }
   .archive-item-row .arc-part { font-weight: 600; flex: 1; }
-  .archive-item-row .arc-color { font-size: 12px; color: var(--muted); margin: 0 8px; }
-  .archive-item-row .arc-sent { font-size: 12px; color: var(--green); white-space: nowrap; }
+  .archive-item-row .arc-color { font-size: 14px; color: var(--muted); margin: 0 8px; }
+  .archive-item-row .arc-sent { font-size: 14px; color: var(--green); white-space: nowrap; }
 
   .archive-back-btn {
     background: #EDE7F6; color: var(--purple); border: none; border-radius: 8px;
-    padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+    padding: 8px 14px; font-size: 15px; font-weight: 700; cursor: pointer;
     margin-bottom: 12px;
   }
-  .archive-loading { text-align: center; padding: 30px; color: var(--muted); font-size: 14px; }
+  .archive-loading { text-align: center; padding: 30px; color: var(--muted); font-size: 16px; }
   .archive-stats-row {
     display: flex; gap: 10px; background: #F3E5F5; border-radius: 10px;
     padding: 10px 14px; margin-bottom: 12px;
-    font-size: 13px; color: var(--purple);
+    font-size: 15px; color: var(--purple);
   }
   .archive-stats-row strong { font-size: 18px; font-weight: 800; display: block; }
   .archive-no-gas {
@@ -592,14 +592,14 @@
   <div style="display:flex;justify-content:space-between;align-items:center">
     <h1>🔩 PO Tracker <span id="role-badge-display"></span></h1>
     <div style="display:flex;gap:6px;align-items:center;">
-      <button onclick="quickRefresh()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;backdrop-filter:blur(4px)" title="ดึงข้อมูลล่าสุด">🔄</button>
-      <button onclick="openSyncModal()" class="admin-only" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;backdrop-filter:blur(4px)">⚙️ Sync</button>
-      <button onclick="doLogout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;backdrop-filter:blur(4px)">🚪 ออก</button>
+      <button onclick="quickRefresh()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;backdrop-filter:blur(4px)" title="ดึงข้อมูลล่าสุด">🔄</button>
+      <button onclick="openSyncModal()" class="admin-only" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;backdrop-filter:blur(4px)">⚙️ Sync</button>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;backdrop-filter:blur(4px)">🚪 ออก</button>
     </div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
     <small id="topbar-date"></small>
-    <small id="sync-status" style="font-size:11px;opacity:.9"></small>
+    <small id="sync-status" style="font-size:13px;opacity:.9"></small>
   </div>
 </div>
 
