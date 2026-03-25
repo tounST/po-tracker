@@ -896,6 +896,33 @@
 let currentUser = null; // { id, username, display_name, pin, role, station, is_active }
 let pinInput = '';
 
+// ── Auto-logout after 30 minutes of inactivity ──
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 นาที
+let sessionTimer = null;
+
+function resetSessionTimer() {
+  if (sessionTimer) clearTimeout(sessionTimer);
+  if (!currentUser) return;
+  sessionTimer = setTimeout(() => {
+    if (currentUser) {
+      logActivity('auto_logout', 'system', { reason: 'inactivity_30min', username: currentUser.username }).catch(() => {});
+      currentUser = null;
+      sessionStorage.removeItem('po_user_id');
+      pinInput = '';
+      document.getElementById('app-wrapper').style.display = 'none';
+      document.getElementById('pin-login-screen').classList.remove('hidden');
+      updatePINDots();
+      document.getElementById('pin-error').textContent = '';
+      alert('⏰ หมดเวลาใช้งาน (30 นาที) กรุณา login ใหม่');
+    }
+  }, SESSION_TIMEOUT_MS);
+}
+
+// Reset timer on any user interaction
+['click', 'touchstart', 'keydown', 'scroll'].forEach(evt => {
+  document.addEventListener(evt, resetSessionTimer, { passive: true });
+});
+
 // Permission matrix: role -> permissions
 const PERMISSIONS = {
   admin:      { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: true,  archive: true  },
@@ -1024,6 +1051,9 @@ async function submitPIN() {
     currentUser = data;
     sessionStorage.setItem('po_user_id', currentUser.id);
 
+    // Start auto-logout timer
+    resetSessionTimer();
+
     // Log login activity
     await logActivity('login', 'system', { username: currentUser.username });
 
@@ -1047,6 +1077,7 @@ function playShakeAnimation() {
 
 function doLogout() {
   if (!confirm('ออกจากระบบ?')) return;
+  if (sessionTimer) clearTimeout(sessionTimer);
   logActivity('logout', 'system', {}).catch(e => console.warn('Logout activity log failed:', e));
   currentUser = null;
   sessionStorage.removeItem('po_user_id');
@@ -2528,6 +2559,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (data && !error) {
         currentUser = data;
+        resetSessionTimer();
         showApp();
       }
     } catch(e) {
