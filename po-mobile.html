@@ -460,6 +460,47 @@
     font-size: 11px; font-weight: 700; border-radius: 12px;
     padding: 2px 8px; margin-left: 6px;
   }
+  .user-card-actions {
+    display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
+  }
+  .user-card-actions button {
+    border: none; border-radius: 8px; padding: 6px 10px;
+    font-size: 14px; cursor: pointer; transition: opacity .15s;
+  }
+  .user-card-actions button:active { opacity: .7; }
+  .user-card-edit-btn { background: #E8F0FE; color: var(--blue); }
+  .user-card-del-btn { background: #FFEBEE; color: #C62828; }
+  .user-form-card {
+    background: #F0F4F8; border-radius: var(--radius);
+    padding: 16px; margin-bottom: 12px;
+    border: 2px solid var(--blue);
+  }
+  .user-form-card label { font-size: 12px; margin-bottom: 3px; }
+  .user-form-card input, .user-form-card select {
+    margin-bottom: 10px; font-size: 14px; padding: 9px 12px;
+  }
+  .user-form-station-group {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+  }
+  .user-form-station-group label {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 13px; font-weight: 500; color: var(--text);
+    cursor: pointer; margin-bottom: 0;
+  }
+  .user-form-station-group input[type=checkbox] {
+    width: 18px; height: 18px; margin: 0; padding: 0;
+  }
+  .user-form-btns {
+    display: flex; gap: 8px; margin-top: 4px;
+  }
+  .user-form-btns button {
+    flex: 1; padding: 10px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .pin-toggle-btn {
+    border: none; background: none; cursor: pointer; font-size: 14px;
+    padding: 0 4px; vertical-align: middle;
+  }
 
   /* ── Archive ── */
   .archive-month-grid {
@@ -930,8 +971,12 @@
   <div class="card admin-only" style="padding:14px;margin-top:12px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div class="card-title" style="margin-bottom:0;">👥 ผู้ใช้งานระบบ</div>
-      <button onclick="loadUserList()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">🔄 รีเฟรช</button>
+      <div style="display:flex;gap:6px;">
+        <button onclick="showAddUserForm()" style="background:#2E7D32;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">➕ เพิ่มผู้ใช้</button>
+        <button onclick="loadUserList()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">🔄 รีเฟรช</button>
+      </div>
     </div>
+    <div id="user-add-form-container"></div>
     <div id="user-list-container">
       <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">กำลังโหลด...</div>
     </div>
@@ -2671,8 +2716,13 @@ function renderMasterSection(type, list, tagClass) {
 }
 
 // ═══════════════════════════════════════════════════
-//  USER LIST (Admin only)
+//  USER LIST + CRUD (Admin only)
 // ═══════════════════════════════════════════════════
+const USER_ROLE_COLORS = { admin: '#C62828', supervisor: '#E65100', manager: '#1A73E8', staff: '#546E7A' };
+const USER_ROLE_LABELS = { admin: '👑 Admin', supervisor: '⭐ หัวหน้า', manager: '📋 ผู้จัดการ', staff: '👷 พนักงาน' };
+const USER_STATION_LABELS = { all: 'ทั้งหมด', receiving: '📥 รับของ', production: '🔄 ผลิต', qc: '🔍 QC', shipping: '📦 ส่งของ' };
+const USER_STATION_KEYS = ['all','receiving','production','qc','shipping'];
+
 async function loadUserList() {
   const container = document.getElementById('user-list-container');
   if (!container) return;
@@ -2684,29 +2734,204 @@ async function loadUserList() {
       container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">ไม่พบผู้ใช้งาน</div>';
       return;
     }
-    const roleColors = { admin: '#C62828', supervisor: '#E65100', manager: '#1A73E8', staff: '#546E7A' };
-    const roleLabels = { admin: '👑 Admin', supervisor: '⭐ หัวหน้า', manager: '📋 ผู้จัดการ', staff: '👷 พนักงาน' };
-    const stationLabels = { all: 'ทั้งหมด', receiving: '📥 รับของ', production: '🔄 ผลิต', qc: '🔍 QC', shipping: '📦 ส่งของ' };
-
-    container.innerHTML = data.map(u => {
-      const name = u.display_name || u.username;
-      const initial = name.charAt(0).toUpperCase();
-      const roleColor = roleColors[u.role] || '#546E7A';
-      const roleLabel = roleLabels[u.role] || u.role;
-      const stations = (u.station || 'all').split(',').map(s => stationLabels[s.trim()] || s.trim()).join(', ');
-      const inactiveClass = u.is_active === false ? ' inactive' : '';
-      const inactiveBadge = u.is_active === false ? '<span class="user-card-inactive-badge">ปิดใช้งาน</span>' : '';
-      return `<div class="user-card${inactiveClass}">
-        <div class="user-card-avatar">${initial}</div>
-        <div class="user-card-info">
-          <div class="user-card-name">${name}${inactiveBadge}</div>
-          <div><span class="user-card-pin">${u.pin || '----'}</span><span class="user-card-role" style="background:${roleColor}">${roleLabel}</span></div>
-          <div class="user-card-station">📍 ${stations}</div>
-        </div>
-      </div>`;
-    }).join('');
+    container.innerHTML = data.map(u => renderUserCard(u)).join('');
   } catch (e) {
     container.innerHTML = `<div style="text-align:center;padding:20px;color:#C62828;font-size:13px;">❌ โหลดไม่สำเร็จ: ${e.message}</div>`;
+  }
+}
+
+function renderUserCard(u) {
+  const name = u.display_name || u.username;
+  const initial = name.charAt(0).toUpperCase();
+  const roleColor = USER_ROLE_COLORS[u.role] || '#546E7A';
+  const roleLabel = USER_ROLE_LABELS[u.role] || u.role;
+  const stations = (u.station || 'all').split(',').map(s => USER_STATION_LABELS[s.trim()] || s.trim()).join(', ');
+  const inactiveClass = u.is_active === false ? ' inactive' : '';
+  const inactiveBadge = u.is_active === false ? '<span class="user-card-inactive-badge">ปิดใช้งาน</span>' : '';
+  const isSelf = currentUser && currentUser.id === u.id;
+  const delBtn = isSelf ? '' : `<button class="user-card-del-btn" onclick="deleteUser('${u.id}')" title="ลบ">🗑️</button>`;
+  const pin = u.pin || '----';
+  return `<div class="user-card${inactiveClass}" id="ucard-${u.id}">
+    <div class="user-card-avatar">${initial}</div>
+    <div class="user-card-info">
+      <div class="user-card-name">${name}${inactiveBadge}</div>
+      <div>
+        <span class="user-card-pin" id="upin-${u.id}" data-pin="${pin}">••••</span>
+        <button class="pin-toggle-btn" onclick="togglePinVis('${u.id}')" title="แสดง/ซ่อน PIN">👁</button>
+        <span class="user-card-role" style="background:${roleColor}">${roleLabel}</span>
+      </div>
+      <div class="user-card-station">📍 ${stations}</div>
+    </div>
+    <div class="user-card-actions">
+      <button class="user-card-edit-btn" onclick="editUser('${u.id}')" title="แก้ไข">✏️</button>
+      ${delBtn}
+    </div>
+  </div>`;
+}
+
+function togglePinVis(uid) {
+  const el = document.getElementById('upin-' + uid);
+  if (!el) return;
+  const pin = el.getAttribute('data-pin');
+  el.textContent = el.textContent === '••••' ? pin : '••••';
+}
+
+function buildStationCheckboxes(prefix, selectedStr) {
+  const selected = (selectedStr || 'all').split(',').map(s => s.trim());
+  return `<div class="user-form-station-group" id="${prefix}-stations">` +
+    USER_STATION_KEYS.map(k => {
+      const checked = selected.includes(k) ? 'checked' : '';
+      const label = USER_STATION_LABELS[k];
+      return `<label><input type="checkbox" value="${k}" ${checked} onchange="handleStationCheck('${prefix}','${k}',this)"> ${label}</label>`;
+    }).join('') + '</div>';
+}
+
+function handleStationCheck(prefix, key, cb) {
+  const group = document.getElementById(prefix + '-stations');
+  if (!group) return;
+  const boxes = group.querySelectorAll('input[type=checkbox]');
+  if (key === 'all' && cb.checked) {
+    boxes.forEach(b => { if (b.value !== 'all') b.checked = false; });
+  } else if (key !== 'all' && cb.checked) {
+    boxes.forEach(b => { if (b.value === 'all') b.checked = false; });
+  }
+}
+
+function getStationValue(prefix) {
+  const group = document.getElementById(prefix + '-stations');
+  if (!group) return 'all';
+  const checked = Array.from(group.querySelectorAll('input[type=checkbox]:checked')).map(b => b.value);
+  return checked.length === 0 ? '' : checked.join(',');
+}
+
+function buildUserForm(prefix, data) {
+  const d = data || {};
+  return `<div class="user-form-card" id="${prefix}-form">
+    <label>ชื่อที่แสดง *</label>
+    <input type="text" id="${prefix}-dname" value="${d.display_name || ''}" placeholder="ชื่อที่แสดง เช่น สมชาย">
+    <label>Username * (ภาษาอังกฤษ ตัวเล็ก)</label>
+    <input type="text" id="${prefix}-uname" value="${d.username || ''}" placeholder="เช่น somchai" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
+    <label>PIN * (ตัวเลข 4 หลัก)</label>
+    <input type="text" id="${prefix}-pin" value="${d.pin || ''}" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="เช่น 1234" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+    <label>Role</label>
+    <select id="${prefix}-role">
+      <option value="admin" ${d.role==='admin'?'selected':''}>👑 Admin</option>
+      <option value="supervisor" ${d.role==='supervisor'?'selected':''}>⭐ หัวหน้า</option>
+      <option value="manager" ${d.role==='manager'?'selected':''}>📋 ผู้จัดการ</option>
+      <option value="staff" ${(!d.role||d.role==='staff')?'selected':''}>👷 พนักงาน</option>
+    </select>
+    <label>Station (จุดงาน)</label>
+    ${buildStationCheckboxes(prefix, d.station)}
+    <div class="user-form-btns">
+      <button style="background:var(--blue);color:#fff;" onclick="${prefix === 'uadd' ? 'submitAddUser()' : `submitEditUser('${d.id}')`}">✅ บันทึก</button>
+      <button style="background:#ECEFF1;color:var(--grey);" onclick="${prefix === 'uadd' ? 'hideAddUserForm()' : `cancelEditUser('${d.id}')`}">❌ ยกเลิก</button>
+    </div>
+  </div>`;
+}
+
+async function validateUserForm(prefix, excludeId) {
+  const dname = document.getElementById(prefix + '-dname').value.trim();
+  const uname = document.getElementById(prefix + '-uname').value.trim();
+  const pin = document.getElementById(prefix + '-pin').value.trim();
+  const station = getStationValue(prefix);
+
+  if (!dname) { toast('⚠️ กรุณากรอกชื่อที่แสดง'); return null; }
+  if (!uname) { toast('⚠️ กรุณากรอก Username'); return null; }
+  if (!/^[0-9]{4}$/.test(pin)) { toast('⚠️ PIN ต้องเป็นตัวเลข 4 หลัก'); return null; }
+  if (!station) { toast('⚠️ กรุณาเลือก Station อย่างน้อย 1 จุด'); return null; }
+
+  // Check unique username
+  let q = sb.from('users').select('id').eq('username', uname);
+  if (excludeId) q = q.neq('id', excludeId);
+  const { data: uDup } = await q;
+  if (uDup && uDup.length > 0) { toast('⚠️ Username "' + uname + '" ถูกใช้แล้ว'); return null; }
+
+  // Check unique PIN
+  let qp = sb.from('users').select('id').eq('pin', pin);
+  if (excludeId) qp = qp.neq('id', excludeId);
+  const { data: pDup } = await qp;
+  if (pDup && pDup.length > 0) { toast('⚠️ PIN "' + pin + '" ถูกใช้แล้ว'); return null; }
+
+  const role = document.getElementById(prefix + '-role').value;
+  return { display_name: dname, username: uname, pin, role, station };
+}
+
+// ── Add User ──
+function showAddUserForm() {
+  const c = document.getElementById('user-add-form-container');
+  c.innerHTML = buildUserForm('uadd', {});
+  c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function hideAddUserForm() {
+  document.getElementById('user-add-form-container').innerHTML = '';
+}
+
+async function submitAddUser() {
+  const vals = await validateUserForm('uadd', null);
+  if (!vals) return;
+  try {
+    const { error } = await sb.from('users').insert({ ...vals, is_active: true });
+    if (error) throw error;
+    await logActivity('add_user', 'user', { username: vals.username, display_name: vals.display_name, role: vals.role, station: vals.station });
+    hideAddUserForm();
+    toast('✅ เพิ่มผู้ใช้ ' + vals.display_name + ' สำเร็จ');
+    await loadUserList();
+  } catch (e) {
+    toast('❌ เพิ่มไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// ── Edit User ──
+async function editUser(uid) {
+  const { data, error } = await sb.from('users').select('*').eq('id', uid).single();
+  if (error || !data) { toast('❌ โหลดข้อมูลไม่สำเร็จ'); return; }
+  const card = document.getElementById('ucard-' + uid);
+  if (!card) return;
+  card.outerHTML = buildUserForm('uedit-' + uid, data);
+}
+
+function cancelEditUser(uid) {
+  // Reload the list to restore card
+  loadUserList();
+}
+
+async function submitEditUser(uid) {
+  const prefix = 'uedit-' + uid;
+  const vals = await validateUserForm(prefix, uid);
+  if (!vals) return;
+  try {
+    // Get old data for change log
+    const { data: old } = await sb.from('users').select('*').eq('id', uid).single();
+    const { error } = await sb.from('users').update(vals).eq('id', uid);
+    if (error) throw error;
+    // Build changes object
+    const changes = {};
+    if (old) {
+      ['display_name','username','pin','role','station'].forEach(f => {
+        if (old[f] !== vals[f]) changes[f] = (old[f] || '') + '→' + vals[f];
+      });
+    }
+    await logActivity('edit_user', 'user', { username: vals.username, changes });
+    toast('✅ แก้ไขผู้ใช้ ' + vals.display_name + ' สำเร็จ');
+    await loadUserList();
+  } catch (e) {
+    toast('❌ แก้ไขไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// ── Delete User ──
+async function deleteUser(uid) {
+  const { data } = await sb.from('users').select('display_name,username').eq('id', uid).single();
+  const name = data ? (data.display_name || data.username) : uid;
+  if (!confirm('ต้องการลบ ' + name + ' จริงหรือไม่?')) return;
+  try {
+    const { error } = await sb.from('users').delete().eq('id', uid);
+    if (error) throw error;
+    await logActivity('delete_user', 'user', { username: data?.username, display_name: data?.display_name });
+    toast('🗑️ ลบผู้ใช้ ' + name + ' แล้ว');
+    await loadUserList();
+  } catch (e) {
+    toast('❌ ลบไม่สำเร็จ: ' + e.message);
   }
 }
 
