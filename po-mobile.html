@@ -813,7 +813,7 @@
     <div class="card-title">📋 ข้อมูล PO</div>
 
     <label>เลขที่ PO *</label>
-    <input type="text" id="add-pono" placeholder="เช่น PO-67-010">
+    <input type="text" id="add-pono" placeholder="เช่น PO-260325-01">
 
     <label>บริษัท / ลูกค้า *</label>
     <div class="sdropdown" id="sd-company">
@@ -2403,13 +2403,19 @@ function addBulkItems() {
 }
 
 function autoNextPO() {
-  if (!db.pos.length) return 'PO-67-001';
-  const nums = db.pos.map(p => {
-    const parts = p.id.split('-');
-    return parseInt(parts[parts.length - 1]) || 0;
-  });
-  const next = Math.max(...nums) + 1;
-  return `PO-67-${String(next).padStart(3,'0')}`;
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const prefix = `PO-${yy}${mm}${dd}-`;
+
+  // หาเลขล่าสุดของวันนี้จาก PO ที่มีอยู่
+  const todayNums = db.pos
+    .filter(p => p.id && p.id.startsWith(prefix))
+    .map(p => parseInt(p.id.split('-').pop()) || 0);
+
+  const next = todayNums.length > 0 ? Math.max(...todayNums) + 1 : 1;
+  return `${prefix}${String(next).padStart(2, '0')}`;
 }
 
 function toggleUrgent() {
