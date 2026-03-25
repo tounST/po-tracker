@@ -309,6 +309,7 @@
   .master-tag.tag-company  { background: #E0F2FE; color: #0369A1; border-color: #BAE6FD; }
   .master-tag.tag-model    { background: #F0FDF4; color: #15803D; border-color: #BBF7D0; }
   .master-tag.tag-part     { background: #FEF9C3; color: #854D0E; border-color: #FDE68A; }
+  .master-tag.tag-defect   { background: #FFEBEE; color: #B71C1C; border-color: #FFCDD2; }
   .master-tag-del {
     border: none; background: none; cursor: pointer;
     font-size: 16px; color: #94A3B8; padding: 0; line-height: 1;
@@ -862,6 +863,16 @@
     </div>
   </div>
 
+  <!-- สาเหตุ Defect -->
+  <div class="card master-section">
+    <div class="master-section-title">❌ สาเหตุ Defect</div>
+    <div class="master-tag-wrap" id="master-defect-tags"></div>
+    <div class="master-add-row">
+      <input type="text" id="master-defect-input" placeholder="สาเหตุใหม่ เช่น สีย่น, รอยบุบ..." onkeypress="masterInputEnter('defect',event)">
+      <button class="master-add-btn" onclick="addMasterItem('defect')">➕ เพิ่ม</button>
+    </div>
+  </div>
+
   <div style="text-align:center;font-size:12px;color:var(--muted);padding:8px 0 4px;">
     ข้อมูลบันทึกในเครื่องอัตโนมัติ · กดค้าง × เพื่อลบ
   </div>
@@ -1258,9 +1269,10 @@ async function loadFromSupabase() {
       _configIdMap[c.config_type][c.config_value] = c.id;
     });
 
-    const masterCompanies = (cfgRows || []).filter(c => c.config_type === 'company')  .map(c => c.config_value);
-    const masterModels    = (cfgRows || []).filter(c => c.config_type === 'car_model').map(c => c.config_value);
-    const masterParts     = (cfgRows || []).filter(c => c.config_type === 'part_name').map(c => c.config_value);
+    const masterCompanies = (cfgRows || []).filter(c => c.config_type === 'company')       .map(c => c.config_value);
+    const masterModels    = (cfgRows || []).filter(c => c.config_type === 'car_model')     .map(c => c.config_value);
+    const masterParts     = (cfgRows || []).filter(c => c.config_type === 'part_name')     .map(c => c.config_value);
+    const masterDefects   = (cfgRows || []).filter(c => c.config_type === 'defect_reason').map(c => c.config_value);
 
     showSyncStatus('ok');
     return {
@@ -1268,7 +1280,8 @@ async function loadFromSupabase() {
       items,
       masterCompanies: masterCompanies.length ? masterCompanies : [...DEFAULT_COMPANIES],
       masterModels:    masterModels.length    ? masterModels    : [...DEFAULT_CAR_MODELS],
-      masterParts:     masterParts.length     ? masterParts     : [...DEFAULT_PART_TYPES]
+      masterParts:     masterParts.length     ? masterParts     : [...DEFAULT_PART_TYPES],
+      masterDefects:   masterDefects
     };
   } catch(e) {
     console.error('[Supabase] loadFromSupabase:', e);
@@ -1436,6 +1449,7 @@ function loadData() {
       if (!d.masterCompanies) d.masterCompanies = [...DEFAULT_COMPANIES];
       if (!d.masterModels)    d.masterModels    = [...DEFAULT_CAR_MODELS];
       if (!d.masterParts)     d.masterParts     = [...DEFAULT_PART_TYPES];
+      if (!d.masterDefects)   d.masterDefects   = [];
       return d;
     }
   } catch(e) {}
@@ -1451,6 +1465,7 @@ function getInitialData() {
     masterCompanies: [...DEFAULT_COMPANIES],
     masterModels:    [...DEFAULT_CAR_MODELS],
     masterParts:     [...DEFAULT_PART_TYPES],
+    masterDefects:   [],
     pos: [
       { id:'PO-67-001', company:'สาโรจน์ A&T', model:'ATTRAGE',      recv:'2024-03-21', due:'2024-03-28', urgent:true,  status:'Partial Send', remark:'ชุดสเกิร์ต' },
       { id:'PO-67-002', company:'AFF',          model:'MU-X 2021',    recv:'2024-03-22', due:'2024-03-30', urgent:false, status:'In progress',  remark:'' },
@@ -2587,6 +2602,7 @@ function renderMasterTab() {
   renderMasterSection('company', db.masterCompanies, 'tag-company');
   renderMasterSection('model',   db.masterModels,    'tag-model');
   renderMasterSection('part',    db.masterParts,     'tag-part');
+  renderMasterSection('defect',  db.masterDefects || [], 'tag-defect');
 }
 
 function renderMasterSection(type, list, tagClass) {
@@ -2612,9 +2628,9 @@ async function addMasterItem(type) {
   const val   = input.value.trim();
   if (!val) { toast('⚠️ กรุณากรอกชื่อก่อน'); return; }
 
-  const listMap = { company: 'masterCompanies', model: 'masterModels', part: 'masterParts' };
-  const cfgMap  = { company: 'company',         model: 'car_model',    part: 'part_name'   };
-  const names   = { company: 'บริษัท',          model: 'รุ่นรถ',       part: 'ชิ้นงาน'     };
+  const listMap = { company: 'masterCompanies', model: 'masterModels', part: 'masterParts', defect: 'masterDefects' };
+  const cfgMap  = { company: 'company',         model: 'car_model',    part: 'part_name',   defect: 'defect_reason' };
+  const names   = { company: 'บริษัท',          model: 'รุ่นรถ',       part: 'ชิ้นงาน',     defect: 'สาเหตุ defect' };
   const key     = listMap[type];
   const cfgType = cfgMap[type];
   if (!db[key]) db[key] = [];
@@ -2639,8 +2655,8 @@ async function addMasterItem(type) {
 }
 
 async function removeMasterItem(type, idx) {
-  const listMap = { company: 'masterCompanies', model: 'masterModels', part: 'masterParts' };
-  const cfgMap  = { company: 'company',         model: 'car_model',    part: 'part_name'   };
+  const listMap = { company: 'masterCompanies', model: 'masterModels', part: 'masterParts', defect: 'masterDefects' };
+  const cfgMap  = { company: 'company',         model: 'car_model',    part: 'part_name',   defect: 'defect_reason' };
   const key     = listMap[type];
   const cfgType = cfgMap[type];
   const item    = db[key][idx];
