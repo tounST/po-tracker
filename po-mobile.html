@@ -121,7 +121,7 @@
   /* สถานะชิ้นงาน 5 แบบใหม่ */
   .badge-recv     { background: #E3F2FD; color: #1565C0; }   /* รับของแล้ว */
   .badge-prod     { background: #FFF9C4; color: #795548; }   /* กำลังผลิต */
-  .badge-ready    { background: #E8EAF6; color: #3949AB; }   /* เตรียมส่ง */
+  .badge-ready    { background: #E8EAF6; color: #3949AB; }   /* QC/เตรียมส่ง */
   .badge-sent     { background: #C8E6C9; color: var(--green); } /* ส่งแล้ว */
   .badge-rework   { background: #FFCDD2; color: #B71C1C; }  /* กลับมาแก้ไข */
   /* Toggle switch styling */
@@ -578,7 +578,7 @@
     </div>
     <div class="kpi-box kpi-blue">
       <div class="kpi-num" id="kpi-ready">–</div>
-      <div class="kpi-label">เตรียมส่ง</div>
+      <div class="kpi-label">QC/เตรียมส่ง</div>
     </div>
     <div class="kpi-box kpi-red">
       <div class="kpi-num" id="kpi-rework">–</div>
@@ -656,7 +656,7 @@
       <div class="status-grid">
         <div class="status-opt" data-status="รับของแล้ว"   data-sel="sel-recv"   onclick="selectStatus('รับของแล้ว','sel-recv',this)">📥 รับของแล้ว</div>
         <div class="status-opt" data-status="กำลังผลิต"    data-sel="sel-prod"   onclick="selectStatus('กำลังผลิต','sel-prod',this)">🔄 กำลังผลิต</div>
-        <div class="status-opt" data-status="เตรียมส่ง"    data-sel="sel-ready"  onclick="selectStatus('เตรียมส่ง','sel-ready',this)">📦 เตรียมส่ง</div>
+        <div class="status-opt" data-status="QC/เตรียมส่ง"    data-sel="sel-ready"  onclick="selectStatus('QC/เตรียมส่ง','sel-ready',this)">🔍 QC/เตรียมส่ง</div>
         <div class="status-opt" data-status="ส่งแล้ว"      data-sel="sel-sent"   onclick="selectStatus('ส่งแล้ว','sel-sent',this)">✅ ส่งแล้ว</div>
       </div>
 
@@ -670,6 +670,29 @@
         <select id="bundle-po-select">
           <option value="">— ไม่มี / ส่งเดี่ยว —</option>
         </select>
+      </div>
+
+      <!-- QC Panel — แสดงเฉพาะเมื่อสถานะเป็น QC/เตรียมส่ง -->
+      <div id="qc-panel" class="card" style="display:none; border: 2px solid var(--blue);">
+        <div class="card-title">🔍 ตรวจสอบคุณภาพ (QC)</div>
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <button id="qc-pass-btn" onclick="doQCPass()" style="flex:1; padding:14px; border:none; border-radius:8px; background:#2E7D32; color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
+            ✅ ผ่าน QC
+          </button>
+          <button id="qc-fail-btn" onclick="showQCFailPanel()" style="flex:1; padding:14px; border:none; border-radius:8px; background:#C62828; color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
+            ❌ ไม่ผ่าน QC
+          </button>
+        </div>
+        <!-- Sub-panel เมื่อกด "ไม่ผ่าน" -->
+        <div id="qc-fail-detail" style="display:none;">
+          <label>📋 สาเหตุ defect:</label>
+          <select id="qc-defect-reason" style="width:100%; padding:11px; border:1.5px solid var(--border); border-radius:8px; font-size:15px; margin-bottom:10px;">
+            <option value="">— เลือกสาเหตุ —</option>
+          </select>
+          <button onclick="doQCFail()" style="width:100%; padding:14px; border:none; border-radius:8px; background:#C62828; color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
+            🔄 ส่งกลับไปผลิตใหม่
+          </button>
+        </div>
       </div>
 
       <label>💬 หมายเหตุ (ไม่บังคับ)</label>
@@ -935,7 +958,7 @@ const PERMISSIONS = {
 const STATION_STATUS = {
   'receiving':  ['รับของแล้ว'],
   'production': ['กำลังผลิต'],
-  'qc':         ['เตรียมส่ง'],
+  'qc':         ['QC/เตรียมส่ง'],
   'shipping':   ['ส่งแล้ว']
 };
 
@@ -1400,7 +1423,7 @@ const DEFAULT_PART_TYPES = [
 ];
 
 // 5 สถานะใหม่
-const ITEM_STATUSES = ["รับของแล้ว","กำลังผลิต","เตรียมส่ง","ส่งแล้ว"];
+const ITEM_STATUSES = ["รับของแล้ว","กำลังผลิต","QC/เตรียมส่ง","ส่งแล้ว"];
 
 function loadData() {
   try {
@@ -1444,7 +1467,7 @@ function getInitialData() {
       { po:'PO-67-003', part:'บันเปอร์หลัง',  color:'สีเงิน A33',   urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
       { po:'PO-67-003', part:'กันชนหน้า',      color:'สีเงิน A33',   urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
       { po:'PO-67-004', part:'สเกิร์ตหน้า',   color:'สีขาวมุก W85', urgent:true,  status:'ส่งแล้ว',       sentDate:'2024-03-25', bundlePO:'', remark:'ด่วนมาก' },
-      { po:'PO-67-004', part:'สเกิร์ตหลัง',   color:'สีขาวมุก W85', urgent:false, status:'เตรียมส่ง',     sentDate:'', bundlePO:'PO-67-001', remark:'รวมส่งกับ 67-001' },
+      { po:'PO-67-004', part:'สเกิร์ตหลัง',   color:'สีขาวมุก W85', urgent:false, status:'QC/เตรียมส่ง',     sentDate:'', bundlePO:'PO-67-001', remark:'รวมส่งกับ 67-001' },
       { po:'PO-67-004', part:'บันเปอร์หน้า',  color:'สีขาวมุก W85', urgent:false, status:'รับของแล้ว',    sentDate:'', bundlePO:'', remark:'' },
     ]
   };
@@ -1540,7 +1563,7 @@ function statusBadge(s, isRework) {
   const map = {
     'รับของแล้ว':   ['badge-recv',   '📥 รับของแล้ว'],
     'กำลังผลิต':    ['badge-prod',   '🔄 กำลังผลิต'],
-    'เตรียมส่ง':    ['badge-ready',  '📦 เตรียมส่ง'],
+    'QC/เตรียมส่ง':    ['badge-ready',  '🔍 QC/เตรียมส่ง'],
     'ส่งแล้ว':      ['badge-sent',   '✅ ส่งแล้ว'],
     'กลับมาแก้ไข': ['badge-rework', '🔁 กลับมาแก้ไข'],
   };
@@ -1569,7 +1592,7 @@ function poStatusAuto(poId) {
   if (!items.length) return 'Order';
   if (items.every(i => i.status === 'ส่งแล้ว')) return 'Complete';
   if (items.some(i => i.status === 'ส่งแล้ว'))  return 'Partial Send';
-  if (items.some(i => ['กำลังผลิต','เตรียมส่ง','กลับมาแก้ไข'].includes(i.status))) return 'In progress';
+  if (items.some(i => ['กำลังผลิต','QC/เตรียมส่ง','กลับมาแก้ไข'].includes(i.status))) return 'In progress';
   return 'Order';
 }
 
@@ -1614,7 +1637,7 @@ function renderDashboard() {
   const items   = db.items;
   const sent    = items.filter(i => i.status === 'ส่งแล้ว').length;
   const prod    = items.filter(i => i.status === 'กำลังผลิต').length;
-  const ready   = items.filter(i => i.status === 'เตรียมส่ง').length;
+  const ready   = items.filter(i => i.status === 'QC/เตรียมส่ง').length;
   const rework  = items.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
 
   document.getElementById('kpi-total-po').textContent    = db.pos.length;
@@ -1856,11 +1879,11 @@ function backToPoList() {
 
 function applyStatusFilters() {
   // Filter status options based on user permissions
-  const allStatuses = ['รับของแล้ว', 'กำลังผลิต', 'เตรียมส่ง', 'ส่งแล้ว'];
+  const allStatuses = ['รับของแล้ว', 'กำลังผลิต', 'QC/เตรียมส่ง', 'ส่งแล้ว'];
   const statusElements = {
     'รับของแล้ว': document.querySelector('[data-status="รับของแล้ว"]'),
     'กำลังผลิต': document.querySelector('[data-status="กำลังผลิต"]'),
-    'เตรียมส่ง': document.querySelector('[data-status="เตรียมส่ง"]'),
+    'QC/เตรียมส่ง': document.querySelector('[data-status="QC/เตรียมส่ง"]'),
     'ส่งแล้ว': document.querySelector('[data-status="ส่งแล้ว"]')
   };
 
@@ -1953,7 +1976,8 @@ function selectStatus(status, selClass, el) {
   document.getElementById('sent-date-group').style.display =
     status === 'ส่งแล้ว' ? 'block' : 'none';
   document.getElementById('bundle-po-group').style.display =
-    (status === 'เตรียมส่ง' || status === 'ส่งแล้ว') ? 'block' : 'none';
+    (status === 'QC/เตรียมส่ง' || status === 'ส่งแล้ว') ? 'block' : 'none';
+  toggleQCPanel();
   if (status === 'ส่งแล้ว') {
     document.getElementById('sent-date').value = todayISO();
   }
@@ -1964,6 +1988,109 @@ function onReworkToggle() {
   const on = document.getElementById('rework-toggle').checked;
   document.getElementById('rework-toggle-row').style.background = on ? '#FFCDD2' : '#FFEBEE';
   document.getElementById('rework-toggle-row').style.borderColor = on ? '#B71C1C' : '#EF9A9A';
+}
+
+// ═══════════════════════════════════════════════════
+//  QC SYSTEM
+// ═══════════════════════════════════════════════════
+function toggleQCPanel() {
+  const panel = document.getElementById('qc-panel');
+  if (!panel) return;
+  if (selectedStatus === 'QC/เตรียมส่ง') {
+    panel.style.display = 'block';
+    document.getElementById('qc-fail-detail').style.display = 'none';
+    populateDefectReasons();
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function populateDefectReasons() {
+  const sel = document.getElementById('qc-defect-reason');
+  if (!sel) return;
+  const reasons = Object.keys((_configIdMap || {})['defect_reason'] || {});
+  sel.innerHTML = '<option value="">— เลือกสาเหตุ —</option>';
+  reasons.forEach(r => {
+    sel.innerHTML += `<option value="${r}">${r}</option>`;
+  });
+}
+
+function showQCFailPanel() {
+  document.getElementById('qc-fail-detail').style.display = 'block';
+}
+
+function getSelectedItemObjects() {
+  const poItems = db.items.filter(i => i.po === currentPoId);
+  const result = [];
+  selectedItems.forEach(idx => {
+    if (poItems[idx]) result.push(poItems[idx]);
+  });
+  return result;
+}
+
+async function doQCPass() {
+  const items = getSelectedItemObjects();
+  if (!items.length) { toast('⚠️ เลือกชิ้นงานก่อน'); return; }
+
+  showLoading(true);
+  try {
+    for (const item of items) {
+      await sb.from('po_items').update({
+        qc_passed: true,
+        qc_defect_reason: null,
+        qc_checked_at: new Date().toISOString(),
+        qc_checked_by: currentUser.username
+      }).eq('id', item._sbId);
+    }
+    await logActivity('qc_pass', 'po_item', {
+      items: items.map(i => i.part),
+      checked_by: currentUser.username
+    });
+    toast('✅ ผ่าน QC แล้ว');
+    const data = await loadFromSupabase();
+    if (data) { db = data; saveData(db); }
+    renderDashboard();
+    switchTab('update');
+  } catch(e) {
+    toast('❌ เกิดข้อผิดพลาด: ' + e.message);
+  }
+  showLoading(false);
+}
+
+async function doQCFail() {
+  const items = getSelectedItemObjects();
+  if (!items.length) { toast('⚠️ เลือกชิ้นงานก่อน'); return; }
+
+  const reason = document.getElementById('qc-defect-reason').value;
+  if (!reason) { toast('⚠️ กรุณาเลือกสาเหตุ defect'); return; }
+
+  if (!confirm(`ส่งกลับไปผลิตใหม่ ${items.length} ชิ้น\nสาเหตุ: ${reason}`)) return;
+
+  showLoading(true);
+  try {
+    for (const item of items) {
+      await sb.from('po_items').update({
+        status: 'กำลังผลิต',
+        qc_passed: false,
+        qc_defect_reason: reason,
+        qc_checked_at: new Date().toISOString(),
+        qc_checked_by: currentUser.username
+      }).eq('id', item._sbId);
+    }
+    await logActivity('qc_fail', 'po_item', {
+      items: items.map(i => i.part),
+      reason: reason,
+      checked_by: currentUser.username
+    });
+    toast(`🔄 ส่งกลับผลิตใหม่ ${items.length} ชิ้น (${reason})`);
+    const data = await loadFromSupabase();
+    if (data) { db = data; saveData(db); }
+    renderDashboard();
+    switchTab('update');
+  } catch(e) {
+    toast('❌ เกิดข้อผิดพลาด: ' + e.message);
+  }
+  showLoading(false);
 }
 
 async function saveUpdate() {
