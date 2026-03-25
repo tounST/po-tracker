@@ -553,6 +553,31 @@
     background: #FFF3E0; border-radius: 10px; padding: 16px; margin-top: 14px;
     font-size: 13px; color: var(--orange); line-height: 1.7; text-align: center;
   }
+
+  /* ── Archive More Menu ── */
+  .arc-more-wrap { position: relative; }
+  .arc-more-btn {
+    border: none; background: #EDE7F6; color: var(--purple);
+    border-radius: 8px; padding: 4px 10px; font-size: 18px; font-weight: 700;
+    cursor: pointer; line-height: 1; transition: background .15s;
+  }
+  .arc-more-btn:active { background: #D1C4E9; }
+  .arc-dropdown {
+    display: none; position: absolute; right: 0; top: 110%;
+    background: #fff; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    min-width: 160px; z-index: 60; overflow: hidden;
+    border: 1.5px solid var(--border);
+  }
+  .arc-dropdown.open { display: block; }
+  .arc-dropdown button {
+    display: block; width: 100%; text-align: left; border: none; background: none;
+    padding: 12px 16px; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: background .12s;
+  }
+  .arc-dropdown button:hover { background: #F5F5F5; }
+  .arc-dropdown button:active { background: #EEEEEE; }
+  .arc-dropdown .arc-action-delete { color: #C62828; }
+  .arc-dropdown .arc-divider { height: 1px; background: var(--border); margin: 0; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -3153,7 +3178,12 @@ async function loadArchiveList() {
 }
 
 // เปิดรายละเอียด Archive ของเดือนที่เลือก (query Supabase ตาม YYYY-MM)
+let _arcCurrentYearMonth = '';
+let _arcCurrentLabel = '';
+
 async function openArchiveMonth(yearMonth, label) {
+  _arcCurrentYearMonth = yearMonth;
+  _arcCurrentLabel = label;
   document.getElementById('archive-home').style.display   = 'none';
   document.getElementById('archive-detail').style.display = '';
 
@@ -3211,6 +3241,16 @@ async function openArchiveMonth(yearMonth, label) {
       });
       const recvDate = fixDateStr(po.order_date || '');
       const cardId = 'arc-card-' + po.po_number.replace(/[^a-zA-Z0-9-]/g, '');
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      const moreBtn = isAdmin ? `
+            <div class="arc-more-wrap" onclick="event.stopPropagation()">
+              <button class="arc-more-btn" onclick="toggleArcDropdown('${cardId}')" title="เพิ่มเติม">⋯</button>
+              <div class="arc-dropdown" id="dd-${cardId}">
+                <button onclick="unarchivePO('${po.id}','${po.po_number}')">🔄 เอากลับ</button>
+                <div class="arc-divider"></div>
+                <button class="arc-action-delete" onclick="deleteArchivedPO('${po.id}','${po.po_number}','${(po.company||'').replace(/'/g,"\\'")}',${poItems.length})">🗑️ ลบถาวร</button>
+              </div>
+            </div>` : '';
       html += `
         <div class="archive-po-card" id="${cardId}">
           <div class="arc-header" onclick="document.getElementById('${cardId}').classList.toggle('arc-open')">
@@ -3220,18 +3260,82 @@ async function openArchiveMonth(yearMonth, label) {
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <span class="badge" style="background:#EDE7F6;color:var(--purple);">✅ Complete</span>
+              ${moreBtn}
               <span class="arc-toggle-icon">▶</span>
             </div>
           </div>
-          ${recvDate ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">รับของ: ${thaiDate(recvDate)}</div>` : ''}
+          ${recvDate ? `<div style="font-size:14px;color:var(--muted);margin-top:4px;">รับของ: ${thaiDate(recvDate)}</div>` : ''}
           <div class="arc-summary">${poItems.length} ชิ้นงาน · กดเพื่อดูรายละเอียด</div>
-          <div class="arc-items-wrap">${itemsHtml || '<div style="font-size:12px;color:var(--muted);">ไม่มีชิ้นงาน</div>'}</div>
+          <div class="arc-items-wrap">${itemsHtml || '<div style="font-size:14px;color:var(--muted);">ไม่มีชิ้นงาน</div>'}</div>
         </div>`;
     });
     listEl.innerHTML = html;
 
   } catch(e) {
     listEl.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>เชื่อมต่อไม่ได้: ${e.message}</p></div>`;
+  }
+}
+
+// ── Archive Dropdown & Actions (Admin only) ──
+function toggleArcDropdown(cardId) {
+  const dd = document.getElementById('dd-' + cardId);
+  if (!dd) return;
+  const wasOpen = dd.classList.contains('open');
+  closeAllArcDropdowns();
+  if (!wasOpen) dd.classList.add('open');
+}
+
+function closeAllArcDropdowns() {
+  document.querySelectorAll('.arc-dropdown.open').forEach(d => d.classList.remove('open'));
+}
+
+// Click outside → close dropdown
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.arc-more-wrap')) closeAllArcDropdowns();
+});
+
+async function unarchivePO(poId, poNumber) {
+  closeAllArcDropdowns();
+  if (!confirm('เอา ' + poNumber + ' กลับไปหน้าหลัก?')) return;
+  try {
+    const { error } = await sb.from('po_list').update({
+      is_archived: false,
+      updated_at: new Date().toISOString()
+    }).eq('id', poId);
+    if (error) throw error;
+    await logActivity('unarchive', 'po', { po_number: poNumber });
+    toast('✅ เอา ' + poNumber + ' กลับแล้ว');
+    await openArchiveMonth(_arcCurrentYearMonth, _arcCurrentLabel);
+  } catch (e) {
+    toast('❌ ไม่สำเร็จ: ' + e.message);
+  }
+}
+
+async function deleteArchivedPO(poId, poNumber, company, itemCount) {
+  closeAllArcDropdowns();
+  if (!confirm('ต้องการลบ ' + poNumber + ' ถาวร?\nข้อมูลจะหายไปและกู้คืนไม่ได้')) return;
+  try {
+    // ลบ po_items ก่อน (FK constraint)
+    const { error: e1 } = await sb.from('po_items').delete().eq('po_number', poNumber);
+    if (e1) throw e1;
+    // แล้วลบ po_list
+    const { error: e2 } = await sb.from('po_list').delete().eq('id', poId);
+    if (e2) throw e2;
+    await logActivity('delete_archived_po', 'po', { po_number: poNumber, company: company, item_count: itemCount });
+    toast('🗑️ ลบ ' + poNumber + ' ถาวรแล้ว');
+    // Reload — ถ้าเดือนนั้นไม่มี PO เหลือ กลับ home
+    const { data: remaining } = await sb.from('po_list').select('id').eq('is_archived', true);
+    const hasThisMonth = (remaining || []).length > 0 && await (async () => {
+      const { data: monthCheck } = await sb.from('po_list').select('due_date,order_date').eq('is_archived', true);
+      return (monthCheck || []).some(p => (p.due_date || p.order_date || '').slice(0, 7) === _arcCurrentYearMonth);
+    })();
+    if (hasThisMonth) {
+      await openArchiveMonth(_arcCurrentYearMonth, _arcCurrentLabel);
+    } else {
+      backToArchiveHome();
+    }
+  } catch (e) {
+    toast('❌ ลบไม่สำเร็จ: ' + e.message);
   }
 }
 
