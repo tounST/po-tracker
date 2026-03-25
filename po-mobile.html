@@ -912,7 +912,10 @@
 
   <!-- หน้ารายละเอียด: แสดง PO ในเดือนที่เลือก -->
   <div id="archive-detail" style="display:none;">
-    <button class="archive-back-btn" onclick="backToArchiveHome()">← กลับ</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <button class="archive-back-btn" onclick="backToArchiveHome()" style="margin-bottom:0;">← กลับ</button>
+      <button onclick="exportArchiveMonth()" style="background:#1565C0;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;">📥 Export Excel</button>
+    </div>
     <div id="archive-detail-title" style="font-size:16px;font-weight:700;color:var(--purple);margin-bottom:10px;"></div>
     <div id="archive-stats" class="archive-stats-row" style="display:none;">
       <div style="flex:1;text-align:center;">
@@ -3342,6 +3345,80 @@ async function deleteArchivedPO(poId, poNumber, company, itemCount) {
     }
   } catch (e) {
     toast('❌ ลบไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// ── Archive Export Excel (เดือนที่เลือก) ──
+async function exportArchiveMonth() {
+  if (typeof XLSX === 'undefined') { toast('❌ โหลด library ไม่สำเร็จ'); return; }
+  if (!_arcCurrentYearMonth) { toast('❌ ไม่พบข้อมูลเดือน'); return; }
+
+  toast('⏳ กำลัง Export...');
+  try {
+    // ดึง archived PO ของเดือนที่เลือก
+    const { data: allArc } = await sb.from('po_list').select('*').eq('is_archived', true);
+    const poData = (allArc || []).filter(p => ((p.due_date || p.order_date || '').slice(0, 7) === _arcCurrentYearMonth));
+    if (poData.length === 0) { toast('⚠️ ไม่มีข้อมูลในเดือนนี้'); return; }
+
+    const poNums = poData.map(p => p.po_number);
+    const { data: itemData } = await sb.from('po_items').select('*').in('po_number', poNums);
+    const items = itemData || [];
+
+    // Styles
+    const hdrStyle = { fill:{fgColor:{rgb:'6A1B9A'}}, font:{bold:true,color:{rgb:'FFFFFF'},sz:11}, alignment:{horizontal:'center',vertical:'center'} };
+    const altStyle = { fill:{fgColor:{rgb:'F3E5F5'}} };
+    const sentStyle = { fill:{fgColor:{rgb:'C8E6C9'}} };
+    function cellS(v, style) { return { v, s: style }; }
+    function rowStyle(cells, style) { return cells.map(v => cellS(v, style)); }
+
+    // Sheet 1: สรุป PO
+    const hdr1 = ['เลขที่ PO','บริษัท','รุ่นรถ','วันรับ','กำหนดส่ง','สถานะ PO','ชิ้นทั้งหมด','ส่งแล้ว','หมายเหตุ'];
+    const data1 = [hdr1.map(h => cellS(h, hdrStyle))];
+    poData.forEach((po, ri) => {
+      const its = items.filter(i => i.po_number === po.po_number);
+      const sent = its.filter(i => i.status === 'ส่งแล้ว').length;
+      const style = ri % 2 === 0 ? null : altStyle;
+      const row = [
+        po.po_number, po.company, po.car_model,
+        po.order_date ? po.order_date.slice(0,10) : '',
+        po.due_date ? po.due_date.slice(0,10) : '',
+        po.po_status, its.length, sent, po.remark || ''
+      ];
+      data1.push(style ? rowStyle(row, style) : row.map(v => ({ v })));
+    });
+    const ws1 = XLSX.utils.aoa_to_sheet(data1);
+    ws1['!cols'] = [14,20,16,12,12,14,10,10,20].map(w => ({ wch: w }));
+
+    // Sheet 2: รายการชิ้นงาน
+    const hdr2 = ['เลขที่ PO','บริษัท','รุ่นรถ','ชิ้นงาน','สี','สถานะ','กลับมาแก้ไข','วันที่ส่ง','Bundle PO'];
+    const data2 = [hdr2.map(h => cellS(h, hdrStyle))];
+    const poMap = {};
+    poData.forEach(p => { poMap[p.po_number] = p; });
+    items.forEach((item, ri) => {
+      const po = poMap[item.po_number] || {};
+      const isSent = item.status === 'ส่งแล้ว';
+      const style = isSent ? sentStyle : (ri % 2 === 0 ? null : altStyle);
+      const row = [
+        item.po_number, po.company || '', po.car_model || '',
+        item.part_name, item.color || '', item.status,
+        item.rework ? '🔁 ใช่' : '',
+        item.sent_date ? item.sent_date.slice(0,10) : '',
+        item.bundle_po || ''
+      ];
+      data2.push(style ? rowStyle(row, style) : row.map(v => ({ v })));
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(data2);
+    ws2['!cols'] = [14,20,16,20,12,14,14,12,14].map(w => ({ wch: w }));
+
+    // สร้างไฟล์
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'สรุป PO');
+    XLSX.utils.book_append_sheet(wb, ws2, 'รายการชิ้นงาน');
+    XLSX.writeFile(wb, `Archive-${_arcCurrentYearMonth}.xlsx`);
+
+    toast(`✅ Export สำเร็จ (${poData.length} PO, ${items.length} ชิ้น)`);
+  } catch(e) {
+    toast('❌ Export ล้มเหลว: ' + e.message);
   }
 }
 
