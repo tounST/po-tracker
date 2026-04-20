@@ -571,6 +571,72 @@
   .badge-po-done    { background: #C8E6C9; color: var(--green); }
   .badge-po-order   { background: #E3F2FD; color: var(--blue); }
 
+  /* ── Update tab — sub-header + selection banner (design spec) ── */
+  .update-subheader {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+  }
+  .update-back-btn {
+    width: 38px; height: 38px;
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; flex-shrink: 0;
+    transition: border-color .15s, background .15s;
+  }
+  .update-back-btn:hover { border-color: var(--line-deep); background: var(--bg-deep); }
+  .update-subheader-text { flex: 1; min-width: 0; }
+  .update-subheader-pono {
+    font-size: 10px; font-weight: 800;
+    color: var(--ink-3); letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+  }
+  .update-subheader-title {
+    font-size: 22px; font-weight: 800;
+    color: var(--ink); letter-spacing: -0.3px;
+    line-height: 1.2;
+  }
+
+  /* Selection banner (always visible in update flow) */
+  .selection-banner {
+    background: var(--danger);
+    color: #fff;
+    border-radius: var(--r-card);
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    transition: background .2s;
+  }
+  .selection-banner.empty {
+    background: var(--surface);
+    color: var(--ink-3);
+    border: 1px dashed var(--line-deep);
+  }
+  .selection-banner-count {
+    font-size: 15px; font-weight: 800;
+    letter-spacing: -0.2px;
+  }
+  .selection-banner-hint {
+    font-size: 12px; opacity: .85;
+    font-weight: 600;
+  }
+
+  /* Update PO detail (compact context line under banner) */
+  .update-po-detail {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 10px 14px;
+    font-size: 13px; color: var(--ink-2);
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .update-po-detail strong { color: var(--ink); font-weight: 800; }
+
   /* ── Item list in update tab (selectable rows) ── */
   .item-list { margin-top: 8px; }
   .item-row {
@@ -588,13 +654,50 @@
     border-color: var(--accent);
     background: var(--accent-soft);
   }
-  .item-row .item-name { flex: 1; font-size: 15px; font-weight: 700; color: var(--ink); }
-  .item-row .item-color { font-size: 13px; color: var(--ink-3); margin-left: 6px; font-weight: 500; }
+  .item-row .item-main { flex: 1; min-width: 0; }
+  .item-row .item-name-row {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .item-row .item-name {
+    font-size: 15px; font-weight: 700; color: var(--ink);
+    letter-spacing: -0.2px;
+  }
+  .item-row .item-sub {
+    font-size: 12px; color: var(--ink-3); font-weight: 500;
+    margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .item-row .item-meta-qc {
+    font-size: 11px; color: var(--danger); font-weight: 600; margin-top: 2px;
+  }
+  .item-row .item-meta-due {
+    font-size: 11px; color: var(--danger); font-weight: 600; margin-top: 2px;
+  }
+
+  /* Status dot (circular indicator per item) */
+  .item-status-dot {
+    width: 26px; height: 26px;
+    border-radius: var(--r-pill);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .item-status-dot::after {
+    content: ''; position: absolute;
+    inset: 7px;
+    border-radius: var(--r-pill);
+    background: currentColor;
+    opacity: 0.85;
+  }
+  .item-status-dot.st-recv { background: var(--info-bg);    color: var(--info); }
+  .item-status-dot.st-prod { background: var(--warning-bg); color: var(--warning); }
+  .item-status-dot.st-qc   { background: var(--status-qc-bg); color: var(--status-qc-fg); }
+  .item-status-dot.st-sent { background: var(--success-bg); color: var(--success); }
   .item-check {
     width: 22px; height: 22px; border-radius: var(--r-pill);
     border: 1.5px solid var(--line-deep); background: var(--surface);
     display: flex; align-items: center; justify-content: center;
     font-size: 12px; flex-shrink: 0;
+    color: transparent;
     transition: all .15s;
   }
   .item-row.selected .item-check {
@@ -1674,44 +1777,51 @@
   <!-- หลังเลือก PO แล้ว แสดงรายการชิ้น -->
   <div id="update-items-section" style="display:none;">
 
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <button onclick="backToPoList()"
-        style="background:#ECEFF1;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;color:#546E7A;">
-        ← กลับ
+    <!-- Update subheader (back + PO no + screen title) -->
+    <div class="update-subheader">
+      <button class="update-back-btn" onclick="backToPoList()" aria-label="กลับ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
-      <div id="update-po-badge" style="font-size:14px;font-weight:700;color:var(--blue);"></div>
-    </div>
-
-    <div class="card" style="padding:12px 14px;margin-bottom:10px;">
-      <div id="update-po-detail" style="font-size:13px;color:var(--muted);"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">เลือกชิ้นที่จะอัพเดท <span style="color:var(--accent);font-size:12px;text-transform:none;letter-spacing:normal;">(เลือกได้หลายชิ้น)</span></div>
-      <div id="items-list" class="item-list"></div>
-    </div>
-
-    <div id="update-form-section" style="display:none;" class="card">
-      <div class="card-title">✏️ เปลี่ยนสถานะ</div>
-
-      <!-- ★ Toggle งานกลับมาแก้ไข -->
-      <div id="rework-toggle-row" class="urgent-toggle">
-        <span class="urgent-toggle-icon">🔁</span>
-        <span class="urgent-toggle-text">งานกลับมาแก้ไข</span>
-        <label style="position:relative;width:44px;height:24px;margin:0;">
-          <input type="checkbox" id="rework-toggle" onchange="onReworkToggle()" style="opacity:0;width:0;height:0;">
-          <span class="toggle-switch" style="position:absolute;inset:0;cursor:pointer;"></span>
-          <span id="rework-toggle-knob" style="display:none;"></span>
-        </label>
+      <div class="update-subheader-text">
+        <div class="update-subheader-pono" id="update-po-badge"></div>
+        <div class="update-subheader-title">อัพเดตชิ้นงาน</div>
       </div>
+    </div>
 
-      <div class="section-label">สถานะใหม่</div>
-      <!-- 4 สถานะ: 2+2 -->
+    <!-- Selection banner (always visible, updates count) -->
+    <div class="selection-banner" id="selection-banner">
+      <span class="selection-banner-count" id="selection-banner-count">แตะเพื่อเลือก</span>
+      <span class="selection-banner-hint" id="selection-banner-hint">เลือกได้หลายชิ้น</span>
+    </div>
+
+    <!-- PO mini context -->
+    <div id="update-po-detail" class="update-po-detail"></div>
+
+    <!-- Item list (flat, no card wrapper) -->
+    <div id="items-list" class="item-list"></div>
+
+    <!-- Status picker — always visible once PO picked -->
+    <div class="update-change-wrap" id="update-form-section">
+      <div class="section-label-pair" style="margin: 20px 2px 10px;">
+        <div class="slp-th">เปลี่ยนสถานะเป็น</div>
+        <div class="slp-en">Change status to</div>
+      </div>
       <div class="status-grid">
         <div class="status-opt" data-status="รับของแล้ว"   data-sel="sel-recv"   onclick="selectStatus('รับของแล้ว','sel-recv',this)">รับของแล้ว</div>
         <div class="status-opt" data-status="กำลังผลิต"    data-sel="sel-prod"   onclick="selectStatus('กำลังผลิต','sel-prod',this)">กำลังผลิต</div>
         <div class="status-opt" data-status="QC/เตรียมส่ง"    data-sel="sel-ready"  onclick="selectStatus('QC/เตรียมส่ง','sel-ready',this)">QC / เตรียมส่ง</div>
         <div class="status-opt" data-status="ส่งแล้ว"      data-sel="sel-sent"   onclick="selectStatus('ส่งแล้ว','sel-sent',this)">ส่งแล้ว</div>
+      </div>
+
+      <!-- ★ Toggle งานกลับมาแก้ไข -->
+      <div id="rework-toggle-row" class="urgent-toggle" style="margin-top: 10px;">
+        <span class="urgent-toggle-icon">🔁</span>
+        <span class="urgent-toggle-text">กลับมาแก้ไข</span>
+        <label style="position:relative;width:44px;height:24px;margin:0;">
+          <input type="checkbox" id="rework-toggle" onchange="onReworkToggle()" style="opacity:0;width:0;height:0;">
+          <span class="toggle-switch" style="position:absolute;inset:0;cursor:pointer;"></span>
+          <span id="rework-toggle-knob" style="display:none;"></span>
+        </label>
       </div>
 
       <div id="sent-date-group" style="display:none;">
@@ -3259,12 +3369,12 @@ function openPoItems(poId) {
 
   document.getElementById('update-select-section').style.display = 'none';
   document.getElementById('update-items-section').style.display  = 'block';
-  document.getElementById('update-form-section').style.display   = 'none';
+  document.getElementById('update-form-section').style.display   = 'block';
 
-  document.getElementById('update-po-badge').textContent =
-    `${poId} — ${po.company}`;
+  document.getElementById('update-po-badge').textContent = poId;
   document.getElementById('update-po-detail').innerHTML =
-    `${po.model} · กำหนดส่ง ${thaiDate(po.due)} ${po.urgent ? '· <strong style="color:var(--red)">🔥 ด่วน</strong>' : ''}`;
+    `<strong>${po.company}</strong> · ${po.model || '—'} · กำหนด ${thaiDate(po.due)}${po.urgent ? ' · <span style="color:var(--danger);font-weight:800;">🔥 ด่วน</span>' : ''}`;
+  updateSelectionBanner();
 
   // Bundle PO dropdown
   const bSel = document.getElementById('bundle-po-select');
@@ -3285,20 +3395,36 @@ function openPoItems(poId) {
     list.innerHTML = '<div class="empty-state" style="padding:20px"><span class="emoji">📭</span><p>ยังไม่มีชิ้นงาน</p></div>';
     return;
   }
-  list.innerHTML = its.map((it, idx) => `
-    <div class="item-row" id="item-row-${idx}" onclick="toggleItem(${idx})">
-      <div class="item-check" id="item-check-${idx}">✓</div>
-      ${it.urgent ? '<div class="item-urgent-dot"></div>' : ''}
-      <div style="flex:1">
-        <div class="item-name">${it.part}</div>
-        <div class="item-color">${it.color}</div>
-        ${it.qcPassed === false && it.qcDefectReason ? `<div style="font-size:11px;color:#C62828;font-weight:600;">❌ QC: ${it.qcDefectReason}</div>` : ''}
-        ${it.itemDue ? `<div style="font-size:11px;color:var(--red);font-weight:600;">⏰ ส่งภายใน ${thaiDate(it.itemDue)} ${daysLeftLabel(it.itemDue, po.status)}</div>` : ''}
-        ${it.bundlePO ? `<div style="font-size:11px;color:var(--blue)">📦 กำหนดรวมกับ ${it.bundlePO}</div>` : ''}
+  const STATUS_CLS_MAP = {
+    'รับของแล้ว':     'st-recv',
+    'กำลังผลิต':      'st-prod',
+    'QC/เตรียมส่ง':   'st-qc',
+    'ส่งแล้ว':         'st-sent',
+    'กลับมาแก้ไข':    'st-prod',
+  };
+  list.innerHTML = its.map((it, idx) => {
+    const stCls = STATUS_CLS_MAP[it.status] || 'st-recv';
+    const sub = [];
+    if (it.color) sub.push(it.color);
+    if (it.sentDate) sub.push(`ส่ง ${shortThaiDate(it.sentDate)}`);
+    if (it.bundlePO) sub.push(`รวม ${it.bundlePO}`);
+    return `
+      <div class="item-row" id="item-row-${idx}" onclick="toggleItem(${idx})">
+        <div class="item-check" id="item-check-${idx}">✓</div>
+        <div class="item-status-dot ${stCls}"></div>
+        <div class="item-main">
+          <div class="item-name-row">
+            ${it.urgent ? '<span class="po-flame" style="font-size:13px;">🔥</span>' : ''}
+            <span class="item-name">${it.part}</span>
+            ${it.rework ? '<span class="po-rework-badge">แก้</span>' : ''}
+          </div>
+          <div class="item-sub">${sub.join(' · ')}</div>
+          ${it.qcPassed === false && it.qcDefectReason ? `<div class="item-meta-qc">QC: ${it.qcDefectReason}</div>` : ''}
+          ${it.itemDue ? `<div class="item-meta-due">ส่งภายใน ${thaiDate(it.itemDue)} · ${daysLeftLabel(it.itemDue, po.status)}</div>` : ''}
+        </div>
       </div>
-      ${statusBadge(it.status, it.rework)}
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function toggleItem(idx) {
@@ -3309,9 +3435,24 @@ function toggleItem(idx) {
     selectedItems.add(idx);
     document.getElementById('item-row-' + idx).classList.add('selected');
   }
-  document.getElementById('update-form-section').style.display =
-    selectedItems.size > 0 ? 'block' : 'none';
+  updateSelectionBanner();
   updateSaveBar();
+}
+
+function updateSelectionBanner() {
+  const banner = document.getElementById('selection-banner');
+  const cnt = document.getElementById('selection-banner-count');
+  const hint = document.getElementById('selection-banner-hint');
+  if (!banner) return;
+  if (selectedItems.size === 0) {
+    banner.classList.add('empty');
+    cnt.textContent = 'แตะเพื่อเลือก';
+    hint.textContent = 'เลือกได้หลายชิ้น';
+  } else {
+    banner.classList.remove('empty');
+    cnt.textContent = `${selectedItems.size} ชิ้นที่เลือก`;
+    hint.textContent = 'กดที่ชิ้นเพื่อยกเลิก';
+  }
 }
 
 // Set PO-list filter (used by chips on dashboard)
