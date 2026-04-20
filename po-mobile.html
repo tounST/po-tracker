@@ -975,77 +975,111 @@
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
   }
   .archive-month-btn {
-    background: #fff; border: 2px solid var(--border); border-radius: 12px;
-    padding: 14px 10px; text-align: center; cursor: pointer;
-    transition: all .15s; font-size: 14px; font-weight: 700; color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 16px 12px;
+    text-align: center; cursor: pointer;
+    transition: border-color .15s, background .15s, transform .08s;
+    font-size: 14px; font-weight: 700; color: var(--ink);
   }
-  .archive-month-btn:hover { border-color: var(--purple); color: var(--purple); }
-  .archive-month-btn.selected { border-color: var(--purple); background: #F3E5F5; color: var(--purple); }
-  .archive-month-btn .arc-count { font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 3px; }
+  .archive-month-btn:hover { border-color: var(--line-deep); }
+  .archive-month-btn:active { transform: scale(.98); }
+  .archive-month-btn.selected {
+    border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink);
+  }
+  .archive-month-btn .arc-count {
+    font-size: 11px; color: var(--ink-3);
+    font-weight: 600; margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
 
   .archive-po-card {
-    border-radius: 10px; padding: 13px 14px; margin-bottom: 10px;
-    border-left: 5px solid var(--purple); background: #fff;
-    box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--r-card);
+    padding: 14px;
+    margin-bottom: 10px;
   }
   .archive-po-card .arc-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-  .archive-po-card .arc-pono { font-size: 17px; font-weight: 700; }
-  .archive-po-card .arc-company { font-size: 15px; color: var(--muted); margin-top: 2px; }
-  .archive-po-card .arc-toggle-icon { font-size: 14px; color: var(--muted); transition: transform .2s; margin-left: 8px; }
+  .archive-po-card .arc-pono {
+    font-size: 15px; font-weight: 800; color: var(--ink);
+    font-family: var(--font-mono); letter-spacing: -0.2px;
+  }
+  .archive-po-card .arc-company { font-size: 14px; color: var(--ink-2); font-weight: 600; margin-top: 2px; }
+  .archive-po-card .arc-toggle-icon {
+    font-size: 14px; color: var(--ink-3);
+    transition: transform .2s; margin-left: 8px;
+  }
   .archive-po-card.arc-open .arc-toggle-icon { transform: rotate(90deg); }
-  .archive-po-card .arc-summary { font-size: 14px; color: var(--muted); margin-top: 4px; }
-  .archive-po-card .arc-items-wrap { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; display: none; }
+  .archive-po-card .arc-summary {
+    font-size: 12px; color: var(--ink-3);
+    margin-top: 4px; font-weight: 500;
+  }
+  .archive-po-card .arc-items-wrap {
+    margin-top: 12px; border-top: 1px solid var(--line);
+    padding-top: 10px; display: none;
+  }
   .archive-po-card.arc-open .arc-items-wrap { display: block; }
   .archive-item-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 5px 0; font-size: 15px; border-bottom: 1px solid #f5f5f5;
+    padding: 7px 0; font-size: 14px; border-bottom: 1px solid var(--line);
   }
   .archive-item-row:last-child { border-bottom: none; }
-  .archive-item-row .arc-part { font-weight: 600; flex: 1; }
-  .archive-item-row .arc-color { font-size: 14px; color: var(--muted); margin: 0 8px; }
-  .archive-item-row .arc-sent { font-size: 14px; color: var(--green); white-space: nowrap; }
+  .archive-item-row .arc-part { font-weight: 600; flex: 1; color: var(--ink); }
+  .archive-item-row .arc-color { font-size: 13px; color: var(--ink-3); margin: 0 8px; }
+  .archive-item-row .arc-sent { font-size: 13px; color: var(--success); white-space: nowrap; font-weight: 600; }
 
   .archive-back-btn {
-    background: #EDE7F6; color: var(--purple); border: none; border-radius: 8px;
-    padding: 8px 14px; font-size: 15px; font-weight: 700; cursor: pointer;
+    background: var(--accent-soft); color: var(--accent-ink);
+    border: none; border-radius: var(--r-sm);
+    padding: 8px 14px; font-size: 14px; font-weight: 700; cursor: pointer;
     margin-bottom: 12px;
   }
-  .archive-loading { text-align: center; padding: 30px; color: var(--muted); font-size: 16px; }
+  .archive-loading { text-align: center; padding: 30px; color: var(--ink-3); font-size: 15px; }
   .archive-stats-row {
-    display: flex; gap: 10px; background: #F3E5F5; border-radius: 10px;
-    padding: 10px 14px; margin-bottom: 12px;
-    font-size: 15px; color: var(--purple);
+    display: flex; gap: 14px; background: var(--accent-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 12px 16px; margin-bottom: 12px;
+    font-size: 14px; color: var(--accent-ink);
   }
-  .archive-stats-row strong { font-size: 18px; font-weight: 800; display: block; }
+  .archive-stats-row strong { font-size: 20px; font-weight: 800; display: block; color: var(--accent); }
   .archive-no-gas {
-    background: #FFF3E0; border-radius: 10px; padding: 16px; margin-top: 14px;
-    font-size: 13px; color: var(--orange); line-height: 1.7; text-align: center;
+    background: var(--warning-bg); border-radius: var(--r-card);
+    padding: 16px; margin-top: 14px;
+    font-size: 13px; color: var(--warning); line-height: 1.7; text-align: center;
   }
 
   /* ── Archive More Menu ── */
   .arc-more-wrap { position: relative; }
   .arc-more-btn {
-    border: none; background: #EDE7F6; color: var(--purple);
-    border-radius: 8px; padding: 4px 10px; font-size: 18px; font-weight: 700;
-    cursor: pointer; line-height: 1; transition: background .15s;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+    border-radius: var(--r-sm); padding: 4px 10px; font-size: 18px; font-weight: 700;
+    cursor: pointer; line-height: 1; transition: background .15s, border-color .15s;
   }
-  .arc-more-btn:active { background: #D1C4E9; }
+  .arc-more-btn:hover { border-color: var(--line-deep); background: var(--bg-deep); }
+  .arc-more-btn:active { background: var(--accent-soft); }
   .arc-dropdown {
-    display: none; position: absolute; right: 0; top: 110%;
-    background: #fff; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    display: none; position: absolute; right: 0; top: calc(100% + 4px);
+    background: var(--surface); border-radius: var(--r-card);
+    box-shadow: var(--shadow-float);
     min-width: 160px; z-index: 60; overflow: hidden;
-    border: 1.5px solid var(--border);
+    border: 1px solid var(--line);
   }
   .arc-dropdown.open { display: block; }
   .arc-dropdown button {
     display: block; width: 100%; text-align: left; border: none; background: none;
-    padding: 12px 16px; font-size: 15px; font-weight: 600; cursor: pointer;
+    padding: 11px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+    color: var(--ink);
     transition: background .12s;
+    font-family: inherit;
   }
-  .arc-dropdown button:hover { background: #F5F5F5; }
-  .arc-dropdown button:active { background: #EEEEEE; }
-  .arc-dropdown .arc-action-delete { color: #C62828; }
-  .arc-dropdown .arc-divider { height: 1px; background: var(--border); margin: 0; }
+  .arc-dropdown button:hover { background: var(--bg-deep); }
+  .arc-dropdown button:active { background: var(--accent-soft); }
+  .arc-dropdown .arc-action-delete { color: var(--danger); }
+  .arc-dropdown .arc-divider { height: 1px; background: var(--line); margin: 0; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1055,10 +1089,10 @@
 <body>
 
 <!-- ═══ LOADING OVERLAY ═══ -->
-<div id="loading-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(255,255,255,.92);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(246,241,234,.92);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
   <div style="font-size:40px;">🔄</div>
-  <div style="font-size:16px;font-weight:700;color:#1A73E8;">กำลังดึงข้อมูลล่าสุด...</div>
-  <div style="font-size:12px;color:#78909C;">ข้อมูลจะตรงกันทุกเครื่อง</div>
+  <div style="font-size:16px;font-weight:700;color:var(--accent);">กำลังดึงข้อมูลล่าสุด...</div>
+  <div style="font-size:12px;color:var(--ink-3);">ข้อมูลจะตรงกันทุกเครื่อง</div>
 </div>
 
 <!-- ═══ LOGIN SCREEN ═══ -->
