@@ -1149,20 +1149,21 @@
 </div>
 
 <!-- ═══ SYNC MODAL (Supabase) ═══ -->
-<div id="sync-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:flex-end">
-  <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-height:90vh;overflow-y:auto">
-    <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">☁️ การเชื่อมต่อ Supabase</h3>
-    <p style="font-size:13px;color:#78909C;margin-bottom:16px">ข้อมูลทั้งหมดเชื่อมต่อกับ Supabase (PostgreSQL) โดยอัตโนมัติ</p>
-    <div style="background:#E8F5E9;border-radius:10px;padding:12px;margin-bottom:16px;">
-      <div style="font-size:13px;color:#2E7D32;font-weight:700;">✅ Supabase (rkdxbxtakvisroxelrvq)</div>
-      <div style="font-size:12px;color:#78909C;margin-top:4px;">Region: ap-south-1 (Mumbai) · ข้อมูลซิงค์ real-time</div>
+<div id="sync-modal" style="display:none;position:fixed;inset:0;background:rgba(42,37,32,.45);z-index:999;align-items:flex-end;backdrop-filter:blur(2px)">
+  <div style="background:var(--bg);border-radius:20px 20px 0 0;padding:14px 18px calc(28px + env(safe-area-inset-bottom, 0px));width:100%;max-height:92vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;margin-bottom:4px">☁️ การเชื่อมต่อ Supabase</h3>
+    <p style="font-size:13px;color:var(--ink-3);margin-bottom:14px">ข้อมูลทั้งหมดเชื่อมต่อกับ Supabase (PostgreSQL) โดยอัตโนมัติ</p>
+    <div style="background:var(--success-bg);border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--success);font-weight:800;">✅ Supabase เชื่อมต่อแล้ว</div>
+      <div style="font-size:11px;color:var(--ink-3);margin-top:4px;font-family:var(--font-mono);letter-spacing:0.2px;">rkdxbxtakvisroxelrvq · ap-south-1</div>
     </div>
-    <div style="display:flex;gap:10px;margin-bottom:12px">
-      <button onclick="testSupabaseConnection()" style="flex:1;background:#2E7D32;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">🔌 ทดสอบการเชื่อมต่อ</button>
-      <button onclick="syncNow()" style="flex:1;background:#F57F17;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">🔄 ดึงข้อมูลล่าสุด</button>
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      <button onclick="testSupabaseConnection()" style="flex:1;background:var(--success);color:#fff;border:none;border-radius:var(--r-sm);padding:12px;font-size:14px;font-weight:700;cursor:pointer">🔌 ทดสอบ</button>
+      <button onclick="syncNow()" style="flex:1;background:var(--warning);color:#fff;border:none;border-radius:var(--r-sm);padding:12px;font-size:14px;font-weight:700;cursor:pointer">🔄 ดึงข้อมูลล่าสุด</button>
     </div>
-    <p id="sync-test-result" style="font-size:13px;text-align:center;min-height:20px;margin-bottom:12px"></p>
-    <button onclick="closeSyncModal()" style="width:100%;background:#ECEFF1;color:#546E7A;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">ปิด</button>
+    <p id="sync-test-result" style="font-size:13px;text-align:center;min-height:20px;margin-bottom:10px;color:var(--ink-2)"></p>
+    <button onclick="closeSyncModal()" class="btn btn-outline">ปิด</button>
   </div>
 </div>
 
