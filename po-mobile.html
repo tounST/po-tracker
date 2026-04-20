@@ -3601,6 +3601,9 @@ function openPoItems(poId) {
   if (qcFailDetail) qcFailDetail.style.display = 'none';
   const qcPanel = document.getElementById('qc-panel');
   if (qcPanel) qcPanel.style.display = 'none';
+  // Reset sticky save bar — state was cleared above, but the bar needs told
+  document.getElementById('update-save-bar')?.classList.remove('show');
+  document.body.classList.remove('has-save-bar');
 
   // Apply permission-based filters to status buttons
   applyStatusFilters();
@@ -4001,6 +4004,8 @@ async function saveUpdate() {
   });
   document.getElementById('sent-date-group').style.display = 'none';
   document.getElementById('bundle-po-group').style.display = 'none';
+  document.getElementById('update-save-bar')?.classList.remove('show');
+  document.body.classList.remove('has-save-bar');
   openPoItems(currentPoId);
 }
 
