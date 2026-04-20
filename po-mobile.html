@@ -1291,23 +1291,23 @@
       </div>
 
       <!-- QC Panel — แสดงเฉพาะเมื่อสถานะเป็น QC/เตรียมส่ง -->
-      <div id="qc-panel" class="card" style="display:none; border: 2px solid var(--blue);">
+      <div id="qc-panel" class="card" style="display:none; border: 1.5px solid var(--status-qc-fg);">
         <div class="card-title">🔍 ตรวจสอบคุณภาพ (QC)</div>
         <div style="display:flex; gap:10px; margin-bottom:14px;">
-          <button id="qc-pass-btn" onclick="doQCPass()" style="flex:1; padding:14px; border:none; border-radius:8px; background:#2E7D32; color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
+          <button id="qc-pass-btn" onclick="doQCPass()" style="flex:1; padding:14px; border:none; border-radius:var(--r-sm); background:var(--success); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
             ✅ ผ่าน QC
           </button>
-          <button id="qc-fail-btn" onclick="showQCFailPanel()" style="flex:1; padding:14px; border:none; border-radius:8px; background:#C62828; color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
+          <button id="qc-fail-btn" onclick="showQCFailPanel()" style="flex:1; padding:14px; border:none; border-radius:var(--r-sm); background:var(--danger); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
             ❌ ไม่ผ่าน QC
           </button>
         </div>
         <!-- Sub-panel เมื่อกด "ไม่ผ่าน" -->
         <div id="qc-fail-detail" style="display:none;">
           <label>📋 สาเหตุ defect:</label>
-          <select id="qc-defect-reason" style="width:100%; padding:11px; border:1.5px solid var(--border); border-radius:8px; font-size:15px; margin-bottom:10px;">
+          <select id="qc-defect-reason">
             <option value="">— เลือกสาเหตุ —</option>
           </select>
-          <button onclick="doQCFail()" style="width:100%; padding:14px; border:none; border-radius:8px; background:#C62828; color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
+          <button onclick="doQCFail()" style="width:100%; padding:14px; border:none; border-radius:var(--r-sm); background:var(--danger); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
             🔄 ส่งกลับไปผลิตใหม่
           </button>
         </div>
