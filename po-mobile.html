@@ -987,6 +987,74 @@
   .update-save-btn:hover { filter: brightness(1.15); }
   .update-save-btn:active { transform: scale(.98); }
 
+  /* ── QC Hero + decision cards (design spec) ── */
+  .qc-hero {
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: var(--r-lg);
+    padding: 18px;
+    margin-bottom: 4px;
+  }
+  .qc-hero-label {
+    font-size: 10px; font-weight: 800;
+    opacity: 0.6; letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .qc-hero-title {
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -0.3px; margin-top: 4px;
+  }
+  .qc-hero-sub {
+    font-size: 12px; opacity: 0.7;
+    margin-top: 4px; font-weight: 500;
+  }
+  .qc-decision-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .qc-decision {
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 22px 14px;
+    text-align: center;
+    cursor: pointer; font-family: inherit;
+    transition: transform .08s, filter .15s;
+  }
+  .qc-decision:active { transform: scale(.97); }
+  .qc-decision-icon {
+    width: 52px; height: 52px;
+    border-radius: var(--r-pill);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+    font-size: 26px; font-weight: 800;
+    color: #fff;
+  }
+  .qc-decision-th {
+    font-size: 16px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.2px;
+  }
+  .qc-decision-en {
+    font-size: 11px; font-weight: 700;
+    color: var(--ink-3); margin-top: 2px;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .qc-decision.qc-pass {
+    background: var(--success-bg);
+    border-color: var(--success);
+  }
+  .qc-decision.qc-pass .qc-decision-icon {
+    background: var(--success);
+  }
+  .qc-decision.qc-pass .qc-decision-th { color: var(--success); }
+  .qc-decision.qc-fail {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+  }
+  .qc-decision.qc-fail .qc-decision-icon {
+    background: var(--danger);
+  }
+  .qc-decision.qc-fail .qc-decision-th { color: var(--danger); }
+
   /* ── Status picker grid (4 cards) ── */
   .status-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
@@ -1685,23 +1753,41 @@
       </div>
 
       <!-- QC Panel — แสดงเฉพาะเมื่อสถานะเป็น QC/เตรียมส่ง -->
-      <div id="qc-panel" class="card" style="display:none; border: 1.5px solid var(--status-qc-fg);">
-        <div class="card-title">🔍 ตรวจสอบคุณภาพ (QC)</div>
-        <div style="display:flex; gap:10px; margin-bottom:14px;">
-          <button id="qc-pass-btn" onclick="doQCPass()" style="flex:1; padding:14px; border:none; border-radius:var(--r-sm); background:var(--success); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
-            ✅ ผ่าน QC
+      <div id="qc-panel" style="display:none; margin-top:14px;">
+        <!-- Dark hero card (context: which items being inspected) -->
+        <div class="qc-hero" id="qc-hero">
+          <div class="qc-hero-label">QUALITY CONTROL</div>
+          <div class="qc-hero-title">ตรวจสอบ <span id="qc-hero-count">0</span> ชิ้น</div>
+          <div class="qc-hero-sub" id="qc-hero-sub">กรุณาตัดสินใจการตรวจรับคุณภาพ</div>
+        </div>
+
+        <!-- Decision label -->
+        <div class="section-label-pair" style="margin-top:14px;margin-bottom:10px;">
+          <div class="slp-th">ตัดสินใจ</div>
+          <div class="slp-en">Decision</div>
+        </div>
+
+        <!-- 2 big decision cards -->
+        <div class="qc-decision-row">
+          <button class="qc-decision qc-pass" onclick="doQCPass()">
+            <div class="qc-decision-icon">✓</div>
+            <div class="qc-decision-th">ผ่าน QC</div>
+            <div class="qc-decision-en">Pass</div>
           </button>
-          <button id="qc-fail-btn" onclick="showQCFailPanel()" style="flex:1; padding:14px; border:none; border-radius:var(--r-sm); background:var(--danger); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
-            ❌ ไม่ผ่าน QC
+          <button class="qc-decision qc-fail" onclick="showQCFailPanel()">
+            <div class="qc-decision-icon">✕</div>
+            <div class="qc-decision-th">ไม่ผ่าน</div>
+            <div class="qc-decision-en">Fail · Rework</div>
           </button>
         </div>
+
         <!-- Sub-panel เมื่อกด "ไม่ผ่าน" -->
-        <div id="qc-fail-detail" style="display:none;">
-          <label>📋 สาเหตุ defect:</label>
+        <div id="qc-fail-detail" style="display:none; margin-top:12px;">
+          <label style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px;display:block;">📋 สาเหตุ defect:</label>
           <select id="qc-defect-reason">
             <option value="">— เลือกสาเหตุ —</option>
           </select>
-          <button onclick="doQCFail()" style="width:100%; padding:14px; border:none; border-radius:var(--r-sm); background:var(--danger); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">
+          <button onclick="doQCFail()" style="width:100%; padding:14px; border:none; border-radius:var(--r-card); background:var(--danger); color:#fff; font-size:15px; font-weight:800; cursor:pointer;">
             🔄 ส่งกลับไปผลิตใหม่
           </button>
         </div>
@@ -3308,6 +3394,14 @@ function toggleQCPanel() {
   if (selectedStatus === 'QC/เตรียมส่ง') {
     panel.style.display = 'block';
     document.getElementById('qc-fail-detail').style.display = 'none';
+    // Populate hero with selected items count + PO info
+    const cntEl = document.getElementById('qc-hero-count');
+    const subEl = document.getElementById('qc-hero-sub');
+    if (cntEl) cntEl.textContent = selectedItems.size;
+    if (subEl && currentPoId) {
+      const po = db.pos.find(p => p.id === currentPoId);
+      subEl.textContent = po ? `${currentPoId} · ${po.company}` : currentPoId;
+    }
     populateDefectReasons();
   } else {
     panel.style.display = 'none';
