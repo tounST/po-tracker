@@ -41,16 +41,55 @@
     padding-bottom: 80px;
   }
 
-  /* ── Top Bar ── */
+  /* ── Top Bar (warm cream, greeting layout) ── */
   .topbar {
-    background: linear-gradient(135deg, #8A3F26 0%, #B85C3C 50%, #D67A56 100%);
-    color: #fff;
-    padding: 18px 20px 15px;
+    background: var(--card);
+    color: var(--text);
+    padding: 16px 18px 14px;
     position: sticky; top: 0; z-index: 100;
-    border-bottom: 1px solid rgba(42,37,32,.08);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 12px;
   }
-  .topbar h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
-  .topbar small { font-size: 13px; opacity: .9; font-weight: 500; }
+  .topbar-greeting { flex: 1; min-width: 0; }
+  .topbar-subtitle {
+    font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted); font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .topbar-title {
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -0.3px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin: 0;
+  }
+  .topbar-actions {
+    display: flex; gap: 6px; flex-shrink: 0;
+  }
+  .icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+    transition: background .15s, border-color .15s, transform .1s;
+  }
+  .icon-btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--blue);
+  }
+  .icon-btn:active { transform: scale(.94); }
+  .topbar-role-chip {
+    display: inline-block;
+    font-size: 11px; font-weight: 700;
+    padding: 1px 8px; border-radius: 99px;
+    margin-left: 8px; vertical-align: middle;
+  }
 
   /* ── Tab Nav ── */
   .tabnav {
@@ -761,18 +800,16 @@
 <div id="app-wrapper" style="display:none;">
 
 <div class="topbar">
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <h1>🔩 PO Tracker <span id="role-badge-display"></span></h1>
-    <div style="display:flex;gap:6px;align-items:center;">
-      <button onclick="quickRefresh()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;backdrop-filter:blur(4px)" title="ดึงข้อมูลล่าสุด">🔄</button>
-      <button onclick="openSyncModal()" class="admin-only" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;backdrop-filter:blur(4px)">⚙️ Sync</button>
-      <button onclick="doLogout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;backdrop-filter:blur(4px)">🚪 ออก</button>
-    </div>
+  <div class="topbar-greeting">
+    <div class="topbar-subtitle" id="topbar-date"></div>
+    <h1 class="topbar-title">สวัสดี, <span id="topbar-username">คุณ</span><span id="role-badge-display"></span></h1>
   </div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
-    <small id="topbar-date"></small>
-    <small id="sync-status" style="font-size:13px;opacity:.9"></small>
+  <div class="topbar-actions">
+    <button class="icon-btn" onclick="quickRefresh()" title="ดึงข้อมูลล่าสุด">🔄</button>
+    <button class="icon-btn admin-only" onclick="openSyncModal()" title="Sync">⚙️</button>
+    <button class="icon-btn" onclick="doLogout()" title="ออก">🚪</button>
   </div>
+  <span id="sync-status" style="display:none;"></span>
 </div>
 
 <!-- ═══ SYNC MODAL (Supabase) ═══ -->
@@ -1431,6 +1468,7 @@ function showApp() {
 function applyPermissions() {
   if (!currentUser) return;
 
+  const usernameEl = document.getElementById('topbar-username');
   const badgeEl = document.getElementById('role-badge-display');
   const roleText = currentUser.display_name || currentUser.username;
   const badgeClass = `role-badge-${currentUser.role}`;
@@ -1446,7 +1484,8 @@ function applyPermissions() {
     stationText = ` (${currentUser.station})`;
   }
 
-  badgeEl.innerHTML = `<span>${roleText}</span> <span class="role-badge ${badgeClass}">${roleLabels[currentUser.role]}${stationText}</span>`;
+  if (usernameEl) usernameEl.textContent = roleText;
+  badgeEl.innerHTML = `<span class="role-badge ${badgeClass} topbar-role-chip">${roleLabels[currentUser.role]}${stationText}</span>`;
 
   // Hide/show tabs based on role
   const tabs = document.querySelectorAll('.tabnav button');
@@ -3231,9 +3270,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize PIN keypad
   initPINKeypad();
 
+  const THAI_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   const now = new Date();
   document.getElementById('topbar-date').textContent =
-    `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+    `วัน${THAI_DAYS[now.getDay()]} · ${now.getDate()} ${THAI_MONTHS[now.getMonth()]} ${now.getFullYear() + 543}`;
 
   // Check if user is already logged in (sessionStorage)
   const userIdFromSession = sessionStorage.getItem('po_user_id');
