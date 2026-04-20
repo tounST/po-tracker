@@ -733,8 +733,8 @@
   .modal-sheet {
     background: var(--bg);
     border-radius: 20px 20px 0 0;
-    padding: 12px 18px calc(28px + env(safe-area-inset-bottom, 0px));
-    width: 100%; max-height: 92vh;
+    padding: 12px 18px calc(100px + env(safe-area-inset-bottom, 0px));
+    width: 100%; max-height: 96vh; min-height: 70vh;
     overflow-y: auto; animation: slideUp .28s cubic-bezier(.2,.8,.2,1);
   }
   @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -799,6 +799,106 @@
   .modal-item-meta .meta-danger { color: var(--danger); font-weight: 600; }
   .modal-item-meta .meta-info   { color: var(--info); }
   .modal-item-meta .meta-muted  { color: var(--ink-3); }
+
+  /* ── PO Detail stats row (3 columns) ── */
+  .detail-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .detail-stat {
+    background: var(--surface);
+    padding: 12px 14px;
+  }
+  .detail-stat-label {
+    font-size: 10px; font-weight: 800;
+    color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 1.2px;
+  }
+  .detail-stat-val {
+    font-size: 18px; font-weight: 800;
+    color: var(--ink); letter-spacing: -0.3px;
+    font-family: var(--font-mono);
+    margin-top: 4px;
+  }
+  .detail-stat-sub {
+    font-size: 11px; color: var(--ink-3);
+    margin-top: 1px; font-weight: 500;
+  }
+  .detail-stat.danger .detail-stat-val { color: var(--danger); }
+
+  /* Remark bubble */
+  .detail-remark {
+    background: var(--accent-soft);
+    border-radius: var(--r-card);
+    padding: 10px 14px;
+    color: var(--accent-ink);
+    font-size: 13px; font-weight: 600;
+    margin-bottom: 14px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .detail-remark-icon { flex-shrink: 0; }
+
+  /* Progress card */
+  .detail-progress-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .detail-progress-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .detail-progress-label {
+    font-size: 10px; font-weight: 800; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 1.2px;
+  }
+  .detail-progress-pct {
+    font-size: 24px; font-weight: 800; color: var(--danger);
+    letter-spacing: -0.5px;
+    font-family: var(--font-mono);
+  }
+  .detail-progress-count {
+    font-size: 26px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.5px; margin-bottom: 10px;
+    font-family: var(--font-mono);
+  }
+  .detail-progress-count .mono-slash { color: var(--ink-3); font-weight: 500; }
+  .detail-progress-legend {
+    display: flex; gap: 12px; margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .detail-legend-item {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--ink-3); font-weight: 600;
+  }
+  .detail-legend-dot {
+    width: 8px; height: 8px; border-radius: var(--r-pill);
+    flex-shrink: 0;
+  }
+  .detail-legend-dot.dot-success { background: var(--success); }
+  .detail-legend-dot.dot-qc      { background: var(--status-qc-fg); }
+  .detail-legend-dot.dot-prod    { background: var(--warning); }
+  .detail-legend-dot.dot-recv    { background: var(--info); }
+
+  /* Items group header */
+  .detail-group-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 16px 2px 8px;
+  }
+  .detail-group-th {
+    font-size: 15px; font-weight: 800; color: var(--ink);
+  }
+  .detail-group-count {
+    font-size: 10px; font-weight: 800; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 1.2px;
+  }
 
   /* ── Divider / labels ── */
   .divider { height: 1px; background: var(--border); margin: 14px 0; }
@@ -2839,48 +2939,119 @@ function openDetailModal(poId) {
   const po = db.pos.find(p => p.id === poId);
   if (!po) return;
   const its = itemsOfPO(poId);
-  document.getElementById('modal-po-title').textContent = 'รายละเอียด PO';
+  const sentCount = its.filter(i => i.status === 'ส่งแล้ว').length;
+  const total = its.length;
+  const pct = total ? Math.round(sentCount / total * 100) : 0;
+  const dl = daysLeft(po.due);
+  const dlText = dl === null ? '—' : (dl < 0 ? `เลย ${Math.abs(dl)}` : (dl === 0 ? 'วันนี้' : String(dl)));
+  const dlSub = dl === null ? '' : (dl < 0 ? 'วัน (overdue)' : dl === 0 ? '' : 'วัน คงเหลือ');
+
+  // Group items by status
+  const STATUS_ORDER = ['รับของแล้ว', 'กำลังผลิต', 'QC/เตรียมส่ง', 'ส่งแล้ว'];
+  const byStatus = {};
+  STATUS_ORDER.forEach(s => byStatus[s] = []);
+  its.forEach(it => {
+    if (byStatus[it.status]) byStatus[it.status].push(it);
+    else { byStatus[it.status] = byStatus[it.status] || []; byStatus[it.status].push(it); }
+  });
+
+  document.getElementById('modal-po-title').textContent = po.id;
   document.getElementById('modal-items-detail').innerHTML = `
-    <!-- Hero -->
-    <div class="modal-hero">
-      <div class="modal-hero-no">
-        ${po.urgent && po.status !== 'Complete' ? '<span class="po-flame">🔥</span>' : ''}${po.id}
+    <!-- Urgent chip -->
+    ${po.urgent && po.status !== 'Complete' ? `
+      <div style="margin-bottom:10px;">
+        <span class="urgent-count-chip" style="font-size:11px;"><span class="po-flame" style="margin-right:4px;">🔥</span>งานด่วน · URGENT</span>
       </div>
-      <div class="modal-hero-company">${po.company}</div>
-      ${po.model ? `<div class="modal-item-color">${po.model}</div>` : ''}
-      <div class="modal-hero-meta">
-        ${poBadge(po.status)}
-        ${dueChip(po.due, po.status)}
-        <span class="po-card-stats-mini"><span class="mono">${its.filter(i=>i.status==='ส่งแล้ว').length}</span>/${its.length} ชิ้น</span>
-      </div>
-      ${po.remark ? `<div class="po-card-remark">💬 ${po.remark}</div>` : ''}
+    ` : ''}
+
+    <!-- Company + model -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;">${po.company}</div>
+      ${po.model ? `<div style="font-size:13px;color:var(--ink-3);margin-top:2px;">${po.model}</div>` : ''}
     </div>
 
-    <!-- Items -->
-    <div class="section-label-inline">ชิ้นงาน · ITEMS (${its.length})</div>
-    ${its.length ? its.map(it => `
-      <div class="modal-item">
-        <div class="modal-item-head">
-          <div class="modal-item-main">
-            <div class="modal-item-name">
-              ${it.urgent ? '<span class="po-flame">🔥</span>' : ''}
-              🔩 ${it.part}
-            </div>
-            <div class="modal-item-color">${it.color}</div>
-            ${it.qcPassed === false && it.qcDefectReason ? `<div class="modal-item-meta"><span class="meta-danger">❌ QC: ${it.qcDefectReason}</span></div>` : ''}
-          </div>
-          ${statusBadge(it.status, it.rework)}
-        </div>
-        ${(it.itemDue || it.sentDate || it.bundlePO || it.remark) ? `
-          <div class="modal-item-meta">
-            ${it.itemDue ? `<span class="meta-danger">⏰ กำหนดชิ้นนี้: ${thaiDate(it.itemDue)} · ${daysLeftLabel(it.itemDue, po.status)}</span>` : ''}
-            ${it.sentDate ? `<span class="meta-muted">📅 ส่ง: ${thaiDate(it.sentDate)}</span>` : ''}
-            ${it.bundlePO ? `<span class="meta-info">📦 ส่งกับ: ${it.bundlePO}</span>` : ''}
-            ${it.remark ? `<span class="meta-muted">💬 ${it.remark}</span>` : ''}
-          </div>
-        ` : ''}
+    <!-- Stats row: Received / Due / Days left -->
+    <div class="detail-stats">
+      <div class="detail-stat">
+        <div class="detail-stat-label">Received</div>
+        <div class="detail-stat-val">${po.recv ? po.recv.slice(5) : '—'}</div>
+        <div class="detail-stat-sub">รับ</div>
       </div>
-    `).join('') : '<div class="empty-state"><span class="emoji">🔩</span><p>ยังไม่มีชิ้นงาน</p></div>'}
+      <div class="detail-stat">
+        <div class="detail-stat-label">Due</div>
+        <div class="detail-stat-val">${po.due ? po.due.slice(5) : '—'}</div>
+        <div class="detail-stat-sub">กำหนด</div>
+      </div>
+      <div class="detail-stat ${dl !== null && dl < 0 ? 'danger' : ''}">
+        <div class="detail-stat-label">Days left</div>
+        <div class="detail-stat-val">${dlText}</div>
+        <div class="detail-stat-sub">${dlSub}</div>
+      </div>
+    </div>
+
+    <!-- Remark bubble -->
+    ${po.remark ? `
+      <div class="detail-remark">
+        <span class="detail-remark-icon">💬</span>
+        <span>${po.remark}</span>
+      </div>
+    ` : ''}
+
+    <!-- Progress card -->
+    <div class="detail-progress-card">
+      <div class="detail-progress-head">
+        <span class="detail-progress-label">Progress</span>
+        <span class="detail-progress-pct">${pct}%</span>
+      </div>
+      <div class="detail-progress-count">${sentCount}<span class="mono-slash"> / ${total}</span> <span style="font-size:14px;color:var(--ink-3);font-family:inherit;font-weight:600;">ชิ้น</span></div>
+      ${segmentedProgress(its)}
+      <div class="detail-progress-legend">
+        <span class="detail-legend-item"><span class="detail-legend-dot dot-success"></span>ส่ง</span>
+        <span class="detail-legend-item"><span class="detail-legend-dot dot-qc"></span>QC</span>
+        <span class="detail-legend-item"><span class="detail-legend-dot dot-prod"></span>ผลิต</span>
+        <span class="detail-legend-item"><span class="detail-legend-dot dot-recv"></span>รับ</span>
+      </div>
+    </div>
+
+    <!-- Items grouped by status -->
+    ${STATUS_ORDER.map(status => {
+      const group = byStatus[status] || [];
+      if (!group.length) return '';
+      const cnt = group.length;
+      const statusLabel = { 'รับของแล้ว':'รับของแล้ว', 'กำลังผลิต':'กำลังผลิต', 'QC/เตรียมส่ง':'QC/เตรียมส่ง', 'ส่งแล้ว':'ส่งแล้ว' }[status];
+      return `
+        <div class="detail-group-head">
+          <div class="detail-group-th">${statusLabel}</div>
+          <div class="detail-group-count">${cnt} ${cnt === 1 ? 'ITEM' : 'ITEMS'}</div>
+        </div>
+        ${group.map(it => `
+          <div class="modal-item">
+            <div class="modal-item-head">
+              <div class="modal-item-main">
+                <div class="modal-item-name">
+                  ${it.urgent ? '<span class="po-flame">🔥</span>' : ''}
+                  ${it.part}
+                  ${it.rework ? '<span class="po-rework-badge">🔁 แก้</span>' : ''}
+                </div>
+                <div class="modal-item-color">${it.color}</div>
+                ${it.qcPassed === false && it.qcDefectReason ? `<div class="modal-item-meta"><span class="meta-danger">❌ QC: ${it.qcDefectReason}</span></div>` : ''}
+              </div>
+              ${statusBadge(it.status, false)}
+            </div>
+            ${(it.itemDue || it.sentDate || it.bundlePO || it.remark) ? `
+              <div class="modal-item-meta">
+                ${it.itemDue ? `<span class="meta-danger">⏰ กำหนด: ${thaiDate(it.itemDue)}</span>` : ''}
+                ${it.sentDate ? `<span class="meta-muted">📅 ส่ง: ${thaiDate(it.sentDate)}</span>` : ''}
+                ${it.bundlePO ? `<span class="meta-info">📦 ${it.bundlePO}</span>` : ''}
+                ${it.remark ? `<span class="meta-muted">${it.remark}</span>` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      `;
+    }).join('')}
+
+    ${!total ? '<div class="empty-state"><p>ยังไม่มีชิ้นงาน</p></div>' : ''}
   `;
   document.getElementById('detail-modal').classList.add('open');
   applyRole(); // ซ่อนปุ่มลบถ้าเป็น Staff
