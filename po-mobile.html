@@ -90,6 +90,58 @@
     margin-bottom: 12px;
   }
 
+  /* ── Hero Stat Card (Dashboard) ── */
+  .hero-stat {
+    background: var(--text);
+    color: var(--bg);
+    border-radius: 18px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .hero-stat-label {
+    display: flex; gap: 10px; align-items: baseline;
+  }
+  .hero-stat-overline {
+    font-size: 10px; letter-spacing: 2px; opacity: .6;
+    text-transform: uppercase; font-weight: 700;
+  }
+  .hero-stat-live {
+    font-size: 10px; color: var(--blue);
+    font-weight: 700; letter-spacing: 1px;
+  }
+  .hero-stat-main {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-top: 6px;
+  }
+  .hero-stat-num {
+    font-size: 48px; font-weight: 800;
+    letter-spacing: -1.5px; line-height: 1;
+  }
+  .hero-stat-sub { font-size: 14px; opacity: .6; }
+  .hero-stat-split {
+    display: flex; gap: 0;
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid var(--grey);
+  }
+  .hero-stat-col {
+    flex: 1; padding: 0 8px;
+    border-left: 1px solid var(--grey);
+  }
+  .hero-stat-col:first-child {
+    padding-left: 0; border-left: none;
+  }
+  .hero-stat-col-label {
+    font-size: 10px; opacity: .55;
+    text-transform: uppercase; letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .hero-stat-col-num {
+    font-size: 20px; font-weight: 800; margin-top: 3px;
+  }
+  .hero-stat-col-rework .hero-stat-col-num {
+    color: #F5B8AC;
+  }
+
   /* ── Form elements ── */
   label { font-size: 15px; font-weight: 600; color: var(--grey); display: block; margin-bottom: 5px; }
   select, input[type=text], input[type=date], input[type=number], textarea {
@@ -664,33 +716,33 @@
 <!-- ═══════════════ TAB: DASHBOARD + LIST รวมกัน ═══════════════ -->
 <div id="tab-dashboard" class="page active">
 
-  <!-- KPI -->
-  <div class="kpi-row">
-    <div class="kpi-box kpi-blue">
-      <div class="kpi-num" id="kpi-total-po">–</div>
-      <div class="kpi-label">PO ทั้งหมด</div>
+  <!-- Hero Stat Card -->
+  <div class="hero-stat">
+    <div class="hero-stat-label">
+      <span class="hero-stat-overline">Active PO</span>
+      <span class="hero-stat-live">● LIVE</span>
     </div>
-    <div class="kpi-box kpi-amber">
-      <div class="kpi-num" id="kpi-total-items">–</div>
-      <div class="kpi-label">ชิ้นทั้งหมด</div>
+    <div class="hero-stat-main">
+      <span class="hero-stat-num" id="kpi-total-po">–</span>
+      <span class="hero-stat-sub">/ <span id="kpi-total-items">–</span> ชิ้น</span>
     </div>
-    <div class="kpi-box kpi-green">
-      <div class="kpi-num" id="kpi-sent">–</div>
-      <div class="kpi-label">ส่งแล้ว</div>
-    </div>
-  </div>
-  <div class="kpi-row">
-    <div class="kpi-box kpi-amber">
-      <div class="kpi-num" id="kpi-prod">–</div>
-      <div class="kpi-label">กำลังผลิต</div>
-    </div>
-    <div class="kpi-box kpi-blue">
-      <div class="kpi-num" id="kpi-ready">–</div>
-      <div class="kpi-label">QC/เตรียมส่ง</div>
-    </div>
-    <div class="kpi-box kpi-red">
-      <div class="kpi-num" id="kpi-rework">–</div>
-      <div class="kpi-label">แก้ไข</div>
+    <div class="hero-stat-split">
+      <div class="hero-stat-col">
+        <div class="hero-stat-col-label">ส่งแล้ว</div>
+        <div class="hero-stat-col-num" id="kpi-sent">–</div>
+      </div>
+      <div class="hero-stat-col">
+        <div class="hero-stat-col-label">ผลิต</div>
+        <div class="hero-stat-col-num" id="kpi-prod">–</div>
+      </div>
+      <div class="hero-stat-col">
+        <div class="hero-stat-col-label">QC</div>
+        <div class="hero-stat-col-num" id="kpi-ready">–</div>
+      </div>
+      <div class="hero-stat-col hero-stat-col-rework">
+        <div class="hero-stat-col-label">แก้ไข</div>
+        <div class="hero-stat-col-num" id="kpi-rework">–</div>
+      </div>
     </div>
   </div>
 
