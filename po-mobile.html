@@ -451,34 +451,103 @@
     background: var(--red); flex-shrink: 0;
   }
 
-  /* ── PO Summary Cards ── */
+  /* ── PO Card (design spec) ── */
   .po-card {
-    border-radius: 10px; padding: 13px 14px;
-    margin-bottom: 10px; border-left: 5px solid var(--blue);
-    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.1);
-    cursor: pointer; transition: box-shadow .15s;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color .15s, transform .1s;
   }
-  .po-card:active { box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-  .po-card.partial { border-left-color: var(--red); }
-  .po-card.inprog  { border-left-color: var(--amber); }
-  .po-card.done    { border-left-color: var(--green); }
-  .po-card.urgent  { border-left-color: var(--red); background: #fff5f5; border: 1.5px solid #ffcdd2; }
-  .po-card-header { display: flex; justify-content: space-between; align-items: center; }
-  .po-card-no { font-size: 17px; font-weight: 700; }
-  .po-card-company { font-size: 15px; color: var(--muted); margin-top: 2px; }
-  .po-card-progress { margin-top: 10px; }
-  .progress-bar-bg {
-    height: 7px; background: var(--border); border-radius: 10px; overflow: hidden;
+  .po-card:active { transform: scale(.98); }
+  .po-card:hover { border-color: var(--line-deep); }
+  .po-card.urgent { border-color: rgba(163,59,46,0.25); }
+
+  @keyframes flame-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.08); }
   }
-  .progress-bar-fill {
-    height: 100%; border-radius: 10px;
-    background: var(--green); transition: width .4s;
+  .po-flame {
+    display: inline-block; margin-right: 4px;
+    animation: flame-pulse 1.5s ease-in-out infinite;
   }
-  .po-card-stats {
-    display: flex; gap: 12px; margin-top: 8px;
-    font-size: 14px; color: var(--muted);
+
+  .po-card-header {
+    display: flex; align-items: flex-start; gap: 10px;
   }
-  .po-card-stats span { font-weight: 700; }
+  .po-card-main { flex: 1; min-width: 0; }
+  .po-card-no {
+    font-size: 15px; font-weight: 800;
+    color: var(--ink);
+    font-family: var(--font-mono);
+    letter-spacing: -0.2px;
+    margin-bottom: 3px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  }
+  .po-card-company {
+    font-size: 13px; color: var(--ink-2); font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .po-card-model {
+    font-size: 12px; color: var(--ink-3); margin-top: 1px;
+  }
+
+  .po-card-progress-row {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .seg-progress {
+    flex: 1; min-width: 80px;
+    height: 6px;
+    background: var(--line-deep);
+    border-radius: var(--r-pill);
+    overflow: hidden;
+    display: flex; gap: 1.5px;
+  }
+  .seg-progress > span { display: block; height: 100%; }
+  .seg-success { background: var(--success); }
+  .seg-qc      { background: var(--status-qc-fg); }
+  .seg-prod    { background: var(--warning); }
+  .seg-recv    { background: var(--info); }
+
+  .po-card-stats-mini {
+    font-size: 11px; color: var(--ink-3); font-weight: 600;
+    white-space: nowrap;
+  }
+  .po-card-stats-mini .mono {
+    font-weight: 800; color: var(--ink);
+  }
+
+  /* Due chip */
+  .due-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px;
+    border-radius: var(--r-pill);
+    font-size: 11px; font-weight: 700;
+    white-space: nowrap;
+  }
+  .due-chip.danger  { background: var(--danger-bg);  color: var(--danger); }
+  .due-chip.warning { background: var(--warning-bg); color: var(--warning); }
+  .due-chip.info    { background: var(--info-bg);   color: var(--info); }
+  .due-chip.success { background: var(--success-bg); color: var(--success); }
+  .due-chip.neutral { background: var(--line);      color: var(--ink-2); }
+
+  .po-rework-badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 7px; border-radius: var(--r-pill);
+    background: var(--danger-bg); color: var(--danger);
+    font-size: 11px; font-weight: 700;
+  }
+
+  .po-card-remark {
+    font-size: 12px; color: var(--ink-3);
+    margin-top: 8px; font-weight: 500;
+  }
 
   /* ── KPI row ── */
   .kpi-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
@@ -2059,6 +2128,48 @@ function daysLeftLabel(dueStr, poStatus) {
   return `<span style="color:var(--muted);">อีก ${d} วัน</span>`;
 }
 
+// ── POCard helpers (design spec) ──
+const THAI_MON_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function shortThaiDate(isoStr) {
+  const fixed = fixDateStr(isoStr);
+  if (!fixed) return '';
+  const d = new Date(fixed + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
+  return `${d.getDate()} ${THAI_MON_SHORT[d.getMonth()]}`;
+}
+
+// Segmented progress bar — each segment sized by count of items in that status
+function segmentedProgress(items) {
+  const counts = {
+    success: items.filter(i => i.status === 'ส่งแล้ว').length,
+    qc:      items.filter(i => i.status === 'QC/เตรียมส่ง').length,
+    prod:    items.filter(i => i.status === 'กำลังผลิต' || i.status === 'กลับมาแก้ไข').length,
+    recv:    items.filter(i => i.status === 'รับของแล้ว').length,
+  };
+  const segs = [];
+  if (counts.success) segs.push(`<span class="seg-success" style="flex:${counts.success}"></span>`);
+  if (counts.qc)      segs.push(`<span class="seg-qc"      style="flex:${counts.qc}"></span>`);
+  if (counts.prod)    segs.push(`<span class="seg-prod"    style="flex:${counts.prod}"></span>`);
+  if (counts.recv)    segs.push(`<span class="seg-recv"    style="flex:${counts.recv}"></span>`);
+  return `<div class="seg-progress">${segs.join('')}</div>`;
+}
+
+// Due chip — color tone by days-left (design spec)
+function dueChip(dueStr, poStatus) {
+  if (poStatus === 'Complete') {
+    return `<span class="due-chip success">✅ ส่งครบ</span>`;
+  }
+  const d = daysLeft(dueStr);
+  const dateLbl = shortThaiDate(dueStr) || '—';
+  if (d === null) return `<span class="due-chip neutral">${dateLbl}</span>`;
+  if (d < 0)       return `<span class="due-chip danger">⚠️ เลย ${Math.abs(d)} วัน</span>`;
+  if (d === 0)     return `<span class="due-chip danger">🔴 วันนี้</span>`;
+  if (d === 1)     return `<span class="due-chip danger">พรุ่งนี้</span>`;
+  if (d <= 3)      return `<span class="due-chip warning">อีก ${d} วัน</span>`;
+  if (d <= 7)      return `<span class="due-chip info">อีก ${d} วัน</span>`;
+  return `<span class="due-chip neutral">${dateLbl}</span>`;
+}
+
 function toast(msg, duration=2500) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -2226,30 +2337,29 @@ function renderDashboard() {
     const its = itemsOfPO(po.id);
     const sentCount = its.filter(i => i.status === 'ส่งแล้ว').length;
     const total = its.length;
-    const pct = total ? Math.round(sentCount / total * 100) : 0;
-    const cls = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
     const urgCls = (po.urgent && po.status !== 'Complete') ? ' urgent' : '';
     const reworkCount = its.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
+    const isUrg = po.urgent && po.status !== 'Complete';
     return `
-      <div class="po-card ${cls}${urgCls}" onclick="openDetailModal('${po.id}')">
+      <div class="po-card${urgCls}" onclick="openDetailModal('${po.id}')">
         <div class="po-card-header">
-          <div>
-            <div class="po-card-no">${po.id} ${po.urgent ? '🔥' : ''}${reworkCount > 0 ? ' <span style="font-size:11px;color:var(--red)">🔁×'+reworkCount+'</span>' : ''}</div>
-            <div class="po-card-company">${po.company} · ${po.model}</div>
+          <div class="po-card-main">
+            <div class="po-card-no">
+              ${isUrg ? '<span class="po-flame">🔥</span>' : ''}
+              <span>${po.id}</span>
+              ${reworkCount > 0 ? `<span class="po-rework-badge">🔁×${reworkCount}</span>` : ''}
+            </div>
+            <div class="po-card-company">${po.company}</div>
+            ${po.model ? `<div class="po-card-model">${po.model}</div>` : ''}
           </div>
           ${poBadge(po.status)}
         </div>
-        <div class="po-card-progress">
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width:${pct}%"></div>
-          </div>
+        <div class="po-card-progress-row">
+          ${segmentedProgress(its)}
+          <span class="po-card-stats-mini"><span class="mono">${sentCount}</span>/${total} ชิ้น</span>
+          ${dueChip(po.due, po.status)}
         </div>
-        <div class="po-card-stats">
-          <div>ส่งแล้ว <span style="color:var(--green)">${sentCount}/${total}</span></div>
-          <div>กำหนดส่ง <span>${thaiDate(po.due)}</span></div>
-          <div style="margin-left:auto;font-size:11px;">${daysLeftLabel(po.due, po.status)}</div>
-        </div>
-        ${po.remark ? `<div style="font-size:12px;color:var(--muted);margin-top:5px;">💬 ${po.remark}</div>` : ''}
+        ${po.remark ? `<div class="po-card-remark">💬 ${po.remark}</div>` : ''}
       </div>
     `;
   }).join('');
@@ -2366,22 +2476,29 @@ function backToPoList() {
   });
   list.innerHTML = updateFiltered.map(po => {
     const its     = itemsOfPO(po.id);
-    const pending = its.filter(i => i.status !== 'ส่งแล้ว').length;
+    const sentCount = its.filter(i => i.status === 'ส่งแล้ว').length;
+    const total   = its.length;
     const rework  = its.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
-    const cls     = { 'Complete':'done', 'Partial Send':'partial', 'In progress':'inprog' }[po.status] || '';
+    const isUrg   = po.urgent && po.status !== 'Complete';
+    const urgCls  = isUrg ? ' urgent' : '';
     return `
-      <div class="po-card ${cls}" onclick="openPoItems('${po.id}')">
+      <div class="po-card${urgCls}" onclick="openPoItems('${po.id}')">
         <div class="po-card-header">
-          <div>
-            <div class="po-card-no">${po.id} ${po.urgent ? '🔥' : ''}${rework > 0 ? ` <span style="font-size:11px;color:var(--red)">🔁×${rework}</span>` : ''}</div>
-            <div class="po-card-company">${po.company} · ${po.model}</div>
+          <div class="po-card-main">
+            <div class="po-card-no">
+              ${isUrg ? '<span class="po-flame">🔥</span>' : ''}
+              <span>${po.id}</span>
+              ${rework > 0 ? `<span class="po-rework-badge">🔁×${rework}</span>` : ''}
+            </div>
+            <div class="po-card-company">${po.company}</div>
+            ${po.model ? `<div class="po-card-model">${po.model}</div>` : ''}
           </div>
           ${poBadge(po.status)}
         </div>
-        <div class="po-card-stats" style="margin-top:8px;">
-          <div>ค้าง <span style="color:var(--amber)">${pending}</span> ชิ้น</div>
-          <div>กำหนดส่ง <span>${thaiDate(po.due)}</span></div>
-          <div style="margin-left:auto;font-size:12px;color:var(--blue);font-weight:700;">แตะเลือก →</div>
+        <div class="po-card-progress-row">
+          ${segmentedProgress(its)}
+          <span class="po-card-stats-mini"><span class="mono">${sentCount}</span>/${total} ชิ้น</span>
+          ${dueChip(po.due, po.status)}
         </div>
       </div>
     `;
