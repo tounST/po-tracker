@@ -400,6 +400,84 @@
     font-size: 22px; color: var(--ink-3);
     line-height: 1; font-weight: 400;
   }
+
+  /* ── Due-Soon horizontal scroll cards ── */
+  .due-soon-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 18px 2px 10px;
+  }
+  .due-soon-scroll {
+    display: flex; gap: 10px;
+    overflow-x: auto;
+    margin: 0 -14px 16px;
+    padding: 2px 14px 6px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .due-soon-scroll::-webkit-scrollbar { display: none; }
+  .due-card {
+    flex: 0 0 200px;
+    scroll-snap-align: start;
+    background: var(--surface);
+    border: 1px dashed var(--line-deep);
+    border-radius: var(--r-card);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: transform .1s, border-color .15s;
+  }
+  .due-card:active { transform: scale(.98); }
+  .due-card.danger  { border: 1.5px solid var(--danger);  background: var(--danger-bg); }
+  .due-card.warning { border: 1.5px solid var(--warning); background: var(--warning-bg); }
+  .due-card.info    { border: 1.5px solid var(--info);    background: var(--info-bg); }
+  .due-top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .due-days-pill {
+    font-size: 11px; font-weight: 800;
+    padding: 3px 9px; border-radius: var(--r-pill);
+    background: rgba(255,255,255,.6);
+    color: var(--ink);
+  }
+  .due-card.danger  .due-days-pill { color: var(--danger); }
+  .due-card.warning .due-days-pill { color: var(--warning); }
+  .due-card.info    .due-days-pill { color: var(--info); }
+  .due-date-mono {
+    font-size: 11px; font-family: var(--font-mono);
+    color: var(--ink-3); font-weight: 700;
+  }
+  .due-no {
+    font-size: 14px; font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--ink);
+    letter-spacing: -0.3px;
+    margin-bottom: 2px;
+  }
+  .due-company {
+    font-size: 12px; color: var(--ink-2); font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    margin-bottom: 10px;
+  }
+  .due-progress {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .due-progress-bar {
+    flex: 1; height: 4px;
+    background: rgba(42,37,32,0.12);
+    border-radius: var(--r-pill);
+    overflow: hidden;
+  }
+  .due-progress-fill {
+    height: 100%; background: var(--ink);
+    transition: width .3s;
+  }
+  .due-pct {
+    font-size: 10px; font-weight: 800;
+    color: var(--ink);
+    font-family: var(--font-mono);
+    min-width: 32px; text-align: right;
+  }
   .urgent-flame {
     width: 36px; height: 36px; flex-shrink: 0;
     border-radius: 10px;
@@ -1292,6 +1370,9 @@
 
   <!-- Urgent -->
   <div id="urgent-section"></div>
+
+  <!-- Due soon -->
+  <div id="due-soon-section"></div>
 
   <!-- Quick Actions -->
   <div class="section-label-pair">
@@ -2481,29 +2562,33 @@ function renderDashboard() {
   document.getElementById('kpi-ready').textContent       = ready;
   document.getElementById('kpi-rework').textContent      = rework;
 
-  // Urgent
+  // ─── Urgent (top priority, cap 5 POs) ───
   const urgItems = items.filter(i => i.urgent && i.status !== 'ส่งแล้ว');
   const urgSec = document.getElementById('urgent-section');
-  if (urgItems.length) {
-    // เรียงงานด่วนตามวันกำหนดส่ง (itemDue ก่อน, ถ้าไม่มีใช้ PO due)
-    urgItems.sort((a, b) => {
-      const aPo = db.pos.find(p => p.id === a.po);
-      const bPo = db.pos.find(p => p.id === b.po);
-      const aDue = a.itemDue || (aPo && aPo.due) || '9999';
-      const bDue = b.itemDue || (bPo && bPo.due) || '9999';
-      return aDue.localeCompare(bDue);
-    });
-    // Group urgent items by PO (design shows PO-level not item-level)
-    const urgentPOs = [...new Set(urgItems.map(i => i.po))];
+
+  // Sort urgent items by nearest due date
+  urgItems.sort((a, b) => {
+    const aPo = db.pos.find(p => p.id === a.po);
+    const bPo = db.pos.find(p => p.id === b.po);
+    const aDue = a.itemDue || (aPo && aPo.due) || '9999';
+    const bDue = b.itemDue || (bPo && bPo.due) || '9999';
+    return aDue.localeCompare(bDue);
+  });
+  // Group urgent by PO (design shows PO-level), keep order from sort, cap to 5
+  const urgentPOIds = [];
+  urgItems.forEach(i => { if (!urgentPOIds.includes(i.po)) urgentPOIds.push(i.po); });
+  const urgentPOsCapped = urgentPOIds.slice(0, 5);
+
+  if (urgentPOsCapped.length) {
     urgSec.innerHTML = `
       <div class="urgent-header">
         <div class="section-label-pair">
           <div class="slp-th">งานด่วน</div>
           <div class="slp-en">URGENT</div>
         </div>
-        <span class="urgent-count-chip">${urgentPOs.length} PO</span>
+        <span class="urgent-count-chip">${urgentPOIds.length} PO</span>
       </div>
-      ${urgentPOs.map(poId => {
+      ${urgentPOsCapped.map(poId => {
         const po = db.pos.find(p => p.id === poId);
         if (!po) return '';
         const dueDateStr = po.due || '';
@@ -2523,6 +2608,59 @@ function renderDashboard() {
       }).join('')}
     `;
   } else { urgSec.innerHTML = ''; }
+
+  // ─── Due soon (next 2 non-urgent POs by due date) ───
+  const dueSec = document.getElementById('due-soon-section');
+  if (dueSec) {
+    const upcomingPOs = db.pos
+      .filter(po => !po.deleted && po.status !== 'Complete')
+      .filter(po => !urgentPOsCapped.includes(po.id))  // exclude urgent already shown
+      .map(po => ({ po, days: daysLeft(po.due) }))
+      .filter(x => x.days !== null)
+      .sort((a, b) => a.days - b.days)
+      .slice(0, 2);
+
+    if (upcomingPOs.length) {
+      dueSec.innerHTML = `
+        <div class="due-soon-header">
+          <div class="section-label-pair">
+            <div class="slp-th">ใกล้ถึงกำหนดส่ง</div>
+            <div class="slp-en">Due soon</div>
+          </div>
+        </div>
+        <div class="due-soon-scroll">
+          ${upcomingPOs.map(({ po, days }) => {
+            const its = itemsOfPO(po.id);
+            const sent = its.filter(i => i.status === 'ส่งแล้ว').length;
+            const pct = its.length ? Math.round(sent / its.length * 100) : 0;
+            let tone, label;
+            if (days < 0)       { tone = 'danger';  label = `เลย ${Math.abs(days)} วัน`; }
+            else if (days === 0){ tone = 'danger';  label = 'วันนี้'; }
+            else if (days === 1){ tone = 'danger';  label = 'พรุ่งนี้'; }
+            else if (days <= 3) { tone = 'warning'; label = `อีก ${days} วัน`; }
+            else if (days <= 7) { tone = 'info';    label = `อีก ${days} วัน`; }
+            else                { tone = '';        label = `อีก ${days} วัน`; }
+            return `
+              <div class="due-card ${tone}" onclick="openDetailModal('${po.id}')">
+                <div class="due-top">
+                  <span class="due-days-pill">${label}</span>
+                  <span class="due-date-mono">${po.due ? po.due.slice(5) : '—'}</span>
+                </div>
+                <div class="due-no">${po.id}</div>
+                <div class="due-company">${po.company}</div>
+                <div class="due-progress">
+                  <div class="due-progress-bar"><div class="due-progress-fill" style="width:${pct}%"></div></div>
+                  <span class="due-pct">${pct}%</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else {
+      dueSec.innerHTML = '';
+    }
+  }
 
   // Filter / Search
   const q  = (document.getElementById('search-input')?.value || '').toLowerCase();
