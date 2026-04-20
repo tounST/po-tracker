@@ -425,30 +425,38 @@
   .badge-po-done    { background: #C8E6C9; color: var(--green); }
   .badge-po-order   { background: #E3F2FD; color: var(--blue); }
 
-  /* ── Item list in update tab ── */
+  /* ── Item list in update tab (selectable rows) ── */
   .item-list { margin-top: 8px; }
   .item-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 11px 12px; margin-bottom: 8px;
-    background: #F8F9FA; border-radius: 9px;
-    border: 1.5px solid var(--border);
-    cursor: pointer; transition: border-color .15s;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; margin-bottom: 8px;
+    background: var(--surface);
+    border-radius: var(--r-card);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .08s;
   }
-  .item-row.selected { border-color: var(--blue); background: #E8F0FE; }
-  .item-row .item-name { flex: 1; font-size: 16px; font-weight: 600; }
-  .item-row .item-color { font-size: 14px; color: var(--muted); }
+  .item-row:hover { border-color: var(--line-deep); }
+  .item-row:active { transform: scale(.99); }
+  .item-row.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .item-row .item-name { flex: 1; font-size: 15px; font-weight: 700; color: var(--ink); }
+  .item-row .item-color { font-size: 13px; color: var(--ink-3); margin-left: 6px; font-weight: 500; }
   .item-check {
-    width: 22px; height: 22px; border-radius: 50%;
-    border: 2px solid var(--border); background: #fff;
+    width: 22px; height: 22px; border-radius: var(--r-pill);
+    border: 1.5px solid var(--line-deep); background: var(--surface);
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px; flex-shrink: 0;
+    font-size: 12px; flex-shrink: 0;
+    transition: all .15s;
   }
   .item-row.selected .item-check {
-    background: var(--blue); border-color: var(--blue); color: #fff;
+    background: var(--accent); border-color: var(--accent); color: #fff;
   }
   .item-urgent-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--red); flex-shrink: 0;
+    width: 8px; height: 8px; border-radius: var(--r-pill);
+    background: var(--danger); flex-shrink: 0;
   }
 
   /* ── PO Card (design spec) ── */
@@ -622,33 +630,33 @@
     display: flex; gap: 8px; align-items: center;
     margin-top: 8px; flex-wrap: wrap;
   }
-  /* Item row in modal */
-  .item-row {
+  /* Item row in modal (design spec) */
+  .modal-item {
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--r-card);
     padding: 12px 14px;
     margin-bottom: 8px;
   }
-  .item-row-head {
+  .modal-item-head {
     display: flex; align-items: flex-start; gap: 10px;
   }
-  .item-row-main { flex: 1; min-width: 0; }
-  .item-row-name {
+  .modal-item-main { flex: 1; min-width: 0; }
+  .modal-item-name {
     font-size: 14px; font-weight: 700; color: var(--ink);
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   }
-  .item-row-color {
+  .modal-item-color {
     font-size: 12px; color: var(--ink-3);
     margin-top: 2px;
   }
-  .item-row-meta {
+  .modal-item-meta {
     font-size: 12px; margin-top: 6px;
     display: flex; flex-direction: column; gap: 3px;
   }
-  .item-row-meta .meta-danger { color: var(--danger); font-weight: 600; }
-  .item-row-meta .meta-info   { color: var(--info); }
-  .item-row-meta .meta-muted  { color: var(--ink-3); }
+  .modal-item-meta .meta-danger { color: var(--danger); font-weight: 600; }
+  .modal-item-meta .meta-info   { color: var(--info); }
+  .modal-item-meta .meta-muted  { color: var(--ink-3); }
 
   /* ── Divider / labels ── */
   .divider { height: 1px; background: var(--border); margin: 14px 0; }
@@ -667,19 +675,26 @@
   .form-group { margin-bottom: 14px; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-  /* ── สถานะชิ้นงาน 5 ปุ่ม ── */
+  /* ── Status picker grid (4 cards) ── */
   .status-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
   }
   .status-opt {
-    padding: 12px 8px; border-radius: 10px; border: 2px solid var(--border);
-    text-align: center; font-size: 15px; font-weight: 600; cursor: pointer;
-    transition: all .15s; line-height: 1.4;
+    padding: 14px 10px;
+    border-radius: var(--r-card);
+    border: 1.5px solid var(--line);
+    background: var(--surface);
+    text-align: center; font-size: 14px; font-weight: 700;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .08s;
   }
-  .status-opt.sel-recv   { border-color: #1565C0; background: #E3F2FD; color: #1565C0; }
-  .status-opt.sel-prod   { border-color: #795548; background: #EFEBE9; color: #795548; }
-  .status-opt.sel-ready  { border-color: #3949AB; background: #E8EAF6; color: #3949AB; }
-  .status-opt.sel-sent   { border-color: var(--green); background: #E8F5E9; color: var(--green); }
+  .status-opt:hover { border-color: var(--line-deep); }
+  .status-opt:active { transform: scale(.98); }
+  .status-opt.sel-recv  { border-color: var(--info);    background: var(--info-bg);    color: var(--info); }
+  .status-opt.sel-prod  { border-color: var(--status-prod-fg); background: var(--status-prod-bg); color: var(--status-prod-fg); }
+  .status-opt.sel-ready { border-color: var(--status-qc-fg);   background: var(--status-qc-bg);   color: var(--status-qc-fg); }
+  .status-opt.sel-sent  { border-color: var(--success); background: var(--success-bg); color: var(--success); }
   /* sel-rework removed — rework is now a toggle, not a status */
 
   /* ── Urgent toggle ── */
@@ -2440,7 +2455,7 @@ function openDetailModal(poId) {
         ${po.urgent && po.status !== 'Complete' ? '<span class="po-flame">🔥</span>' : ''}${po.id}
       </div>
       <div class="modal-hero-company">${po.company}</div>
-      ${po.model ? `<div class="item-row-color">${po.model}</div>` : ''}
+      ${po.model ? `<div class="modal-item-color">${po.model}</div>` : ''}
       <div class="modal-hero-meta">
         ${poBadge(po.status)}
         ${dueChip(po.due, po.status)}
@@ -2452,20 +2467,20 @@ function openDetailModal(poId) {
     <!-- Items -->
     <div class="section-label-inline">ชิ้นงาน · ITEMS (${its.length})</div>
     ${its.length ? its.map(it => `
-      <div class="item-row">
-        <div class="item-row-head">
-          <div class="item-row-main">
-            <div class="item-row-name">
+      <div class="modal-item">
+        <div class="modal-item-head">
+          <div class="modal-item-main">
+            <div class="modal-item-name">
               ${it.urgent ? '<span class="po-flame">🔥</span>' : ''}
               🔩 ${it.part}
             </div>
-            <div class="item-row-color">${it.color}</div>
-            ${it.qcPassed === false && it.qcDefectReason ? `<div class="item-row-meta"><span class="meta-danger">❌ QC: ${it.qcDefectReason}</span></div>` : ''}
+            <div class="modal-item-color">${it.color}</div>
+            ${it.qcPassed === false && it.qcDefectReason ? `<div class="modal-item-meta"><span class="meta-danger">❌ QC: ${it.qcDefectReason}</span></div>` : ''}
           </div>
           ${statusBadge(it.status, it.rework)}
         </div>
         ${(it.itemDue || it.sentDate || it.bundlePO || it.remark) ? `
-          <div class="item-row-meta">
+          <div class="modal-item-meta">
             ${it.itemDue ? `<span class="meta-danger">⏰ กำหนดชิ้นนี้: ${thaiDate(it.itemDue)} · ${daysLeftLabel(it.itemDue, po.status)}</span>` : ''}
             ${it.sentDate ? `<span class="meta-muted">📅 ส่ง: ${thaiDate(it.sentDate)}</span>` : ''}
             ${it.bundlePO ? `<span class="meta-info">📦 ส่งกับ: ${it.bundlePO}</span>` : ''}
