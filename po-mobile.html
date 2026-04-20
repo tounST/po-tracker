@@ -652,61 +652,91 @@
   }
 
   /* ── Login Screen ── */
+  /* ── Login screen (warm cream, minimal) ── */
   #pin-login-screen {
     position: fixed; inset: 0; z-index: 9999;
-    background: linear-gradient(135deg, #1A73E8 0%, #0D47A1 100%);
+    background: var(--bg);
     display: flex; align-items: center; justify-content: center;
-    flex-direction: column; padding: 20px;
+    flex-direction: column; padding: 32px 22px;
   }
   #pin-login-screen.hidden { display: none; }
   .pin-login-box {
-    background: #fff; border-radius: 20px; padding: 40px 24px;
-    width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,.25);
-    text-align: center;
+    background: transparent; box-shadow: none; padding: 0;
+    width: 100%; max-width: 340px; text-align: center;
   }
-  .pin-login-box .pin-title {
-    font-size: 48px; margin-bottom: 12px;
+  .pin-brand-mark {
+    width: 56px; height: 56px;
+    border-radius: var(--r-lg);
+    background: var(--accent); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; letter-spacing: -0.3px;
+    margin-bottom: 14px;
   }
   .pin-login-box h2 {
-    font-size: 24px; margin-bottom: 6px; color: var(--text); font-weight: 700;
+    font-size: 22px; font-weight: 800; letter-spacing: -0.3px;
+    color: var(--ink); margin-bottom: 4px;
   }
-  .pin-login-box p {
-    font-size: 13px; color: var(--muted); margin-bottom: 28px;
+  .pin-login-box .pin-subtitle {
+    font-size: 13px; color: var(--ink-3); margin-bottom: 36px;
   }
   .pin-dots {
-    display: flex; justify-content: center; gap: 16px; margin-bottom: 32px;
+    display: flex; justify-content: center; gap: 14px; margin-bottom: 10px;
   }
   .pin-dot {
-    width: 16px; height: 16px; border-radius: 50%;
-    border: 2px solid var(--border); background: #fff;
-    transition: all .2s ease;
+    width: 14px; height: 14px; border-radius: var(--r-pill);
+    border: 1.5px solid var(--line-deep);
+    background: transparent;
+    transition: all .15s ease;
   }
   .pin-dot.filled {
-    background: var(--blue); border-color: var(--blue);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .pin-hint {
+    font-size: 12px; color: var(--ink-3);
+    margin-bottom: 24px; letter-spacing: 0.2px;
   }
   .pin-keypad {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-    margin-bottom: 12px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
   }
   .pin-key {
-    padding: 16px; background: #F3F3F3; border: 1px solid var(--border);
-    border-radius: 12px; font-size: 20px; font-weight: 600; cursor: pointer;
-    color: var(--text); transition: all .1s ease; min-height: 56px;
+    height: 58px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    font-size: 22px; font-weight: 700;
+    color: var(--ink);
+    cursor: pointer; font-family: inherit;
+    transition: background .1s, transform .08s, border-color .1s;
     display: flex; align-items: center; justify-content: center;
   }
-  .pin-key:active { transform: scale(.96); background: var(--blue); color: #fff; }
-  .pin-key.backspace { font-size: 24px; }
-  .pin-error {
-    color: var(--red); font-size: 13px; font-weight: 600;
-    min-height: 18px; margin-bottom: 10px; animation: shake .4s ease;
+  .pin-key:hover { background: var(--bg-deep); }
+  .pin-key:active {
+    transform: scale(.96);
+    background: var(--accent-soft);
+    border-color: var(--accent);
   }
+  .pin-key.backspace {
+    background: transparent;
+    font-size: 18px; color: var(--ink-2);
+  }
+  .pin-key.empty {
+    background: transparent; border: none;
+    pointer-events: none;
+  }
+  .pin-error {
+    color: var(--danger); font-size: 13px; font-weight: 600;
+    min-height: 18px; margin-bottom: 10px;
+  }
+  .pin-error.shake { animation: shake .4s ease; }
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-8px); }
     75% { transform: translateX(8px); }
   }
   .pin-info {
-    font-size: 11px; color: var(--muted); margin-top: 12px;
+    font-size: 11px; color: var(--ink-3);
+    margin-top: 22px; letter-spacing: 0.4px;
   }
   .role-badge {
     display: inline-block; padding: 4px 12px; border-radius: 20px;
@@ -885,18 +915,19 @@
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="pin-login-screen">
   <div class="pin-login-box">
-    <div class="pin-title">🔐</div>
+    <div class="pin-brand-mark">PO</div>
     <h2>PO Tracker</h2>
-    <p>ใส่ PIN 4 หลักเพื่อเข้าใช้งาน</p>
+    <div class="pin-subtitle">ร้านพ่นสี · Paint Shop</div>
     <div class="pin-dots">
       <div class="pin-dot" id="pin-dot-0"></div>
       <div class="pin-dot" id="pin-dot-1"></div>
       <div class="pin-dot" id="pin-dot-2"></div>
       <div class="pin-dot" id="pin-dot-3"></div>
     </div>
+    <div class="pin-hint">ใส่ PIN 4 หลัก · Enter 4-digit PIN</div>
     <div class="pin-error" id="pin-error"></div>
     <div class="pin-keypad" id="pin-keypad"></div>
-    <div class="pin-info">👤 PIN เป็นหลัก 4 ตัวเลข</div>
+    <div class="pin-info">v2026.04 · secured by Supabase</div>
   </div>
 </div>
 
@@ -1461,24 +1492,22 @@ function initPINKeypad() {
     keypadEl.appendChild(btn);
   }
 
-  // Backspace (row 4, col 1)
-  const backBtn = document.createElement('button');
-  backBtn.className = 'pin-key backspace';
-  backBtn.textContent = '⌫';
-  backBtn.onclick = backspacePIN;
+  // Row 4: empty (col 1), 0 (col 2), ⌫ (col 3) — per design
+  const emptyCell = document.createElement('div');
+  emptyCell.className = 'pin-key empty';
+  keypadEl.appendChild(emptyCell);
 
-  // 0 (row 4, col 2)
   const zeroBtn = document.createElement('button');
   zeroBtn.className = 'pin-key';
   zeroBtn.textContent = '0';
   zeroBtn.onclick = () => addPINDigit(0);
+  keypadEl.appendChild(zeroBtn);
 
-  // Create a container for the last row
-  const lastRow = document.createElement('div');
-  lastRow.style.display = 'contents';
-  lastRow.appendChild(backBtn);
-  lastRow.appendChild(zeroBtn);
-  keypadEl.appendChild(lastRow);
+  const backBtn = document.createElement('button');
+  backBtn.className = 'pin-key backspace';
+  backBtn.textContent = '⌫';
+  backBtn.onclick = backspacePIN;
+  keypadEl.appendChild(backBtn);
 }
 
 function addPINDigit(digit) {
