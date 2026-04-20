@@ -1171,6 +1171,10 @@
     background: var(--danger);
   }
   .qc-decision.qc-fail .qc-decision-th { color: var(--danger); }
+  /* Staged decision — highlights the picked card until user confirms via save bar */
+  .qc-decision.selected { box-shadow: 0 0 0 3px var(--ink); transform: translateY(-1px); }
+  .qc-decision.qc-pass.selected  { box-shadow: 0 0 0 3px var(--success); }
+  .qc-decision.qc-fail.selected  { box-shadow: 0 0 0 3px var(--danger); }
 
   /* ── Status picker grid (4 cards with icon + label) ── */
   .status-grid {
@@ -2030,29 +2034,26 @@
           <div class="slp-en">Decision</div>
         </div>
 
-        <!-- 2 big decision cards -->
+        <!-- 2 big decision cards — staging only; commit via main save bar -->
         <div class="qc-decision-row">
-          <button class="qc-decision qc-pass" onclick="doQCPass()">
+          <button type="button" class="qc-decision qc-pass" onclick="setQCDecision('pass')">
             <div class="qc-decision-icon">✓</div>
             <div class="qc-decision-th">ผ่าน QC</div>
             <div class="qc-decision-en">Pass</div>
           </button>
-          <button class="qc-decision qc-fail" onclick="showQCFailPanel()">
+          <button type="button" class="qc-decision qc-fail" onclick="setQCDecision('fail')">
             <div class="qc-decision-icon">✕</div>
             <div class="qc-decision-th">ไม่ผ่าน</div>
             <div class="qc-decision-en">Fail · Rework</div>
           </button>
         </div>
 
-        <!-- Sub-panel เมื่อกด "ไม่ผ่าน" -->
+        <!-- Sub-panel when "ไม่ผ่าน" picked — select defect reason -->
         <div id="qc-fail-detail" style="display:none; margin-top:12px;">
           <label style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px;display:block;">📋 สาเหตุ defect:</label>
-          <select id="qc-defect-reason">
+          <select id="qc-defect-reason" onchange="updateSaveBar()">
             <option value="">— เลือกสาเหตุ —</option>
           </select>
-          <button onclick="doQCFail()" style="width:100%; padding:14px; border:none; border-radius:var(--r-card); background:var(--danger); color:#fff; font-size:15px; font-weight:800; cursor:pointer;">
-            🔄 ส่งกลับไปผลิตใหม่
-          </button>
         </div>
       </div>
 
@@ -2894,6 +2895,7 @@ let addItemCount = 0;
 let selectedItems = new Set();
 let currentPoId   = '';
 let modalPoId     = '';
+let qcDecision    = null;   // null | 'pass' | 'fail' — staged QC decision
 
 // ═══════════════════════════════════════════════════
 //  HELPERS
@@ -3478,6 +3480,7 @@ function backToPoList() {
   currentPoId = '';
   selectedItems.clear();
   selectedStatus = '';
+  qcDecision = null;
   document.getElementById('update-select-section').style.display = 'block';
   document.getElementById('update-items-section').style.display  = 'none';
   document.getElementById('update-save-bar')?.classList.remove('show');
@@ -3580,9 +3583,17 @@ function openPoItems(poId) {
 
   selectedItems.clear();
   selectedStatus = '';
+  qcDecision = null;
   document.querySelectorAll('.status-opt').forEach(e => {
     e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
   });
+  document.querySelectorAll('.qc-decision').forEach(el => el.classList.remove('selected'));
+  const qcReasonEl = document.getElementById('qc-defect-reason');
+  if (qcReasonEl) qcReasonEl.value = '';
+  const qcFailDetail = document.getElementById('qc-fail-detail');
+  if (qcFailDetail) qcFailDetail.style.display = 'none';
+  const qcPanel = document.getElementById('qc-panel');
+  if (qcPanel) qcPanel.style.display = 'none';
 
   // Apply permission-based filters to status buttons
   applyStatusFilters();
@@ -3753,21 +3764,35 @@ function setListFilter(val) {
   renderDashboard();
 }
 
-// Show/hide sticky save bar based on selection + chosen status
+// Show/hide sticky save bar based on selection + chosen status.
+// QC flow also requires a Pass/Fail decision (and defect reason if Fail).
 function updateSaveBar() {
   const bar = document.getElementById('update-save-bar');
   const cnt = document.getElementById('update-save-count');
   if (!bar || !cnt) return;
-  const show = selectedItems.size > 0 && selectedStatus;
-  bar.classList.toggle('show', show);
-  // Toggle body padding so content can scroll past the fixed save bar
-  document.body.classList.toggle('has-save-bar', show);
+  let ready = selectedItems.size > 0 && !!selectedStatus;
+  if (ready && selectedStatus === 'QC/เตรียมส่ง') {
+    if (!qcDecision) ready = false;
+    if (qcDecision === 'fail') {
+      const reason = document.getElementById('qc-defect-reason')?.value;
+      if (!reason) ready = false;
+    }
+  }
+  bar.classList.toggle('show', ready);
+  document.body.classList.toggle('has-save-bar', ready);
   cnt.textContent = selectedItems.size;
 }
 
 function selectStatus(status, selClass, el) {
   selectedStatus    = status;
   selectedStatusSel = selClass;
+  // Clear QC decision whenever user picks a different status
+  if (status !== 'QC/เตรียมส่ง') {
+    qcDecision = null;
+    document.querySelectorAll('.qc-decision').forEach(d => d.classList.remove('selected'));
+    const failDetail = document.getElementById('qc-fail-detail');
+    if (failDetail) failDetail.style.display = 'none';
+  }
   document.querySelectorAll('.status-opt').forEach(e => {
     e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
   });
@@ -3799,6 +3824,8 @@ function toggleQCPanel() {
   if (selectedStatus === 'QC/เตรียมส่ง') {
     panel.style.display = 'block';
     document.getElementById('qc-fail-detail').style.display = 'none';
+    // Fresh decision each time QC status is picked
+    document.querySelectorAll('.qc-decision').forEach(d => d.classList.remove('selected'));
     // Populate hero with selected items count + PO info
     const cntEl = document.getElementById('qc-hero-count');
     const subEl = document.getElementById('qc-hero-sub');
@@ -3823,83 +3850,40 @@ function populateDefectReasons() {
   });
 }
 
-function showQCFailPanel() {
-  document.getElementById('qc-fail-detail').style.display = 'block';
-}
-
 function getSelectedItemObjects() {
   const poItems = db.items.filter(i => i.po === currentPoId);
   return poItems.filter(i => selectedItems.has(itemKey(i)));
 }
 
-async function doQCPass() {
-  const items = getSelectedItemObjects();
-  if (!items.length) { toast('⚠️ เลือกชิ้นงานก่อน'); return; }
-
-  showLoading(true);
-  try {
-    for (const item of items) {
-      await sb.from('po_items').update({
-        qc_passed: true,
-        qc_defect_reason: null,
-        qc_checked_at: new Date().toISOString(),
-        qc_checked_by: currentUser.username
-      }).eq('id', item._sbId);
-    }
-    await logActivity('qc_pass', 'po_item', {
-      items: items.map(i => i.part),
-      checked_by: currentUser.username
-    });
-    toast('✅ ผ่าน QC แล้ว');
-    const data = await loadFromSupabase();
-    if (data) { db = data; saveData(db); }
-    renderDashboard();
-    switchTab('update');
-  } catch(e) {
-    toast('❌ เกิดข้อผิดพลาด: ' + e.message);
+// Stage QC pass/fail decision (no DB write). Main save bar commits.
+function setQCDecision(decision) {
+  qcDecision = decision;
+  document.querySelectorAll('.qc-decision').forEach(el => el.classList.remove('selected'));
+  const failDetail = document.getElementById('qc-fail-detail');
+  if (decision === 'pass') {
+    document.querySelector('.qc-decision.qc-pass')?.classList.add('selected');
+    if (failDetail) failDetail.style.display = 'none';
+  } else if (decision === 'fail') {
+    document.querySelector('.qc-decision.qc-fail')?.classList.add('selected');
+    if (failDetail) failDetail.style.display = 'block';
   }
-  showLoading(false);
-}
-
-async function doQCFail() {
-  const items = getSelectedItemObjects();
-  if (!items.length) { toast('⚠️ เลือกชิ้นงานก่อน'); return; }
-
-  const reason = document.getElementById('qc-defect-reason').value;
-  if (!reason) { toast('⚠️ กรุณาเลือกสาเหตุ defect'); return; }
-
-  if (!confirm(`ส่งกลับไปผลิตใหม่ ${items.length} ชิ้น\nสาเหตุ: ${reason}`)) return;
-
-  showLoading(true);
-  try {
-    for (const item of items) {
-      await sb.from('po_items').update({
-        status: 'กำลังผลิต',
-        qc_passed: false,
-        qc_defect_reason: reason,
-        qc_checked_at: new Date().toISOString(),
-        qc_checked_by: currentUser.username
-      }).eq('id', item._sbId);
-    }
-    await logActivity('qc_fail', 'po_item', {
-      items: items.map(i => i.part),
-      reason: reason,
-      checked_by: currentUser.username
-    });
-    toast(`🔄 ส่งกลับผลิตใหม่ ${items.length} ชิ้น (${reason})`);
-    const data = await loadFromSupabase();
-    if (data) { db = data; saveData(db); }
-    renderDashboard();
-    switchTab('update');
-  } catch(e) {
-    toast('❌ เกิดข้อผิดพลาด: ' + e.message);
-  }
-  showLoading(false);
+  updateSaveBar();
 }
 
 async function saveUpdate() {
   if (!selectedStatus)     { toast('⚠️ กรุณาเลือกสถานะก่อน'); return; }
   if (!selectedItems.size) { toast('⚠️ กรุณาเลือกชิ้นงานก่อน'); return; }
+
+  // QC flow requires a decision (and a reason if fail)
+  const isQC = selectedStatus === 'QC/เตรียมส่ง';
+  let qcReason = '';
+  if (isQC) {
+    if (!qcDecision) { toast('⚠️ กรุณาเลือก ผ่าน QC หรือ ไม่ผ่าน'); return; }
+    if (qcDecision === 'fail') {
+      qcReason = document.getElementById('qc-defect-reason').value;
+      if (!qcReason) { toast('⚠️ กรุณาเลือกสาเหตุ defect'); return; }
+    }
+  }
 
   // Check permission for this status
   if (!canEditStatus(selectedStatus)) {
@@ -3912,52 +3896,91 @@ async function saveUpdate() {
   const remark    = document.getElementById('update-remark').value.trim();
   const isRework  = document.getElementById('rework-toggle').checked;
 
+  // Fail → ส่งกลับผลิตใหม่; Pass → เข้าสู่ QC/เตรียมส่ง (status คงเดิมที่เลือก)
+  const effectiveStatus = (isQC && qcDecision === 'fail') ? 'กำลังผลิต' : selectedStatus;
+
   const changedItems = [];
   db.items.forEach(it => {
     if (it.po !== currentPoId) return;
     if (!selectedItems.has(itemKey(it))) return;
-    it.status = selectedStatus;
+    it.status = effectiveStatus;
     it.rework = isRework;
-    if (sentDate && selectedStatus === 'ส่งแล้ว') it.sentDate = sentDate;
+    if (sentDate && effectiveStatus === 'ส่งแล้ว') it.sentDate = sentDate;
     if (bundlePO) it.bundlePO = bundlePO;
     if (remark)   it.remark   = remark;
+    if (isQC) {
+      it.qcPassed = qcDecision === 'pass';
+      it.qcDefectReason = qcReason || '';
+      it.qcCheckedBy = currentUser?.username || '';
+    }
     changedItems.push(it);
   });
 
   const reworkLabel = isRework ? ' (กลับมาแก้ไข)' : '';
   syncPOStatuses(true);  // อัพเดทสถานะ PO + push Supabase
-  toast(`✅ อัพเดท ${changedItems.length} ชิ้น → "${selectedStatus}${reworkLabel}" แล้ว`);
+  if (isQC && qcDecision === 'pass') {
+    toast(`✅ ผ่าน QC ${changedItems.length} ชิ้น — เตรียมส่ง`);
+  } else if (isQC && qcDecision === 'fail') {
+    toast(`🔄 ส่งกลับผลิตใหม่ ${changedItems.length} ชิ้น (${qcReason})`);
+  } else {
+    toast(`✅ อัพเดท ${changedItems.length} ชิ้น → "${effectiveStatus}${reworkLabel}" แล้ว`);
+  }
 
-  // Log activity for status updates
+  // Push each item — QC writes include qc_* fields
   for (const item of changedItems) {
     try {
-      await updateItemInSupabase(item);
-      await logActivity('update_status', 'item', {
-        po_number: item.po,
-        part_name: item.part,
-        status: selectedStatus,
-        rework: isRework
-      });
+      if (isQC) {
+        const { error } = await sb.from('po_items').update({
+          status:           item.status,
+          rework:           item.rework || false,
+          sent_date:        item.sentDate || null,
+          bundle_po:        item.bundlePO || '',
+          remark:           item.remark || '',
+          qc_passed:        item.qcPassed,
+          qc_defect_reason: item.qcDefectReason || null,
+          qc_checked_at:    new Date().toISOString(),
+          qc_checked_by:    item.qcCheckedBy || ''
+        }).eq('id', item._sbId);
+        if (error) throw new Error(error.message);
+        await logActivity(qcDecision === 'pass' ? 'qc_pass' : 'qc_fail', 'po_item', {
+          po_number: item.po,
+          part_name: item.part,
+          reason: qcReason || null
+        });
+      } else {
+        await updateItemInSupabase(item);
+        await logActivity('update_status', 'item', {
+          po_number: item.po,
+          part_name: item.part,
+          status: effectiveStatus,
+          rework: isRework
+        });
+      }
     } catch(e) {
       console.error('[Supabase] updateItem error:', e);
       toast('⚠️ บางรายการ sync ไม่สำเร็จ', 3000);
     }
   }
 
-  // Reset แล้ว refresh รายการ
+  // Reset in-place (stay on update view, refresh current PO's items)
   selectedItems.clear();
   selectedStatus = '';
+  qcDecision = null;
   document.getElementById('update-remark').value = '';
   document.getElementById('sent-date').value = '';
   document.getElementById('bundle-po-select').value = '';
   document.getElementById('rework-toggle').checked = false;
+  const qcReasonEl = document.getElementById('qc-defect-reason');
+  if (qcReasonEl) qcReasonEl.value = '';
+  document.querySelectorAll('.qc-decision').forEach(el => el.classList.remove('selected'));
+  document.getElementById('qc-fail-detail').style.display = 'none';
+  document.getElementById('qc-panel').style.display = 'none';
   onReworkToggle();
-  document.getElementById('update-form-section').style.display = 'none';
   document.querySelectorAll('.status-opt').forEach(e => {
     e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent');
   });
-  document.getElementById('sent-date-group').style.display  = 'none';
-  document.getElementById('bundle-po-group').style.display  = 'none';
+  document.getElementById('sent-date-group').style.display = 'none';
+  document.getElementById('bundle-po-group').style.display = 'none';
   openPoItems(currentPoId);
 }
 
