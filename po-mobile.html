@@ -3046,6 +3046,15 @@ function poBadge(s) {
 
 function itemsOfPO(poId) { return db.items.filter(i => i.po === poId); }
 
+// Stable key for selection tracking — uses Supabase _sbId so selections
+// survive auto-refresh (db.items gets replaced every 30s).
+function itemKey(it) {
+  return it._sbId || `L:${it.po}:${it.part}:${it.color || ''}`;
+}
+function itemKeyDomId(key) {
+  return String(key).replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
 function poStatusAuto(poId) {
   const items = itemsOfPO(poId);
   if (!items.length) return 'Order';
@@ -3615,8 +3624,8 @@ function openPoItems(poId) {
     if (it.sentDate) sub.push(`ส่ง ${shortThaiDate(it.sentDate)}`);
     if (it.bundlePO) sub.push(`รวม ${it.bundlePO}`);
     return `
-      <div class="item-row" id="item-row-${idx}" onclick="toggleItem(${idx})">
-        <div class="item-check" id="item-check-${idx}">✓</div>
+      <div class="item-row" id="item-row-${itemKeyDomId(itemKey(it))}" onclick='toggleItem(${JSON.stringify(itemKey(it)).replace(/'/g, "&#39;")})'>
+        <div class="item-check" id="item-check-${itemKeyDomId(itemKey(it))}">✓</div>
         <div class="item-status-dot ${stCls}"></div>
         <div class="item-main">
           <div class="item-name-row">
@@ -3704,13 +3713,15 @@ function renderUpdateHero(po, its) {
   `;
 }
 
-function toggleItem(idx) {
-  if (selectedItems.has(idx)) {
-    selectedItems.delete(idx);
-    document.getElementById('item-row-' + idx).classList.remove('selected');
+function toggleItem(key) {
+  if (key === undefined || key === null) return;
+  const domId = itemKeyDomId(key);
+  if (selectedItems.has(key)) {
+    selectedItems.delete(key);
+    document.getElementById('item-row-' + domId)?.classList.remove('selected');
   } else {
-    selectedItems.add(idx);
-    document.getElementById('item-row-' + idx).classList.add('selected');
+    selectedItems.add(key);
+    document.getElementById('item-row-' + domId)?.classList.add('selected');
   }
   updateSelectionBanner();
   updateSaveBar();
@@ -3818,11 +3829,7 @@ function showQCFailPanel() {
 
 function getSelectedItemObjects() {
   const poItems = db.items.filter(i => i.po === currentPoId);
-  const result = [];
-  selectedItems.forEach(idx => {
-    if (poItems[idx]) result.push(poItems[idx]);
-  });
-  return result;
+  return poItems.filter(i => selectedItems.has(itemKey(i)));
 }
 
 async function doQCPass() {
@@ -3905,20 +3912,16 @@ async function saveUpdate() {
   const remark    = document.getElementById('update-remark').value.trim();
   const isRework  = document.getElementById('rework-toggle').checked;
 
-  const poItemsGlobalIdx = [];
-  db.items.forEach((it, gi) => { if (it.po === currentPoId) poItemsGlobalIdx.push(gi); });
-
   const changedItems = [];
-  selectedItems.forEach(idx => {
-    const gi = poItemsGlobalIdx[idx];
-    if (gi !== undefined) {
-      db.items[gi].status = selectedStatus;
-      db.items[gi].rework = isRework;
-      if (sentDate && selectedStatus === 'ส่งแล้ว') db.items[gi].sentDate = sentDate;
-      if (bundlePO) db.items[gi].bundlePO = bundlePO;
-      if (remark)   db.items[gi].remark   = remark;
-      changedItems.push(db.items[gi]);
-    }
+  db.items.forEach(it => {
+    if (it.po !== currentPoId) return;
+    if (!selectedItems.has(itemKey(it))) return;
+    it.status = selectedStatus;
+    it.rework = isRework;
+    if (sentDate && selectedStatus === 'ส่งแล้ว') it.sentDate = sentDate;
+    if (bundlePO) it.bundlePO = bundlePO;
+    if (remark)   it.remark   = remark;
+    changedItems.push(it);
   });
 
   const reworkLabel = isRework ? ' (กลับมาแก้ไข)' : '';
