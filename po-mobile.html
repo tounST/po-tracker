@@ -10,31 +10,97 @@
 <title>🔩 PO Tracker — ร้านพ่นสี</title>
 <style>
   :root {
-    /* ── Accent (brand) — Terracotta ── */
-    --blue:   #B85C3C;  /* var name kept for backwards compat — actually terracotta */
+    /* ══════════════════════════════════════════════
+       Standard tokens (from tokens.css — official design system)
+       ══════════════════════════════════════════════ */
+
+    /* Base — warm neutrals */
+    --bg:        #F6F1EA;
+    --bg-deep:   #EDE5DA;
+    --surface:   #FCFAF6;
+    --surface-2: #FFFFFF;
+    --ink:       #2A2520;
+    --ink-2:     #5A4F42;
+    --ink-3:     #8A7F72;
+    --line:      #E5DDD0;
+    --line-deep: #D6CCBD;
+
+    /* Semantic */
+    --success:    #4A7F3F;  --success-bg: #E0EBD8;
+    --warning:    #B8832A;  --warning-bg: #F3E6CB;
+    --danger:     #A33B2E;  --danger-bg:  #F4D9D4;
+    --info:       #3F6E8C;  --info-bg:    #D9E6EE;
+
+    /* Accent — Terracotta (locked) */
+    --accent:      #B85C3C;
     --accent-soft: #F4E3D8;
     --accent-ink:  #5A2818;
-    /* ── Semantic colors ── */
-    --green:  #4A7F3F;
-    --amber:  #B8832A;
-    --red:    #A33B2E;
-    --orange: #A35530;
-    --purple: #4B3D78;
-    /* ── Warm neutral base ── */
-    --grey:   #5A4F42;
-    --bg:     #F6F1EA;
-    --card:   #FCFAF6;
-    --border: #E5DDD0;
-    --text:   #2A2520;
-    --muted:  #8A7F72;
-    --radius: 12px;
-    --shadow: 0 2px 8px rgba(42,37,32,.10);
+
+    /* Status chip pairs (PO item) */
+    --status-recv-fg:   #3F6E8C;   --status-recv-bg:   #D9E6EE;
+    --status-prod-fg:   #7A5614;   --status-prod-bg:   #F0E4D1;
+    --status-qc-fg:     #4B3D78;   --status-qc-bg:     #E3DDF0;
+    --status-ship-fg:   #4A7F3F;   --status-ship-bg:   #E0EBD8;
+    --status-rework-fg: #A33B2E;   --status-rework-bg: #F4D9D4;
+
+    /* Status chip pairs (PO level) */
+    --status-order-fg:   #3F6E8C;  --status-order-bg:   #D9E6EE;
+    --status-inprog-fg:  #B8832A;  --status-inprog-bg:  #F3E6CB;
+    --status-partial-fg: #A35530;  --status-partial-bg: #F3E0D8;
+    --status-done-fg:    #4A7F3F;  --status-done-bg:    #E0EBD8;
+
+    /* Role colors */
+    --role-admin:      #A33B2E;
+    --role-supervisor: #B8832A;
+    --role-manager:    #3F5AA6;
+    --role-staff:      #4A7F3F;
+
+    /* Typography */
+    --font-sans: 'Sarabun', 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    /* Radius */
+    --r-xs:   8px;
+    --r-sm:  10px;
+    --r-md:  12px;
+    --r-card:14px;
+    --r-lg:  18px;
+    --r-pill: 9999px;
+
+    /* Shadows */
+    --shadow-card:  0 1px 2px rgba(42,37,32,.04), 0 1px 0 rgba(42,37,32,.03);
+    --shadow-hover: 0 2px 8px rgba(42,37,32,.08);
+    --shadow-float: 0 8px 24px rgba(42,37,32,.12);
+
+    /* Hit target */
+    --touch-min: 44px;
+
+    /* ══════════════════════════════════════════════
+       Backwards-compat aliases — existing CSS uses these names.
+       New code should prefer the standard tokens above.
+       ══════════════════════════════════════════════ */
+    --blue:   var(--accent);
+    --green:  var(--success);
+    --amber:  var(--warning);
+    --red:    var(--danger);
+    --orange: var(--status-partial-fg);
+    --purple: var(--status-qc-fg);
+    --grey:   var(--ink-2);
+    --card:   var(--surface);
+    --border: var(--line);
+    --text:   var(--ink);
+    --muted:  var(--ink-3);
+    --radius: var(--r-md);
+    --shadow: var(--shadow-hover);
   }
+
+  /* Mono utility — for PO numbers, dates, counts. Never apply to Thai text. */
+  .mono { font-family: var(--font-mono); font-feature-settings: 'tnum' 1; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Sarabun', 'Segoe UI', sans-serif;
+    font-family: var(--font-sans);
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -803,7 +869,7 @@
   .arc-dropdown .arc-divider { height: 1px; background: var(--border); margin: 0; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
 </head>
