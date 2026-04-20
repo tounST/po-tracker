@@ -817,6 +817,37 @@
   .form-group { margin-bottom: 14px; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+  /* ── Sticky save bar (Update flow) ── */
+  .update-save-bar {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+    padding: 10px 14px;
+    z-index: 95;
+    display: none;
+    box-shadow: 0 -4px 12px rgba(42,37,32,.06);
+  }
+  .update-save-bar.show { display: block; animation: slideUpBar .2s ease; }
+  /* Add extra bottom padding on update tab when save bar shows */
+  #tab-update.page.active + .update-save-bar.show ~ * { padding-bottom: 80px; }
+  @keyframes slideUpBar {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .update-save-btn {
+    width: 100%; padding: 16px;
+    background: var(--ink); color: var(--bg);
+    border: none; border-radius: var(--r-card);
+    font-size: 16px; font-weight: 800;
+    letter-spacing: -0.2px;
+    cursor: pointer;
+    transition: filter .15s, transform .08s;
+  }
+  .update-save-btn:hover { filter: brightness(1.15); }
+  .update-save-btn:active { transform: scale(.98); }
+
   /* ── Status picker grid (4 cards) ── */
   .status-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
@@ -1519,10 +1550,15 @@
 
       <label>💬 หมายเหตุ (ไม่บังคับ)</label>
       <textarea id="update-remark" placeholder="เช่น: ชิ้นด่วน, รอสีจากโรงงาน, ลูกค้าส่งกลับมา..."></textarea>
-
-      <button class="btn btn-primary" onclick="saveUpdate()">💾 บันทึกสถานะ</button>
     </div>
 
+  </div>
+
+  <!-- Sticky Save bar (dark ink CTA) — appears when items staged + status selected -->
+  <div class="update-save-bar" id="update-save-bar">
+    <button class="update-save-btn" onclick="saveUpdate()">
+      ✓ บันทึก <span id="update-save-count">0</span> ชิ้น
+    </button>
   </div>
 </div>
 
@@ -2533,6 +2569,9 @@ function switchTab(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tabnav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
+  // Hide update save bar unless we're on update tab
+  const bar = document.getElementById('update-save-bar');
+  if (bar && name !== 'update') bar.classList.remove('show');
   // ★ อัพเดท: 5 แท็บ (เพิ่ม archive ลำดับที่ 4, master เลื่อนเป็น 5)
   const idx = ['dashboard','update','addpo','archive','master'].indexOf(name);
   if (idx >= 0) document.querySelectorAll('.tabnav button')[idx].classList.add('active');
@@ -2841,6 +2880,7 @@ function backToPoList() {
   selectedStatus = '';
   document.getElementById('update-select-section').style.display = 'block';
   document.getElementById('update-items-section').style.display  = 'none';
+  document.getElementById('update-save-bar')?.classList.remove('show');
 
   const list = document.getElementById('update-po-list');
   if (!db.pos.length) {
@@ -2972,6 +3012,17 @@ function toggleItem(idx) {
   }
   document.getElementById('update-form-section').style.display =
     selectedItems.size > 0 ? 'block' : 'none';
+  updateSaveBar();
+}
+
+// Show/hide sticky save bar based on selection + chosen status
+function updateSaveBar() {
+  const bar = document.getElementById('update-save-bar');
+  const cnt = document.getElementById('update-save-count');
+  if (!bar || !cnt) return;
+  const show = selectedItems.size > 0 && selectedStatus;
+  bar.classList.toggle('show', show);
+  cnt.textContent = selectedItems.size;
 }
 
 function selectStatus(status, selClass, el) {
@@ -2990,6 +3041,7 @@ function selectStatus(status, selClass, el) {
   if (status === 'ส่งแล้ว') {
     document.getElementById('sent-date').value = todayISO();
   }
+  updateSaveBar();
 }
 
 // ★ Toggle งานกลับมาแก้ไข
