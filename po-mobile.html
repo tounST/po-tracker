@@ -817,6 +817,45 @@
   .form-group { margin-bottom: 14px; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+  /* ── Filter chips (PO list) ── */
+  .filter-chips {
+    display: flex; gap: 8px;
+    overflow-x: auto;
+    margin: 0 -14px 14px;
+    padding: 2px 14px 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    font-size: 13px; font-weight: 700;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .filter-chip:hover { border-color: var(--line-deep); }
+  .filter-chip.active {
+    background: var(--ink); color: var(--bg);
+    border-color: var(--ink);
+  }
+  .filter-chip-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; padding: 0 6px;
+    background: var(--bg-deep); color: var(--ink-2);
+    border-radius: var(--r-pill);
+    font-size: 11px; font-weight: 800;
+  }
+  .filter-chip.active .filter-chip-count {
+    background: rgba(246,241,234,0.2); color: var(--bg);
+  }
+
   /* ── Sticky save bar (Update flow) ── */
   .update-save-bar {
     position: fixed;
@@ -1441,22 +1480,42 @@
     </div>
   </div>
 
-  <!-- Search + Filter -->
-  <div style="display:flex;gap:8px;margin-bottom:10px;">
-    <input type="text" id="search-input" placeholder="🔍 ค้นหา PO, บริษัท..."
-      oninput="renderDashboard()" style="margin:0;flex:1;">
-    <select id="filter-status" onchange="renderDashboard()" style="margin:0;width:130px;font-size:13px;">
-      <option value="active" selected>กำลังดำเนินการ</option>
-      <option value="">ทั้งหมด</option>
-      <option value="Partial Send">🌸 บางส่วน</option>
-      <option value="In progress">⏳ กำลังผลิต</option>
-      <option value="Order">📦 รอเริ่ม</option>
-      <option value="Complete">✅ เสร็จแล้ว</option>
-    </select>
+  <!-- PO List header with search + filter chips -->
+  <div class="section-label-pair" style="margin-top:18px;">
+    <div class="slp-th">รายการ PO</div>
+    <div class="slp-en">Purchase orders</div>
+  </div>
+  <input type="text" id="search-input" placeholder="🔍 ค้นหา PO, บริษัท..."
+    oninput="renderDashboard()" style="margin-bottom:10px;">
+
+  <!-- Hidden legacy select (kept for backwards compat with renderDashboard logic) -->
+  <select id="filter-status" onchange="renderDashboard()" style="display:none">
+    <option value="active" selected></option>
+    <option value=""></option>
+    <option value="In progress"></option>
+    <option value="Partial Send"></option>
+    <option value="Order"></option>
+    <option value="Complete"></option>
+  </select>
+
+  <!-- Filter chips -->
+  <div class="filter-chips">
+    <button class="filter-chip active" data-filter="active" onclick="setListFilter('active')">
+      กำลังทำ <span class="filter-chip-count" id="cnt-active">0</span>
+    </button>
+    <button class="filter-chip" data-filter="urgent" onclick="setListFilter('urgent')">
+      🔥 ด่วน <span class="filter-chip-count" id="cnt-urgent">0</span>
+    </button>
+    <button class="filter-chip" data-filter="Partial Send" onclick="setListFilter('Partial Send')">
+      บางส่วน <span class="filter-chip-count" id="cnt-partial">0</span>
+    </button>
+    <button class="filter-chip" data-filter="Complete" onclick="setListFilter('Complete')">
+      เสร็จแล้ว <span class="filter-chip-count" id="cnt-complete">0</span>
+    </button>
+    <button class="filter-chip" data-filter="" onclick="setListFilter('')">ทั้งหมด</button>
   </div>
 
   <!-- PO Cards -->
-  <div class="section-label">📋 รายการ PO ทั้งหมด</div>
   <div id="po-cards"></div>
 
 </div>
@@ -2701,6 +2760,14 @@ function renderDashboard() {
     }
   }
 
+  // Update filter chip counts (based on non-deleted POs only)
+  const activePOs = db.pos.filter(p => !p.deleted);
+  const setCount = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+  setCount('cnt-active',   activePOs.filter(p => p.status !== 'Complete').length);
+  setCount('cnt-urgent',   activePOs.filter(p => p.urgent && p.status !== 'Complete').length);
+  setCount('cnt-partial',  activePOs.filter(p => p.status === 'Partial Send').length);
+  setCount('cnt-complete', activePOs.filter(p => p.status === 'Complete').length);
+
   // Filter / Search
   const q  = (document.getElementById('search-input')?.value || '').toLowerCase();
   const sf = document.getElementById('filter-status')?.value || '';
@@ -2709,8 +2776,9 @@ function renderDashboard() {
     if (po.deleted) return false;  // ลบแล้วไม่แสดง
     const matchQ  = !q || po.id.toLowerCase().includes(q) || po.company.toLowerCase().includes(q) || po.model.toLowerCase().includes(q);
     let matchSF;
-    if (sf === 'active') matchSF = po.status !== 'Complete';  // ซ่อน PO เสร็จแล้ว
-    else matchSF = !sf || po.status === sf;
+    if (sf === 'active')       matchSF = po.status !== 'Complete';
+    else if (sf === 'urgent')  matchSF = po.urgent && po.status !== 'Complete';
+    else                       matchSF = !sf || po.status === sf;
     return matchQ && matchSF;
   });
 
@@ -3013,6 +3081,16 @@ function toggleItem(idx) {
   document.getElementById('update-form-section').style.display =
     selectedItems.size > 0 ? 'block' : 'none';
   updateSaveBar();
+}
+
+// Set PO-list filter (used by chips on dashboard)
+function setListFilter(val) {
+  const sel = document.getElementById('filter-status');
+  if (sel) sel.value = val;
+  document.querySelectorAll('.filter-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.filter === val);
+  });
+  renderDashboard();
 }
 
 // Show/hide sticky save bar based on selection + chosen status
