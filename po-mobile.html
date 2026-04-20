@@ -38,7 +38,7 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    padding-bottom: 80px;
+    padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
   }
 
   /* ── Top Bar (warm cream, greeting layout) ── */
@@ -91,24 +91,61 @@
     margin-left: 8px; vertical-align: middle;
   }
 
-  /* ── Tab Nav ── */
+  /* ── Tab Nav (bottom fixed, icon + label, primary center) ── */
   .tabnav {
     display: flex;
-    background: #F0F4F8;
-    padding: 8px 10px;
-    gap: 2px;
-    position: sticky; top: 62px; z-index: 99;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 99;
+    padding: 6px 4px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    align-items: stretch;
   }
   .tabnav button {
-    flex: 1; padding: 10px 4px; border: none; background: transparent;
-    font-size: 15px; font-weight: 600; color: var(--muted); cursor: pointer;
-    border-radius: 20px; margin: 6px 3px;
-    border-bottom: none; transition: all .2s;
+    flex: 1;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 4px 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--muted);
+    transition: color .15s;
+    min-height: 56px;
+  }
+  .tabnav button .tab-icon {
+    font-size: 20px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
   }
   .tabnav button.active {
+    color: var(--blue);
+    background: transparent;
+  }
+  /* Primary center button — big round accent */
+  .tabnav button.primary .tab-icon {
+    width: 52px; height: 52px;
+    border-radius: 18px;
     background: var(--blue);
     color: #fff;
-    border-bottom: none;
+    font-size: 24px;
+    margin-top: -10px;
+    box-shadow: 0 6px 16px rgba(184,92,60,.35);
+    transition: filter .15s, transform .1s;
+  }
+  .tabnav button.primary { color: transparent; }
+  .tabnav button.primary:hover .tab-icon { filter: brightness(1.1); }
+  .tabnav button.primary:active .tab-icon { transform: scale(.95); }
+  .tabnav button.primary.active .tab-icon {
+    box-shadow: 0 8px 20px rgba(184,92,60,.5);
   }
 
   /* ── Page sections ── */
@@ -830,13 +867,28 @@
   </div>
 </div>
 
-<!-- ═══ TAB NAV (5 แท็บ) ═══ -->
+<!-- ═══ TAB NAV (5 แท็บ, fixed bottom, primary center) ═══ -->
 <nav class="tabnav">
-  <button class="active" onclick="switchTab('dashboard')">📊 ภาพรวม</button>
-  <button onclick="switchTab('update')">✏️ อัพเดทชิ้น</button>
-  <button onclick="switchTab('addpo')">➕ เพิ่ม PO</button>
-  <button onclick="switchTab('archive')">📦 Archive</button>
-  <button onclick="switchTab('master')">⚙️ จัดการ</button>
+  <button class="active" onclick="switchTab('dashboard')">
+    <span class="tab-icon">🏠</span>
+    <span>ภาพรวม</span>
+  </button>
+  <button onclick="switchTab('update')">
+    <span class="tab-icon">✏️</span>
+    <span>อัพเดต</span>
+  </button>
+  <button class="primary" onclick="switchTab('addpo')">
+    <span class="tab-icon">➕</span>
+    <span>สร้าง</span>
+  </button>
+  <button onclick="switchTab('archive')">
+    <span class="tab-icon">📦</span>
+    <span>Archive</span>
+  </button>
+  <button onclick="switchTab('master')">
+    <span class="tab-icon">⚙️</span>
+    <span>จัดการ</span>
+  </button>
 </nav>
 
 <!-- ═══════════════ TAB: DASHBOARD + LIST รวมกัน ═══════════════ -->
