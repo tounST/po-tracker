@@ -250,11 +250,20 @@
     box-shadow: 0 6px 16px rgba(184,92,60,.35);
     transition: filter .15s, transform .1s;
   }
-  .tabnav button.primary { color: transparent; }
+  .tabnav button.primary { color: var(--accent, #B85C3C); }
+  .tabnav button.primary > span:last-child {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px;
+    margin-top: 2px;
+  }
   .tabnav button.primary:hover .tab-icon { filter: brightness(1.1); }
   .tabnav button.primary:active .tab-icon { transform: scale(.95); }
   .tabnav button.primary.active .tab-icon {
     box-shadow: 0 8px 20px rgba(184,92,60,.5);
+  }
+  /* Hidden tabs keep their slot so primary + stays centered across roles */
+  .tabnav button.tab-hidden {
+    visibility: hidden;
+    pointer-events: none;
   }
 
   /* ── Page sections ── */
@@ -1846,7 +1855,7 @@
   </button>
   <button class="primary" onclick="switchTab('addpo')">
     <span class="tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-    <span>สร้าง</span>
+    <span>Add PO</span>
   </button>
   <button onclick="switchTab('archive')">
     <span class="tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8M10 12h4"/></svg></span>
@@ -2535,27 +2544,24 @@ function applyPermissions() {
   if (usernameEl) usernameEl.textContent = roleText;
   badgeEl.innerHTML = `<span class="role-badge ${badgeClass} topbar-role-chip">${roleLabels[currentUser.role]}${stationText}</span>`;
 
-  // Hide/show tabs based on role
+  // Hide/show tabs based on role.
+  // Use 'tab-hidden' class (visibility:hidden) not display:none so the
+  // primary Add PO button stays visually centered regardless of role.
   const tabs = document.querySelectorAll('.tabnav button');
+  const setTab = (el, visible) => el.classList.toggle('tab-hidden', !visible);
 
-  // Tab 0: Dashboard (always visible)
-  tabs[0].style.display = '';
+  setTab(tabs[0], true);  // Dashboard — always visible
+  setTab(tabs[1], true);  // Update — always visible
 
-  // Tab 1: Update items (visible for all)
-  tabs[1].style.display = '';
-
-  // Tab 2: Add PO (visible for admin, supervisor, manager, staff with receiving station)
   const canAddPO = hasPermission('createPO') ||
     (currentUser.role === 'staff' && currentUser.station && currentUser.station.includes('receiving'));
-  tabs[2].style.display = canAddPO ? '' : 'none';
+  setTab(tabs[2], canAddPO);
 
-  // Tab 3: Archive (visible for admin, supervisor only)
   const canArchive = hasPermission('archive');
-  tabs[3].style.display = canArchive ? '' : 'none';
+  setTab(tabs[3], canArchive);
 
-  // Tab 4: Manage (visible for admin only)
   const canManage = hasPermission('manage');
-  tabs[4].style.display = canManage ? '' : 'none';
+  setTab(tabs[4], canManage);
 
   // Hide admin-only buttons throughout the app
   document.querySelectorAll('.admin-only').forEach(el => {
