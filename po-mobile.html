@@ -109,6 +109,11 @@
     color: var(--text);
     min-height: 100vh;
     padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    transition: padding-bottom .2s ease;
+  }
+  /* When save bar is visible, add extra padding so content scrolls past both bars */
+  body.has-save-bar {
+    padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px));
   }
 
   /* ── Top Bar (warm cream, greeting layout) ── */
@@ -1076,8 +1081,6 @@
     box-shadow: 0 -4px 12px rgba(42,37,32,.06);
   }
   .update-save-bar.show { display: block; animation: slideUpBar .2s ease; }
-  /* Add extra bottom padding on update tab when save bar shows */
-  #tab-update.page.active + .update-save-bar.show ~ * { padding-bottom: 80px; }
   @keyframes slideUpBar {
     from { transform: translateY(100%); opacity: 0; }
     to   { transform: translateY(0);    opacity: 1; }
@@ -3063,7 +3066,10 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
   // Hide update save bar unless we're on update tab
   const bar = document.getElementById('update-save-bar');
-  if (bar && name !== 'update') bar.classList.remove('show');
+  if (bar && name !== 'update') {
+    bar.classList.remove('show');
+    document.body.classList.remove('has-save-bar');
+  }
   // ★ อัพเดท: 5 แท็บ (เพิ่ม archive ลำดับที่ 4, master เลื่อนเป็น 5)
   const idx = ['dashboard','update','addpo','archive','master'].indexOf(name);
   if (idx >= 0) document.querySelectorAll('.tabnav button')[idx].classList.add('active');
@@ -3453,6 +3459,7 @@ function backToPoList() {
   document.getElementById('update-select-section').style.display = 'block';
   document.getElementById('update-items-section').style.display  = 'none';
   document.getElementById('update-save-bar')?.classList.remove('show');
+  document.body.classList.remove('has-save-bar');
 
   const list = document.getElementById('update-po-list');
   if (!db.pos.length) {
@@ -3730,6 +3737,8 @@ function updateSaveBar() {
   if (!bar || !cnt) return;
   const show = selectedItems.size > 0 && selectedStatus;
   bar.classList.toggle('show', show);
+  // Toggle body padding so content can scroll past the fixed save bar
+  document.body.classList.toggle('has-save-bar', show);
   cnt.textContent = selectedItems.size;
 }
 
