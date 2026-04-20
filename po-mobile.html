@@ -3,27 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#1A73E8">
+<meta name="theme-color" content="#B85C3C">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-touch-fullscreen" content="yes">
 <title>🔩 PO Tracker — ร้านพ่นสี</title>
 <style>
   :root {
-    --blue:   #1A73E8;
-    --green:  #2E7D32;
-    --amber:  #F57F17;
-    --red:    #C62828;
-    --orange: #E65100;
-    --purple: #6A1B9A;
-    --grey:   #546E7A;
-    --bg:     #F8F9FA;
-    --card:   #FFFFFF;
-    --border: #E0E0E0;
-    --text:   #263238;
-    --muted:  #78909C;
+    /* ── Accent (brand) — Terracotta ── */
+    --blue:   #B85C3C;  /* var name kept for backwards compat — actually terracotta */
+    --accent-soft: #F4E3D8;
+    --accent-ink:  #5A2818;
+    /* ── Semantic colors ── */
+    --green:  #4A7F3F;
+    --amber:  #B8832A;
+    --red:    #A33B2E;
+    --orange: #A35530;
+    --purple: #4B3D78;
+    /* ── Warm neutral base ── */
+    --grey:   #5A4F42;
+    --bg:     #F6F1EA;
+    --card:   #FCFAF6;
+    --border: #E5DDD0;
+    --text:   #2A2520;
+    --muted:  #8A7F72;
     --radius: 12px;
-    --shadow: 0 2px 8px rgba(0,0,0,.12);
+    --shadow: 0 2px 8px rgba(42,37,32,.10);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,7 +43,7 @@
 
   /* ── Top Bar ── */
   .topbar {
-    background: linear-gradient(135deg, #1565C0 0%, #1A73E8 50%, #42A5F5 100%);
+    background: linear-gradient(135deg, #8A3F26 0%, #B85C3C 50%, #D67A56 100%);
     color: #fff;
     padding: 16px 20px 14px;
     position: sticky; top: 0; z-index: 100;
@@ -122,11 +127,11 @@
     font-size: 14px; font-weight: 700;
   }
   /* สถานะชิ้นงาน 5 แบบใหม่ */
-  .badge-recv     { background: #E3F2FD; color: #1565C0; }   /* รับของแล้ว */
-  .badge-prod     { background: #FFF9C4; color: #795548; }   /* กำลังผลิต */
-  .badge-ready    { background: #E8EAF6; color: #3949AB; }   /* QC/เตรียมส่ง */
-  .badge-sent     { background: #C8E6C9; color: var(--green); } /* ส่งแล้ว */
-  .badge-rework   { background: #FFCDD2; color: #B71C1C; }  /* กลับมาแก้ไข */
+  .badge-recv     { background: #D9E6EE; color: #3F6E8C; }   /* รับของแล้ว */
+  .badge-prod     { background: #F0E4D1; color: #7A5614; }   /* กำลังผลิต */
+  .badge-ready    { background: #E3DDF0; color: #4B3D78; }   /* QC/เตรียมส่ง */
+  .badge-sent     { background: #E0EBD8; color: var(--green); } /* ส่งแล้ว */
+  .badge-rework   { background: #F4D9D4; color: var(--red); } /* กลับมาแก้ไข */
   /* Toggle switch styling */
   #rework-toggle:checked + span { background: #B71C1C !important; }
   #rework-toggle:checked ~ #rework-toggle-knob { transform: translateX(22px); }
