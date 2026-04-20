@@ -142,6 +142,49 @@
     color: #F5B8AC;
   }
 
+  /* ── Quick Actions 2x2 grid ── */
+  .quick-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .quick-action {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .1s;
+  }
+  .quick-action:hover {
+    border-color: var(--blue);
+    background: var(--accent-soft);
+  }
+  .quick-action:active { transform: scale(.97); }
+  .qa-icon {
+    font-size: 22px; width: 40px; height: 40px;
+    background: var(--accent-soft);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .qa-text { flex: 1; min-width: 0; }
+  .qa-th {
+    font-size: 14px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.1px;
+  }
+  .qa-en {
+    font-size: 11px; color: var(--muted);
+    margin-top: 1px; font-weight: 500;
+  }
+  .section-label-inline {
+    font-size: 11px; font-weight: 800;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1.2px; margin: 10px 2px 8px;
+  }
+
   /* ── Form elements ── */
   label { font-size: 15px; font-weight: 600; color: var(--grey); display: block; margin-bottom: 5px; }
   select, input[type=text], input[type=date], input[type=number], textarea {
@@ -748,6 +791,39 @@
 
   <!-- Urgent -->
   <div id="urgent-section"></div>
+
+  <!-- Quick Actions -->
+  <div class="section-label-inline">ลัด · Quick actions</div>
+  <div class="quick-actions">
+    <div class="quick-action" onclick="switchTab('addpo')">
+      <div class="qa-icon">➕</div>
+      <div class="qa-text">
+        <div class="qa-th">สร้าง PO</div>
+        <div class="qa-en">New order</div>
+      </div>
+    </div>
+    <div class="quick-action" onclick="switchTab('update')">
+      <div class="qa-icon">✏️</div>
+      <div class="qa-text">
+        <div class="qa-th">อัพเดตชิ้น</div>
+        <div class="qa-en">Update items</div>
+      </div>
+    </div>
+    <div class="quick-action" onclick="switchTab('archive')">
+      <div class="qa-icon">📦</div>
+      <div class="qa-text">
+        <div class="qa-th">Archive</div>
+        <div class="qa-en">Past orders</div>
+      </div>
+    </div>
+    <div class="quick-action" onclick="switchTab('master')">
+      <div class="qa-icon">⚙️</div>
+      <div class="qa-text">
+        <div class="qa-th">จัดการ</div>
+        <div class="qa-en">Manage</div>
+      </div>
+    </div>
+  </div>
 
   <!-- Search + Filter -->
   <div style="display:flex;gap:8px;margin-bottom:10px;">
