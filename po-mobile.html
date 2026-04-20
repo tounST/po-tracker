@@ -417,8 +417,7 @@
   .badge-sent     { background: #E0EBD8; color: var(--green); } /* ส่งแล้ว */
   .badge-rework   { background: #F4D9D4; color: var(--red); } /* กลับมาแก้ไข */
   /* Toggle switch styling */
-  #rework-toggle:checked + span { background: #B71C1C !important; }
-  #rework-toggle:checked ~ #rework-toggle-knob { transform: translateX(22px); }
+  /* rework toggle styling is handled via .urgent-toggle.on class */
 
   .badge-po-partial { background: #FCE4EC; color: var(--red); }
   .badge-po-inprog  { background: #FFF8E1; color: var(--amber); }
@@ -697,31 +696,38 @@
   .status-opt.sel-sent  { border-color: var(--success); background: var(--success-bg); color: var(--success); }
   /* sel-rework removed — rework is now a toggle, not a status */
 
-  /* ── Urgent toggle ── */
+  /* ── Urgent toggle (and similar toggles) ── */
   .urgent-toggle {
     display: flex; align-items: center; gap: 10px;
-    padding: 12px; border-radius: 8px; border: 2px solid var(--border);
-    cursor: pointer; transition: all .15s; margin-bottom: 14px;
+    padding: 12px 14px; border-radius: var(--r-card);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    cursor: pointer; transition: border-color .15s, background .15s;
+    margin-bottom: 14px;
   }
-  .urgent-toggle.on { border-color: var(--red); background: #FFEBEE; }
+  .urgent-toggle:hover { border-color: var(--line-deep); }
+  .urgent-toggle.on { border-color: var(--danger); background: var(--danger-bg); }
   .urgent-toggle-icon { font-size: 20px; }
-  .urgent-toggle-text { font-size: 16px; font-weight: 600; flex: 1; }
+  .urgent-toggle-text { font-size: 15px; font-weight: 700; flex: 1; color: var(--ink); }
+  .urgent-toggle.on .urgent-toggle-text { color: var(--danger); }
   .toggle-switch {
-    width: 44px; height: 24px; border-radius: 12px; background: var(--border);
+    width: 44px; height: 24px; border-radius: var(--r-pill);
+    background: var(--line-deep);
     position: relative; transition: background .2s;
   }
   .toggle-switch::after {
     content: ''; position: absolute; width: 18px; height: 18px;
-    border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: left .2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    border-radius: var(--r-pill); background: var(--surface-2); top: 3px; left: 3px;
+    transition: left .2s;
+    box-shadow: 0 1px 3px rgba(42,37,32,.18);
   }
-  .urgent-toggle.on .toggle-switch { background: var(--red); }
+  .urgent-toggle.on .toggle-switch { background: var(--danger); }
   .urgent-toggle.on .toggle-switch::after { left: 23px; }
 
   /* ── Quick-update hint chip ── */
   .hint-chip {
-    display: inline-block; background: #E8F0FE; color: var(--blue);
-    font-size: 14px; font-weight: 600; padding: 4px 12px; border-radius: 12px;
+    display: inline-block; background: var(--accent-soft); color: var(--accent-ink);
+    font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: var(--r-pill);
     margin-bottom: 10px;
   }
 
@@ -1253,12 +1259,13 @@
       <div class="card-title">✏️ เปลี่ยนสถานะ</div>
 
       <!-- ★ Toggle งานกลับมาแก้ไข -->
-      <div id="rework-toggle-row" style="display:flex;align-items:center;justify-content:space-between;background:#FFEBEE;border:1.5px solid #EF9A9A;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
-        <span style="font-weight:700;color:#B71C1C;font-size:14px;">🔁 งานกลับมาแก้ไข</span>
-        <label style="position:relative;width:50px;height:28px;margin:0;">
+      <div id="rework-toggle-row" class="urgent-toggle">
+        <span class="urgent-toggle-icon">🔁</span>
+        <span class="urgent-toggle-text">งานกลับมาแก้ไข</span>
+        <label style="position:relative;width:44px;height:24px;margin:0;">
           <input type="checkbox" id="rework-toggle" onchange="onReworkToggle()" style="opacity:0;width:0;height:0;">
-          <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:28px;transition:.3s;"></span>
-          <span style="position:absolute;content:'';height:22px;width:22px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;pointer-events:none;" id="rework-toggle-knob"></span>
+          <span class="toggle-switch" style="position:absolute;inset:0;cursor:pointer;"></span>
+          <span id="rework-toggle-knob" style="display:none;"></span>
         </label>
       </div>
 
@@ -2710,8 +2717,7 @@ function selectStatus(status, selClass, el) {
 // ★ Toggle งานกลับมาแก้ไข
 function onReworkToggle() {
   const on = document.getElementById('rework-toggle').checked;
-  document.getElementById('rework-toggle-row').style.background = on ? '#FFCDD2' : '#FFEBEE';
-  document.getElementById('rework-toggle-row').style.borderColor = on ? '#B71C1C' : '#EF9A9A';
+  document.getElementById('rework-toggle-row').classList.toggle('on', on);
 }
 
 // ═══════════════════════════════════════════════════
