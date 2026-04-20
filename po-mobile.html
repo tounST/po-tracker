@@ -45,12 +45,12 @@
   .topbar {
     background: linear-gradient(135deg, #8A3F26 0%, #B85C3C 50%, #D67A56 100%);
     color: #fff;
-    padding: 16px 20px 14px;
+    padding: 18px 20px 15px;
     position: sticky; top: 0; z-index: 100;
-    box-shadow: var(--shadow);
+    border-bottom: 1px solid rgba(42,37,32,.08);
   }
-  .topbar h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
-  .topbar small { font-size: 14px; opacity: .85; }
+  .topbar h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+  .topbar small { font-size: 13px; opacity: .9; font-weight: 500; }
 
   /* ── Tab Nav ── */
   .tabnav {
@@ -110,14 +110,15 @@
     display: block; width: 100%; padding: 14px;
     border: none; border-radius: 10px;
     font-size: 16px; font-weight: 700; cursor: pointer;
-    transition: opacity .15s, transform .1s;
+    transition: opacity .15s, transform .1s, background .15s;
   }
   .btn:active { transform: scale(.97); opacity: .9; }
+  .btn:hover { filter: brightness(1.05); }
   .btn-primary { background: var(--blue); color: #fff; }
   .btn-green   { background: var(--green); color: #fff; }
   .btn-outline {
-    background: #fff; color: var(--blue);
-    border: 2px solid var(--blue);
+    background: var(--card); color: var(--blue);
+    border: 1.5px solid var(--blue);
   }
   .btn + .btn { margin-top: 8px; }
 
