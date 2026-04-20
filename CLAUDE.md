@@ -98,6 +98,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | Archive ข้อมูลซ้ำเมื่อกดปุ่มหลายครั้ง | ✅ Fixed → dedup check ก่อนเขียน |
 | BUG6: วันที่เลื่อน ±1 วัน (timezone) | ✅ Fixed (2026-04-10) → เปลี่ยน toISOString() เป็น localISO() ทุกจุด |
 | BUG7: Save bar บังข้างล่าง scroll ไม่ได้ | ✅ Fixed (2026-04-20) → body.has-save-bar padding ขยาย 170px |
+| BUG8: QC Pass/Fail "เลือกชิ้นงานก่อน" หลัง auto-refresh | ✅ Fixed (2026-04-20) → เก็บ selection ด้วย `_sbId` แทน array index (index เพี้ยนเมื่อ db.items ถูก refresh ทุก 30 วิ) |
+| BUG9: QC Pass/Fail เขียน DB ทันทีแล้ว switchTab | ✅ Fixed (2026-04-20) → Pass/Fail เป็นแค่ stage decision, บันทึกผ่าน main save bar path เดียว |
+| BUG10: Item selection ghost-click/hang บนมือถือ | ✅ Fixed (2026-04-20) → inline onclick → data-sbkey + event delegation; touch-action: manipulation |
+| BUG11: Save bar ค้าง "บันทึก N ชิ้น" หลัง save เสร็จ | ✅ Fixed (2026-04-20) → hide `.show` + body.has-save-bar ทั้งใน saveUpdate + openPoItems |
+| BUG12: Archive แล้ว Update tab ยังโชว์ PO ที่ archive | ✅ Fixed (2026-04-20) → `await loadFromSupabase()` + assign db + renderDashboard หลัง archive/unarchive |
+| BUG13: QC panel ค้างโชว์เมื่อเปิด PO อื่น | ✅ Fixed (2026-04-20) → backToPoList ล้าง qc-panel display + qc-decision .selected + qc-fail-detail ครบ |
+| BUG14: ปุ่ม + Add PO ไม่อยู่กลางเมื่อบาง role | ✅ Fixed (2026-04-20) → CSS `order` split tabs ซ้าย/ขวา รอบ primary ตาม visible count |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
@@ -139,6 +146,15 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - แก้: สร้าง `localISO(d)` ใช้ `getFullYear/getMonth/getDate` แทน ทั้ง 4 จุด
   - จุดที่แก้: `todayISO()`, `fixDateStr()` (2 จุด), Export filename
 - ✅ **Mobile UI Redesign ตาม design handoff** (2026-04-20) — ดูรายละเอียดใน "Phase 2C" ด้านล่าง
+- ✅ **Stabilization Pass — production bug sweep** (2026-04-20) — 7 bugs (BUG8-14) + 3 features จาก real-device testing
+  - **QC flow rework**: Pass/Fail ไม่เขียน DB ทันทีแล้ว; stage decision → main save bar commits (path เดียวเหมือน status อื่น)
+  - **Selection stability**: เปลี่ยน array-index → `_sbId` เป็น stable key, survives auto-refresh ทุก 30 วิ
+  - **Mobile responsiveness**: event delegation + `touch-action: manipulation` แก้ ghost tap, 300ms delay
+  - **State cleanup discipline**: `backToPoList` + `openPoItems` + `saveUpdate` ล้าง state ครบทุก path (qc-panel, qc-decision, save bar)
+  - **QC-passed chip**: "ผ่าน QC · เตรียมส่ง" สีเขียวแทน "QC" สีม่วง เมื่อ qcPassed=true
+  - **Archive "ปิด PO"**: แสดงวันที่ปิด = MAX(sent_date) ของ items ในแต่ละ PO card
+  - **Archive delete month** (Admin only): ปุ่มลบทั้งเดือน + double confirm เพื่อเคลียร์ข้อมูลที่ export แล้ว
+  - **Tab bar balanced per role**: ปุ่ม + (Add PO) centered เสมอ, tabs ที่ visible แบ่งซ้าย/ขวาเท่า ๆ กันผ่าน CSS `order`
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
@@ -273,6 +289,10 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - **GAS deploy flow** (Legacy): แก้โค้ด → วาง code ทับใน Apps Script Editor → New Deployment → copy URL ใหม่ → อัพเดท HARDCODED_GAS_URL ใน po-mobile.html
 - **Supabase migration strategy**: แก้ po-mobile.html ให้ต่อ Supabase แทน GAS → GAS ยังเก็บไว้เป็น backup → เมื่อ Supabase version stable แล้ว merge dev → main
 - **ทำไมใช้ localISO() แทน toISOString()**: toISOString() คืน UTC ซึ่งไทย (UTC+7) ทำให้วันที่เลื่อน -1 วันช่วงเที่ยงคืน-ตี 7 — ใช้ getFullYear/getMonth/getDate ซึ่งเป็น local time ของ browser แทน
+- **ทำไม selection ใช้ `_sbId` ไม่ใช่ array index**: `db.items` ถูก replace ทุก 30 วิจาก auto-refresh. ถ้ามีใคร add/delete item ระหว่างนั้น index เพี้ยน → toggleItem ชี้ผิด row → "เลือกชิ้นงานก่อน" toast ทั้งที่ user เลือกแล้ว. UUID ของ Supabase เป็น stable key
+- **ทำไม QC Pass/Fail ไม่เขียน DB ทันที**: ให้ consistency กับ status อื่น (รับของ/ผลิต/ส่ง) ที่ตั้ง staged state แล้ว commit ผ่าน "บันทึก" bar. Pass/Fail เป็นแค่ decision stage + ตัวเลือก reason (ถ้า Fail); saveUpdate เป็น single commit path — ลด race condition + ง่ายต่อการ undo
+- **ทำไม "ปิด PO" ใช้ MAX(sent_date) แทน column `archived_at`**: หลีกเลี่ยง schema change. Semantic ตรงกว่า — "ปิด PO" คือตอนของชิ้นสุดท้ายออก ไม่ใช่ตอน admin กดปุ่ม archive (อาจช้ากว่าเป็นสัปดาห์). Derived data > stored data ที่มีโอกาส de-sync
+- **ทำไม tab bar ใช้ CSS `order` balance รอบ primary**: `display:none` ทำให้ flex sibling ขยายเติมที่ → primary + ถูก push ไปขวา. Alternative `visibility:hidden` ทำให้เหลือ slot ว่างทางขวา. การ compute `order` ใน JS ให้ non-primary tabs แบ่งซ้าย/ขวา รอบ primary = ไม่มี gap, ไม่ใช้ magic pixel, responsive
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
