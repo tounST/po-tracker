@@ -1162,26 +1162,177 @@
   }
   .qc-decision.qc-fail .qc-decision-th { color: var(--danger); }
 
-  /* ── Status picker grid (4 cards) ── */
+  /* ── Status picker grid (4 cards with icon + label) ── */
   .status-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px;
   }
   .status-opt {
-    padding: 14px 10px;
+    padding: 12px 6px;
     border-radius: var(--r-card);
     border: 1.5px solid var(--line);
     background: var(--surface);
-    text-align: center; font-size: 14px; font-weight: 700;
-    color: var(--ink-2);
+    text-align: center;
     cursor: pointer;
     transition: border-color .15s, background .15s, transform .08s;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
   }
   .status-opt:hover { border-color: var(--line-deep); }
-  .status-opt:active { transform: scale(.98); }
-  .status-opt.sel-recv  { border-color: var(--info);    background: var(--info-bg);    color: var(--info); }
-  .status-opt.sel-prod  { border-color: var(--status-prod-fg); background: var(--status-prod-bg); color: var(--status-prod-fg); }
-  .status-opt.sel-ready { border-color: var(--status-qc-fg);   background: var(--status-qc-bg);   color: var(--status-qc-fg); }
-  .status-opt.sel-sent  { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+  .status-opt:active { transform: scale(.97); }
+  .status-opt-icon {
+    width: 38px; height: 38px;
+    border-radius: var(--r-pill);
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-2);
+    transition: background .15s, color .15s;
+  }
+  .status-opt-label {
+    font-size: 12px; font-weight: 700;
+    color: var(--ink-2);
+    letter-spacing: -0.1px;
+    line-height: 1.2;
+  }
+  .status-opt.sel-recv  { border-color: var(--info);          background: var(--info-bg); }
+  .status-opt.sel-recv  .status-opt-icon  { background: var(--info);          color: #fff; }
+  .status-opt.sel-recv  .status-opt-label { color: var(--info); }
+  .status-opt.sel-prod  { border-color: var(--status-prod-fg); background: var(--status-prod-bg); }
+  .status-opt.sel-prod  .status-opt-icon  { background: var(--status-prod-fg); color: #fff; }
+  .status-opt.sel-prod  .status-opt-label { color: var(--status-prod-fg); }
+  .status-opt.sel-ready { border-color: var(--status-qc-fg);   background: var(--status-qc-bg); }
+  .status-opt.sel-ready .status-opt-icon  { background: var(--status-qc-fg);   color: #fff; }
+  .status-opt.sel-ready .status-opt-label { color: var(--status-qc-fg); }
+  .status-opt.sel-sent  { border-color: var(--success);        background: var(--success-bg); }
+  .status-opt.sel-sent  .status-opt-icon  { background: var(--success);        color: #fff; }
+  .status-opt.sel-sent  .status-opt-label { color: var(--success); }
+
+  /* ── Update PO Hero (stats row + progress + remark — design screen 04) ── */
+  .uph-wrap {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .uph-urgent-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--danger-bg); color: var(--danger);
+    padding: 4px 10px; border-radius: var(--r-pill);
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .uph-company {
+    font-size: 18px; font-weight: 800;
+    color: var(--ink); letter-spacing: -0.3px;
+  }
+  .uph-model {
+    font-size: 13px; color: var(--ink-3);
+    margin-top: 2px; font-weight: 500;
+  }
+  .uph-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    margin-top: 16px;
+  }
+  .uph-stat {
+    padding: 0 4px;
+    border-left: 1px solid var(--line);
+  }
+  .uph-stat:first-child { border-left: none; padding-left: 0; }
+  .uph-stat-label {
+    font-size: 10px; font-weight: 800;
+    color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 1.2px;
+  }
+  .uph-stat-val {
+    font-size: 18px; font-weight: 800;
+    color: var(--ink); letter-spacing: -0.3px;
+    margin-top: 3px;
+    font-family: var(--font-mono);
+  }
+  .uph-stat-sub {
+    font-size: 11px; color: var(--ink-3);
+    margin-top: 2px; font-weight: 500;
+  }
+  .uph-stat.danger .uph-stat-val { color: var(--danger); }
+
+  .uph-remark {
+    background: var(--accent-soft);
+    border-radius: var(--r-sm);
+    padding: 8px 12px;
+    color: var(--accent-ink);
+    font-size: 12px; font-weight: 600;
+    margin-top: 12px;
+    display: flex; gap: 6px; align-items: flex-start;
+  }
+
+  /* Progress card for update page */
+  .uph-progress-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .uph-progress-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .uph-progress-label {
+    font-size: 10px; font-weight: 800; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 1.5px;
+  }
+  .uph-progress-pct {
+    font-size: 24px; font-weight: 800;
+    color: var(--danger); letter-spacing: -0.5px;
+    font-family: var(--font-mono);
+  }
+  .uph-progress-count {
+    font-size: 22px; font-weight: 800;
+    color: var(--ink); letter-spacing: -0.3px;
+    margin: 4px 0 10px;
+    font-family: var(--font-mono);
+  }
+  .uph-progress-count .mono-slash { color: var(--ink-3); font-weight: 500; }
+  .uph-progress-count .uph-unit { font-size: 14px; color: var(--ink-3); font-weight: 600; font-family: inherit; }
+  .uph-progress-legend {
+    display: flex; gap: 14px; margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .uph-legend-item {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--ink-3); font-weight: 600;
+  }
+  .uph-legend-dot {
+    width: 8px; height: 8px; border-radius: var(--r-pill);
+    flex-shrink: 0;
+  }
+
+  /* Group header for grouped items (in update flow) */
+  .items-group-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 16px 2px 8px;
+  }
+  .items-group-th {
+    font-size: 15px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.1px;
+  }
+  .items-group-count {
+    font-size: 10px; font-weight: 800; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 1.2px;
+  }
+
+  /* Status chip hung after item name (compact inline) */
+  .item-status-chip {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: var(--r-pill);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.2px;
+    margin-left: 4px;
+  }
+  .item-status-chip.st-recv { background: var(--info-bg);    color: var(--info); }
+  .item-status-chip.st-prod { background: var(--warning-bg); color: var(--warning); }
+  .item-status-chip.st-qc   { background: var(--status-qc-bg); color: var(--status-qc-fg); }
+  .item-status-chip.st-sent { background: var(--success-bg); color: var(--success); }
   /* sel-rework removed — rework is now a toggle, not a status */
 
   /* ── Urgent toggle (and similar toggles) ── */
@@ -1788,16 +1939,16 @@
       </div>
     </div>
 
+    <!-- PO Hero (urgent chip + company + model + stats + remark + progress) -->
+    <div id="update-po-hero"></div>
+
     <!-- Selection banner (always visible, updates count) -->
     <div class="selection-banner" id="selection-banner">
       <span class="selection-banner-count" id="selection-banner-count">แตะเพื่อเลือก</span>
       <span class="selection-banner-hint" id="selection-banner-hint">เลือกได้หลายชิ้น</span>
     </div>
 
-    <!-- PO mini context -->
-    <div id="update-po-detail" class="update-po-detail"></div>
-
-    <!-- Item list (flat, no card wrapper) -->
+    <!-- Items grouped by status -->
     <div id="items-list" class="item-list"></div>
 
     <!-- Status picker — always visible once PO picked -->
@@ -1807,10 +1958,22 @@
         <div class="slp-en">Change status to</div>
       </div>
       <div class="status-grid">
-        <div class="status-opt" data-status="รับของแล้ว"   data-sel="sel-recv"   onclick="selectStatus('รับของแล้ว','sel-recv',this)">รับของแล้ว</div>
-        <div class="status-opt" data-status="กำลังผลิต"    data-sel="sel-prod"   onclick="selectStatus('กำลังผลิต','sel-prod',this)">กำลังผลิต</div>
-        <div class="status-opt" data-status="QC/เตรียมส่ง"    data-sel="sel-ready"  onclick="selectStatus('QC/เตรียมส่ง','sel-ready',this)">QC / เตรียมส่ง</div>
-        <div class="status-opt" data-status="ส่งแล้ว"      data-sel="sel-sent"   onclick="selectStatus('ส่งแล้ว','sel-sent',this)">ส่งแล้ว</div>
+        <div class="status-opt" data-status="รับของแล้ว" data-sel="sel-recv" onclick="selectStatus('รับของแล้ว','sel-recv',this)">
+          <div class="status-opt-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 9l6 6 6-6M4 20h16"/></svg></div>
+          <div class="status-opt-label">รับของแล้ว</div>
+        </div>
+        <div class="status-opt" data-status="กำลังผลิต" data-sel="sel-prod" onclick="selectStatus('กำลังผลิต','sel-prod',this)">
+          <div class="status-opt-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0110 10M12 2v10l8-5"/><circle cx="12" cy="12" r="10"/></svg></div>
+          <div class="status-opt-label">กำลังผลิต</div>
+        </div>
+        <div class="status-opt" data-status="QC/เตรียมส่ง" data-sel="sel-ready" onclick="selectStatus('QC/เตรียมส่ง','sel-ready',this)">
+          <div class="status-opt-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M8 11l2 2 4-4"/></svg></div>
+          <div class="status-opt-label">QC / เตรียมส่ง</div>
+        </div>
+        <div class="status-opt" data-status="ส่งแล้ว" data-sel="sel-sent" onclick="selectStatus('ส่งแล้ว','sel-sent',this)">
+          <div class="status-opt-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>
+          <div class="status-opt-label">ส่งแล้ว</div>
+        </div>
       </div>
 
       <!-- ★ Toggle งานกลับมาแก้ไข -->
@@ -3372,8 +3535,14 @@ function openPoItems(poId) {
   document.getElementById('update-form-section').style.display   = 'block';
 
   document.getElementById('update-po-badge').textContent = poId;
-  document.getElementById('update-po-detail').innerHTML =
-    `<strong>${po.company}</strong> · ${po.model || '—'} · กำหนด ${thaiDate(po.due)}${po.urgent ? ' · <span style="color:var(--danger);font-weight:800;">🔥 ด่วน</span>' : ''}`;
+
+  // Subheader pono label showing PO status (e.g., "PARTIAL SEND")
+  const poStatusUpper = { 'Order':'ORDER', 'In progress':'IN PROGRESS', 'Partial Send':'PARTIAL SEND', 'Complete':'COMPLETE' }[po.status] || '';
+  const subHead = document.querySelector('.update-subheader-pono');
+  if (subHead) subHead.innerHTML = `<span style="color:var(--ink-3);margin-right:6px;">${poStatusUpper}</span>${poId}`;
+
+  // Render update hero (urgent chip + company + model + stats + remark + progress)
+  renderUpdateHero(po, its);
   updateSelectionBanner();
 
   // Bundle PO dropdown
@@ -3402,8 +3571,26 @@ function openPoItems(poId) {
     'ส่งแล้ว':         'st-sent',
     'กลับมาแก้ไข':    'st-prod',
   };
-  list.innerHTML = its.map((it, idx) => {
+  const STATUS_SHORT_LABEL = {
+    'รับของแล้ว':     'รับของ',
+    'กำลังผลิต':      'ผลิต',
+    'QC/เตรียมส่ง':   'QC',
+    'ส่งแล้ว':         'ส่งแล้ว',
+    'กลับมาแก้ไข':    'แก้ไข',
+  };
+
+  // Group items by status (preserve STATUS_ORDER)
+  const STATUS_ORDER = ['รับของแล้ว', 'กำลังผลิต', 'QC/เตรียมส่ง', 'ส่งแล้ว'];
+  const groups = {};
+  STATUS_ORDER.forEach(s => groups[s] = []);
+  its.forEach((it, idx) => {
+    const s = groups[it.status] ? it.status : 'รับของแล้ว';
+    groups[s].push({ it, idx });
+  });
+
+  const renderRow = ({ it, idx }) => {
     const stCls = STATUS_CLS_MAP[it.status] || 'st-recv';
+    const stLabel = STATUS_SHORT_LABEL[it.status] || it.status;
     const sub = [];
     if (it.color) sub.push(it.color);
     if (it.sentDate) sub.push(`ส่ง ${shortThaiDate(it.sentDate)}`);
@@ -3416,6 +3603,7 @@ function openPoItems(poId) {
           <div class="item-name-row">
             ${it.urgent ? '<span class="po-flame" style="font-size:13px;">🔥</span>' : ''}
             <span class="item-name">${it.part}</span>
+            <span class="item-status-chip ${stCls}">${stLabel}</span>
             ${it.rework ? '<span class="po-rework-badge">แก้</span>' : ''}
           </div>
           <div class="item-sub">${sub.join(' · ')}</div>
@@ -3424,7 +3612,77 @@ function openPoItems(poId) {
         </div>
       </div>
     `;
+  };
+
+  list.innerHTML = STATUS_ORDER.map(status => {
+    const group = groups[status];
+    if (!group.length) return '';
+    const cnt = group.length;
+    return `
+      <div class="items-group-head">
+        <div class="items-group-th">${status}</div>
+        <div class="items-group-count">${cnt} ${cnt === 1 ? 'ITEM' : 'ITEMS'}</div>
+      </div>
+      ${group.map(renderRow).join('')}
+    `;
   }).join('');
+}
+
+// Render PO hero (stats + progress + remark) on Update page
+function renderUpdateHero(po, its) {
+  const host = document.getElementById('update-po-hero');
+  if (!host) return;
+  const sent = its.filter(i => i.status === 'ส่งแล้ว').length;
+  const total = its.length;
+  const pct = total ? Math.round(sent / total * 100) : 0;
+  const dl = daysLeft(po.due);
+  const dlText = dl === null ? '—' : (dl < 0 ? `เลย ${Math.abs(dl)}` : dl === 0 ? 'วันนี้' : String(dl));
+  const dlSub  = dl === null ? '' : (dl < 0 ? 'วัน' : dl === 0 ? '' : 'วัน คงเหลือ');
+
+  host.innerHTML = `
+    <div class="uph-wrap">
+      ${po.urgent && po.status !== 'Complete' ? `
+        <div class="uph-urgent-chip">
+          <span class="po-flame" style="font-size:11px;">🔥</span> งานด่วน · URGENT
+        </div>
+      ` : ''}
+      <div class="uph-company">${po.company}</div>
+      ${po.model ? `<div class="uph-model">${po.model}</div>` : ''}
+      <div class="uph-stats">
+        <div class="uph-stat">
+          <div class="uph-stat-label">Received</div>
+          <div class="uph-stat-val">${po.recv ? po.recv.slice(5) : '—'}</div>
+          <div class="uph-stat-sub">รับ</div>
+        </div>
+        <div class="uph-stat">
+          <div class="uph-stat-label">Due</div>
+          <div class="uph-stat-val">${po.due ? po.due.slice(5) : '—'}</div>
+          <div class="uph-stat-sub">กำหนด</div>
+        </div>
+        <div class="uph-stat ${dl !== null && dl < 0 ? 'danger' : ''}">
+          <div class="uph-stat-label">Days left</div>
+          <div class="uph-stat-val">${dlText}</div>
+          <div class="uph-stat-sub">${dlSub}</div>
+        </div>
+      </div>
+      ${po.remark ? `<div class="uph-remark"><span>💬</span><span>${po.remark}</span></div>` : ''}
+    </div>
+
+    <div class="uph-progress-card">
+      <div class="uph-progress-head">
+        <span class="uph-progress-label">Progress</span>
+        <span class="uph-progress-pct">${pct}%</span>
+      </div>
+      <div class="uph-progress-count">${sent}<span class="mono-slash"> / ${total}</span> <span class="uph-unit">ชิ้น</span></div>
+      ${segmentedProgress(its)}
+      <div class="uph-progress-legend">
+        <span class="uph-legend-item"><span class="uph-legend-dot" style="background:var(--success)"></span>ส่ง</span>
+        <span class="uph-legend-item"><span class="uph-legend-dot" style="background:var(--status-qc-fg)"></span>QC</span>
+        <span class="uph-legend-item"><span class="uph-legend-dot" style="background:var(--warning)"></span>ผลิต</span>
+        <span class="uph-legend-item"><span class="uph-legend-dot" style="background:var(--info)"></span>รับ</span>
+      </div>
+    </div>
+  `;
 }
 
 function toggleItem(idx) {
