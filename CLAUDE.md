@@ -96,6 +96,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | Complete PO แสดง "เลยกำหนด X วัน" | ✅ Fixed → แสดง "✅ ส่งครบแล้ว" |
 | Archive detail แสดง "ไม่มีข้อมูล" | ✅ Fixed → rewrite parser ใช้ PO-ID pattern matching |
 | Archive ข้อมูลซ้ำเมื่อกดปุ่มหลายครั้ง | ✅ Fixed → dedup check ก่อนเขียน |
+| BUG6: วันที่เลื่อน ±1 วัน (timezone) | ✅ Fixed (2026-04-10) → เปลี่ยน toISOString() เป็น localISO() ทุกจุด |
+| BUG7: Save bar บังข้างล่าง scroll ไม่ได้ | ✅ Fixed (2026-04-20) → body.has-save-bar padding ขยาย 170px |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
@@ -132,14 +134,23 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - Sheet 1: สรุป PO (เลขที่, บริษัท, รุ่นรถ, วันรับ/ส่ง, สถานะ, จำนวนชิ้น)
   - Sheet 2: รายการชิ้นงานทั้งหมด (สถานะ, สี, วันส่ง, bundle PO)
   - Header สีม่วง (theme เข้ากับ Archive), แถวสลับสี, ชิ้นที่ส่งแล้วไฮไลท์เขียว
+- ✅ **แก้บั๊กวันที่เลื่อน ±1 วัน** (2026-04-10)
+  - สาเหตุ: ใช้ `toISOString()` ซึ่งคืน UTC — ไทย UTC+7 ทำให้ช่วง 00:00-06:59 วันที่ถอยหลัง 1 วัน
+  - แก้: สร้าง `localISO(d)` ใช้ `getFullYear/getMonth/getDate` แทน ทั้ง 4 จุด
+  - จุดที่แก้: `todayISO()`, `fixDateStr()` (2 จุด), Export filename
+- ✅ **Mobile UI Redesign ตาม design handoff** (2026-04-20) — ดูรายละเอียดใน "Phase 2C" ด้านล่าง
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
-### Phase 2A — โหมดจุดงาน + Partial Update (✅ เสร็จแล้ว)
+---
+
+### ✅ Phase 2A — โหมดจุดงาน + Partial Update (เสร็จแล้ว)
 - ✅ โหมดจุดงาน — role/station-based access control
 - ✅ Partial Update — Supabase update ทีละ row (ไม่ overwrite ทั้ง sheet)
 
-### Phase 2B — Migrate ไป Supabase (✅ เสร็จแล้ว)
+---
+
+### ✅ Phase 2B — Migrate ไป Supabase (เสร็จแล้ว)
 - ✅ สร้าง Supabase project + tables + ย้ายข้อมูล
 - ✅ แก้ po-mobile.html ต่อ Supabase แทน GAS (supabase-js client)
 - ✅ PIN login + User account + Activity Log
@@ -147,26 +158,109 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 - ✅ QC Inspection + Defect tracking
 - ✅ Archive: เอากลับ + ลบถาวร
 
-### Phase 3 — ฟีเจอร์ธุรกิจ (ทำถัดไป ⭐ เพิ่มได้เรื่อยๆ)
-- TODO: โหมดจุดงาน UI จริง — หลัง login แต่ละ station เห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
-- TODO: ระบบสต๊อกวัตถุดิบ/สี (เพิ่ม table ใน Supabase)
-- TODO: ระบบคิดต้นทุน (SQL คำนวณได้เลย)
-- TODO: Line แจ้งเตือน (Supabase Edge Functions + Webhook)
-- TODO: เชื่อม n8n workflow (REST API พร้อมใช้)
-- TODO: Dashboard สรุปยอดผลิต/ส่ง (SQL query เร็ว)
+---
 
-### Phase 3 — ฟีเจอร์ธุรกิจ (หลังย้าย Supabase แล้ว เพิ่มได้เรื่อยๆ)
-- ระบบสต๊อกวัตถุดิบ/สี (เพิ่ม table ใน Supabase)
-- ระบบคิดต้นทุน (SQL คำนวณได้เลย)
-- Line แจ้งเตือน (Supabase Edge Functions + Webhook)
-- เชื่อม n8n workflow (REST API พร้อมใช้)
-- Dashboard สรุปยอดผลิต/ส่ง (SQL query เร็ว)
+### ✅ Phase 2C — Mobile UI Redesign (เสร็จแล้ว 2026-04-20)
+**สรุป**: ปรับหน้าตาทั้งแอปตาม design handoff `For mobile/PO tracker (1)/po_tracker_handoff/` — **~25 commits**
+Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cream palette
 
-### Phase 4 — Scale Up (เมื่อธุรกิจโตจริง)
-- Mobile app จริง (React Native / Flutter)
-- Row Level Security (แต่ละคนเห็นเฉพาะข้อมูลที่ควรเห็น)
-- Realtime sync (เหมือน Google Docs — ทุกคนเห็นการเปลี่ยนแปลงทันที)
-- รองรับ 100+ users
+**L1 — Theme colors** (`3095d7f`)
+- เปลี่ยน :root variables จาก blue → warm neutral + terracotta `#B85C3C`
+- Status badges, topbar gradient, meta theme-color
+
+**L2 — Component refinement** (`76dd4c3`, `2495731`)
+- Cards: ลบ drop shadow → border 1px
+- Form inputs: radius 10, border 1px, focus terracotta
+- Buttons: hover brightness, outline variant
+- Topbar: solid shadow → subtle border
+
+**L3-A — Hero Stat Card** (`9840808`)
+- Dark ink card บน Dashboard: 48px active PO number + 4-col split (ส่ง/ผลิต/QC/แก้ไข)
+
+**L3-B — Urgent section + Due-soon** (`7b10509`, `4e25bca`)
+- Urgent: flame icon + borderLeft danger, cap 5 POs, count chip
+- Due-soon: horizontal scroll 2 cards, tone ตาม days-left
+
+**Token migration + Login redesign** (`1de1467`, `0f186d6`)
+- ใช้ tokens.css มาตรฐาน (--accent, --ink, --surface, etc.)
+- Login: PO brand mark + PIN pad ใหม่ + cream bg
+
+**POCard + SegmentedProgress + DueChip** (`bacb03d`)
+- Mono PO number, 🔥 pulse animation, segmented bar ตาม status
+
+**Screen-by-screen redesign** (`5741621`, `1a34ea5`, `9cd7cde`, `7acb3ec`, `b66d990`, `56bb491`, `13e9f01`)
+- PO Detail modal (stats row + progress + grouped items)
+- Update tab (selection banner, status picker, sticky save bar)
+- QC dark hero + 2 decision cards
+- Archive month cards + PO cards
+- Manage tabs + User cards + tag chips
+- Sync modal
+
+**Minimalize** (`5e73cd7`, `fa24fc1`, `bb460f6`, `9e2a681`, `2ebc8fc`)
+- ลบ Quick Actions (redundant กับ bottom tab)
+- Emoji → SVG line icons (1.7 stroke)
+- Update page: full detail layout (company/stats/progress/grouped)
+- Status picker: icon + text (ไม่ใช่แค่สี)
+- Status chip ต่อท้ายชื่อชิ้นงาน
+- Typography hierarchy: PO number เด่นเป็น heading
+- Fix save bar bug — body padding ขยายเมื่อ save bar ขึ้น
+
+**Filter chips + Bottom tab bar** (`fc0a262`, `b8a599c`)
+- Bottom tab bar fixed + center terracotta ➕ primary
+- Filter chips แทน dropdown (กำลังทำ/ด่วน/บางส่วน/เสร็จ/ทั้งหมด)
+
+---
+
+### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-20)
+**ไม่มี** — Mobile UI เสร็จสมบูรณ์แล้ว กำลังรอ user ทดสอบใช้งานจริง
+
+---
+
+### 📋 ขั้นตอนที่เหลือ (เรียงตามลำดับ)
+
+#### **🎯 ลำดับ 1: PC Version** (parked — ทำเมื่อ Mobile stable)
+จาก design bundle `For PC/_unzip/po_tracker_handoff/` — 8 หน้าจอ desktop layout
+- [ ] Desktop Shell: Sidebar 248px ซ้าย + Topbar บน
+- [ ] Dashboard — Sidebar + KPI row + 2-col (due list + activity)
+- [ ] PO List — ตาราง 9 คอลัมน์ (data table)
+- [ ] PO Detail — main + 340px side panel (timeline, notes)
+- [ ] Create PO — form ซ้าย + sticky summary ขวา
+- [ ] QC Inspect — queue grid 3-col + inspect panel 400px
+- [ ] Archive — month cards 4-col + stats
+- [ ] Manage — tabs + role breakdown
+- **เวลาประเมิน**: 2-5 วัน | **ทำใน**: `@media (min-width: 1024px)` block
+
+#### **⭐ ลำดับ 2: Phase 3 — ฟีเจอร์ธุรกิจ** (6 ฟีเจอร์)
+- [ ] โหมดจุดงาน UI จริง — หลัง login แต่ละ station เห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
+- [ ] ระบบสต๊อกวัตถุดิบ/สี — เพิ่ม table `stock`, `stock_movements` ใน Supabase
+- [ ] ระบบคิดต้นทุน — คำนวณต้นทุน PO จากชิ้น × สี + ค่าแรง (SQL view)
+- [ ] Line แจ้งเตือน — Supabase Edge Function + Line Notify webhook (เตือนลูกค้าเมื่อส่ง)
+- [ ] เชื่อม n8n workflow — เปิด REST API สำหรับ automation
+- [ ] Dashboard สรุปยอดผลิต/ส่ง — chart ยอดรายเดือน, top customers, top parts
+
+#### **🛡️ ลำดับ 3: Hardening + Backup** (ควรทำก่อน user เยอะขึ้น)
+- [ ] Supabase auto backup — ตั้ง scheduled backup รายวัน (Supabase Pro หรือ custom script)
+- [ ] Row Level Security (RLS) — แต่ละ user เห็นเฉพาะข้อมูลที่ตัวเองเกี่ยวข้อง
+- [ ] Supabase Realtime — เปลี่ยน fetch เป็น subscribe (ลูกน้อง 2 คน update พร้อมกันเห็น real-time)
+- [ ] Error monitoring — log JS errors ขึ้น Supabase table หรือ Sentry free tier
+- [ ] Rate limit — กัน abuse ผ่าน Edge Function middleware
+
+#### **🚀 ลำดับ 4: Phase 4 — Scale Up** (เมื่อธุรกิจโตจริง)
+- [ ] Mobile app จริง (React Native / Flutter) — ถ้ามีคนใช้ 100+
+- [ ] Multi-tenant — รองรับหลายโรงงาน (ถ้า toun เปิดสาขา)
+- [ ] Photo upload จริง — ใช้ Supabase Storage (รับของ + QC)
+- [ ] Customer portal — ลูกค้า login มาดู status PO ของตัวเองได้
+
+---
+
+### สรุปจำนวนขั้นตอนที่เหลือ
+| ระดับ | จำนวนงาน | เวลาประเมิน |
+|---|---|---|
+| **1. PC Version** | 8 หน้าจอ | 2-5 วัน |
+| **2. Phase 3 ฟีเจอร์ธุรกิจ** | 6 ฟีเจอร์ | 2-4 สัปดาห์ |
+| **3. Hardening + Backup** | 5 งาน | 3-5 วัน |
+| **4. Phase 4 Scale Up** | 4 งาน | ~1-2 เดือน |
+| **รวม** | **~23 งาน** | **~2-3 เดือน** |
 
 ## Architecture & Decision Log
 - **ทำไมใช้ JSONP → fetch + credentials:omit**: Chrome ส่ง Google session cookie กับ JSONP → GAS redirect loop
@@ -178,6 +272,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 - **Branch strategy**: main = production (save slot 1), dev = ทดลอง (save slot 2), merge เมื่อพร้อม
 - **GAS deploy flow** (Legacy): แก้โค้ด → วาง code ทับใน Apps Script Editor → New Deployment → copy URL ใหม่ → อัพเดท HARDCODED_GAS_URL ใน po-mobile.html
 - **Supabase migration strategy**: แก้ po-mobile.html ให้ต่อ Supabase แทน GAS → GAS ยังเก็บไว้เป็น backup → เมื่อ Supabase version stable แล้ว merge dev → main
+- **ทำไมใช้ localISO() แทน toISOString()**: toISOString() คืน UTC ซึ่งไทย (UTC+7) ทำให้วันที่เลื่อน -1 วันช่วงเที่ยงคืน-ตี 7 — ใช้ getFullYear/getMonth/getDate ซึ่งเป็น local time ของ browser แทน
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
