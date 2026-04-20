@@ -128,13 +128,13 @@
   }
   .topbar-greeting { flex: 1; min-width: 0; }
   .topbar-subtitle {
-    font-size: 11px;
-    text-transform: uppercase; letter-spacing: 1.5px;
-    color: var(--muted); font-weight: 700;
-    margin-bottom: 3px;
+    font-size: 13px;
+    color: var(--muted); font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: 0.1px;
   }
   .topbar-title {
-    font-size: 22px; font-weight: 800;
+    font-size: 24px; font-weight: 800;
     letter-spacing: -0.3px; color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     margin: 0;
@@ -594,16 +594,23 @@
   }
   .update-back-btn:hover { border-color: var(--line-deep); background: var(--bg-deep); }
   .update-subheader-text { flex: 1; min-width: 0; }
-  .update-subheader-pono {
-    font-size: 10px; font-weight: 800;
-    color: var(--ink-3); letter-spacing: 1.5px;
+  .update-subheader-kicker {
+    font-size: 11px; font-weight: 800;
+    color: var(--ink-3); letter-spacing: 1.8px;
     text-transform: uppercase;
-    font-family: var(--font-mono);
+    margin-bottom: 1px;
   }
-  .update-subheader-title {
+  .update-subheader-pono {
     font-size: 22px; font-weight: 800;
     color: var(--ink); letter-spacing: -0.3px;
-    line-height: 1.2;
+    font-family: var(--font-mono);
+    line-height: 1.15;
+  }
+  .update-subheader-title {
+    font-size: 14px; font-weight: 700;
+    color: var(--ink-2);
+    margin-top: 2px;
+    letter-spacing: -0.1px;
   }
 
   /* Selection banner (always visible in update flow) */
@@ -1225,12 +1232,13 @@
     margin-bottom: 10px;
   }
   .uph-company {
-    font-size: 18px; font-weight: 800;
+    font-size: 20px; font-weight: 800;
     color: var(--ink); letter-spacing: -0.3px;
   }
   .uph-model {
-    font-size: 13px; color: var(--ink-3);
-    margin-top: 2px; font-weight: 500;
+    font-size: 14px; color: var(--ink-3);
+    margin-top: 3px; font-weight: 600;
+    letter-spacing: 0.3px;
   }
   .uph-stats {
     display: grid; grid-template-columns: 1fr 1fr 1fr;
@@ -1243,30 +1251,32 @@
   }
   .uph-stat:first-child { border-left: none; padding-left: 0; }
   .uph-stat-label {
-    font-size: 10px; font-weight: 800;
+    font-size: 11px; font-weight: 800;
     color: var(--ink-3);
-    text-transform: uppercase; letter-spacing: 1.2px;
+    text-transform: uppercase; letter-spacing: 1.3px;
   }
   .uph-stat-val {
-    font-size: 18px; font-weight: 800;
+    font-size: 22px; font-weight: 800;
     color: var(--ink); letter-spacing: -0.3px;
-    margin-top: 3px;
+    margin-top: 4px;
     font-family: var(--font-mono);
+    line-height: 1.1;
   }
   .uph-stat-sub {
-    font-size: 11px; color: var(--ink-3);
-    margin-top: 2px; font-weight: 500;
+    font-size: 13px; color: var(--ink-3);
+    margin-top: 3px; font-weight: 600;
   }
   .uph-stat.danger .uph-stat-val { color: var(--danger); }
 
   .uph-remark {
     background: var(--accent-soft);
     border-radius: var(--r-sm);
-    padding: 8px 12px;
+    padding: 10px 14px;
     color: var(--accent-ink);
-    font-size: 12px; font-weight: 600;
-    margin-top: 12px;
-    display: flex; gap: 6px; align-items: flex-start;
+    font-size: 13px; font-weight: 600;
+    margin-top: 14px;
+    display: flex; gap: 8px; align-items: flex-start;
+    line-height: 1.4;
   }
 
   /* Progress card for update page */
@@ -1281,29 +1291,31 @@
     display: flex; justify-content: space-between; align-items: baseline;
   }
   .uph-progress-label {
-    font-size: 10px; font-weight: 800; color: var(--ink-3);
+    font-size: 11px; font-weight: 800; color: var(--ink-3);
     text-transform: uppercase; letter-spacing: 1.5px;
   }
   .uph-progress-pct {
-    font-size: 24px; font-weight: 800;
+    font-size: 28px; font-weight: 800;
     color: var(--danger); letter-spacing: -0.5px;
     font-family: var(--font-mono);
+    line-height: 1;
   }
   .uph-progress-count {
-    font-size: 22px; font-weight: 800;
+    font-size: 26px; font-weight: 800;
     color: var(--ink); letter-spacing: -0.3px;
-    margin: 4px 0 10px;
+    margin: 6px 0 12px;
     font-family: var(--font-mono);
+    line-height: 1.1;
   }
   .uph-progress-count .mono-slash { color: var(--ink-3); font-weight: 500; }
-  .uph-progress-count .uph-unit { font-size: 14px; color: var(--ink-3); font-weight: 600; font-family: inherit; }
+  .uph-progress-count .uph-unit { font-size: 15px; color: var(--ink-3); font-weight: 600; font-family: inherit; }
   .uph-progress-legend {
-    display: flex; gap: 14px; margin-top: 10px;
+    display: flex; gap: 14px; margin-top: 12px;
     flex-wrap: wrap;
   }
   .uph-legend-item {
     display: inline-flex; align-items: center; gap: 6px;
-    font-size: 11px; color: var(--ink-3); font-weight: 600;
+    font-size: 12px; color: var(--ink-3); font-weight: 600;
   }
   .uph-legend-dot {
     width: 8px; height: 8px; border-radius: var(--r-pill);
@@ -1937,6 +1949,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
       <div class="update-subheader-text">
+        <div class="update-subheader-kicker" id="update-po-kicker">ORDER</div>
         <div class="update-subheader-pono" id="update-po-badge"></div>
         <div class="update-subheader-title">อัพเดตชิ้นงาน</div>
       </div>
@@ -3541,12 +3554,11 @@ function openPoItems(poId) {
   document.getElementById('update-items-section').style.display  = 'block';
   document.getElementById('update-form-section').style.display   = 'block';
 
+  // Subheader: kicker = PO status (e.g., "PARTIAL SEND"), pono = PO id (big title)
+  const poStatusUpper = { 'Order':'ORDER', 'In progress':'IN PROGRESS', 'Partial Send':'PARTIAL SEND', 'Complete':'COMPLETE' }[po.status] || 'ORDER';
+  const kickerEl = document.getElementById('update-po-kicker');
+  if (kickerEl) kickerEl.textContent = poStatusUpper;
   document.getElementById('update-po-badge').textContent = poId;
-
-  // Subheader pono label showing PO status (e.g., "PARTIAL SEND")
-  const poStatusUpper = { 'Order':'ORDER', 'In progress':'IN PROGRESS', 'Partial Send':'PARTIAL SEND', 'Complete':'COMPLETE' }[po.status] || '';
-  const subHead = document.querySelector('.update-subheader-pono');
-  if (subHead) subHead.innerHTML = `<span style="color:var(--ink-3);margin-right:6px;">${poStatusUpper}</span>${poId}`;
 
   // Render update hero (urgent chip + company + model + stats + remark + progress)
   renderUpdateHero(po, its);
