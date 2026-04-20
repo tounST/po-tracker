@@ -3492,6 +3492,17 @@ function backToPoList() {
   document.getElementById('update-items-section').style.display  = 'none';
   document.getElementById('update-save-bar')?.classList.remove('show');
   document.body.classList.remove('has-save-bar');
+  // Reset QC panel + status picker so next PO opens in a clean state
+  document.querySelectorAll('.status-opt').forEach(e => {
+    e.classList.remove('sel-recv','sel-prod','sel-ready','sel-sent','sel-rework');
+  });
+  document.querySelectorAll('.qc-decision').forEach(el => el.classList.remove('selected'));
+  const qcPanel      = document.getElementById('qc-panel');
+  const qcFailDetail = document.getElementById('qc-fail-detail');
+  const qcReasonEl   = document.getElementById('qc-defect-reason');
+  if (qcPanel)      qcPanel.style.display = 'none';
+  if (qcFailDetail) qcFailDetail.style.display = 'none';
+  if (qcReasonEl)   qcReasonEl.value = '';
 
   const list = document.getElementById('update-po-list');
   if (!db.pos.length) {
