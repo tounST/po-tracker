@@ -260,11 +260,8 @@
   .tabnav button.primary.active .tab-icon {
     box-shadow: 0 8px 20px rgba(184,92,60,.5);
   }
-  /* Hidden tabs keep their slot so primary + stays centered across roles */
-  .tabnav button.tab-hidden {
-    visibility: hidden;
-    pointer-events: none;
-  }
+  /* Hidden tabs collapse entirely; JS assigns .style.order on visible
+     ones so that remaining tabs split evenly around the primary + */
 
   /* ── Page sections ── */
   .page { display: none; padding: 14px 14px 0; }
@@ -2544,24 +2541,29 @@ function applyPermissions() {
   if (usernameEl) usernameEl.textContent = roleText;
   badgeEl.innerHTML = `<span class="role-badge ${badgeClass} topbar-role-chip">${roleLabels[currentUser.role]}${stationText}</span>`;
 
-  // Hide/show tabs based on role.
-  // Use 'tab-hidden' class (visibility:hidden) not display:none so the
-  // primary Add PO button stays visually centered regardless of role.
+  // Hide/show tabs based on role, then reorder so non-primary tabs
+  // split evenly around the '+' primary button. This keeps '+' at or
+  // near the visual center regardless of which tabs the role sees.
   const tabs = document.querySelectorAll('.tabnav button');
-  const setTab = (el, visible) => el.classList.toggle('tab-hidden', !visible);
-
-  setTab(tabs[0], true);  // Dashboard — always visible
-  setTab(tabs[1], true);  // Update — always visible
 
   const canAddPO = hasPermission('createPO') ||
     (currentUser.role === 'staff' && currentUser.station && currentUser.station.includes('receiving'));
-  setTab(tabs[2], canAddPO);
-
   const canArchive = hasPermission('archive');
-  setTab(tabs[3], canArchive);
+  const canManage  = hasPermission('manage');
 
-  const canManage = hasPermission('manage');
-  setTab(tabs[4], canManage);
+  const visibility = [true, true, canAddPO, canArchive, canManage];
+  tabs.forEach((t, i) => { t.style.display = visibility[i] ? '' : 'none'; });
+
+  // Build the render order. Non-primary visible indices keep their
+  // natural source order — e.g. Dashboard(0) < Update(1) < Archive(3)
+  // < Manage(4) — then get split into left | primary | right halves.
+  const nonPrimary = [0, 1, 3, 4].filter(i => visibility[i]);
+  const leftCount  = Math.ceil(nonPrimary.length / 2);
+  nonPrimary.forEach((tabIdx, pos) => {
+    // 1..leftCount on the left; skip leftCount+1 (primary); then right
+    tabs[tabIdx].style.order = String(pos < leftCount ? pos + 1 : pos + 2);
+  });
+  if (canAddPO) tabs[2].style.order = String(leftCount + 1);
 
   // Hide admin-only buttons throughout the app
   document.querySelectorAll('.admin-only').forEach(el => {
