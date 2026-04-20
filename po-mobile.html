@@ -658,6 +658,8 @@
     border-radius: var(--r-card);
     border: 1px solid var(--line);
     cursor: pointer;
+    touch-action: manipulation;   /* kill 300ms tap delay on mobile */
+    -webkit-tap-highlight-color: transparent;
     transition: border-color .15s, background .15s, transform .08s;
   }
   .item-row:hover { border-color: var(--line-deep); }
@@ -3020,7 +3022,7 @@ function toast(msg, duration=2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-function statusBadge(s, isRework) {
+function statusBadge(s, isRework, qcPassed) {
   const map = {
     'รับของแล้ว':   ['badge-recv',   'รับของแล้ว'],
     'กำลังผลิต':    ['badge-prod',   'กำลังผลิต'],
@@ -3028,7 +3030,12 @@ function statusBadge(s, isRework) {
     'ส่งแล้ว':      ['badge-sent',   'ส่งแล้ว'],
     'กลับมาแก้ไข': ['badge-rework', 'แก้ไข'],
   };
-  const [cls, label] = map[s] || ['badge-recv', s];
+  let [cls, label] = map[s] || ['badge-recv', s];
+  // Promote QC/เตรียมส่ง to "ผ่าน QC · เตรียมส่ง" (green) once inspected OK
+  if (s === 'QC/เตรียมส่ง' && qcPassed === true) {
+    cls = 'badge-sent';
+    label = 'ผ่าน QC · เตรียมส่ง';
+  }
   if (isRework && s !== 'กลับมาแก้ไข') {
     return `<span class="badge badge-rework">แก้</span> <span class="badge ${cls}">${label}</span>`;
   }
@@ -3399,7 +3406,7 @@ function openDetailModal(poId) {
                 <div class="modal-item-color">${it.color}</div>
                 ${it.qcPassed === false && it.qcDefectReason ? `<div class="modal-item-meta"><span class="meta-danger">❌ QC: ${it.qcDefectReason}</span></div>` : ''}
               </div>
-              ${statusBadge(it.status, false)}
+              ${statusBadge(it.status, it.rework, it.qcPassed)}
             </div>
             ${(it.itemDue || it.sentDate || it.bundlePO || it.remark) ? `
               <div class="modal-item-meta">
@@ -3627,16 +3634,20 @@ function openPoItems(poId) {
     groups[s].push({ it, idx });
   });
 
+  const escAttr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   const renderRow = ({ it, idx }) => {
-    const stCls = STATUS_CLS_MAP[it.status] || 'st-recv';
-    const stLabel = STATUS_SHORT_LABEL[it.status] || it.status;
+    const qcPassedReady = it.status === 'QC/เตรียมส่ง' && it.qcPassed === true;
+    const stCls   = qcPassedReady ? 'st-sent' : (STATUS_CLS_MAP[it.status] || 'st-recv');
+    const stLabel = qcPassedReady ? 'ผ่าน QC · เตรียมส่ง' : (STATUS_SHORT_LABEL[it.status] || it.status);
     const sub = [];
     if (it.color) sub.push(it.color);
     if (it.sentDate) sub.push(`ส่ง ${shortThaiDate(it.sentDate)}`);
     if (it.bundlePO) sub.push(`รวม ${it.bundlePO}`);
+    const key = itemKey(it);
+    const domId = itemKeyDomId(key);
     return `
-      <div class="item-row" id="item-row-${itemKeyDomId(itemKey(it))}" onclick='toggleItem(${JSON.stringify(itemKey(it)).replace(/'/g, "&#39;")})'>
-        <div class="item-check" id="item-check-${itemKeyDomId(itemKey(it))}">✓</div>
+      <div class="item-row" id="item-row-${domId}" data-sbkey="${escAttr(key)}">
+        <div class="item-check" id="item-check-${domId}">✓</div>
         <div class="item-status-dot ${stCls}"></div>
         <div class="item-main">
           <div class="item-name-row">
@@ -3665,6 +3676,15 @@ function openPoItems(poId) {
       ${group.map(renderRow).join('')}
     `;
   }).join('');
+
+  // Delegated click handler — avoids inline-onclick escaping issues
+  // and guarantees exactly one listener regardless of re-renders.
+  list.onclick = (ev) => {
+    const row = ev.target.closest('.item-row');
+    if (!row || !list.contains(row)) return;
+    const key = row.getAttribute('data-sbkey');
+    if (key) toggleItem(key);
+  };
 }
 
 // Render PO hero (stats + progress + remark) on Update page
