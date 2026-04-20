@@ -2185,9 +2185,12 @@
 
   <!-- หน้ารายละเอียด: แสดง PO ในเดือนที่เลือก -->
   <div id="archive-detail" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
       <button class="archive-back-btn" onclick="backToArchiveHome()" style="margin-bottom:0;">← กลับ</button>
-      <button onclick="exportArchiveMonth()" style="background:#1565C0;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;">📥 Export Excel</button>
+      <div style="display:flex;gap:8px;">
+        <button onclick="exportArchiveMonth()" style="background:#1565C0;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">📥 Export</button>
+        <button class="admin-only" onclick="deleteArchiveMonth()" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">🗑️ ลบเดือน</button>
+      </div>
     </div>
     <div id="archive-detail-title" style="font-size:16px;font-weight:700;color:var(--purple);margin-bottom:10px;"></div>
     <div id="archive-stats" class="archive-stats-row" style="display:none;">
@@ -5083,6 +5086,60 @@ async function deleteArchivedPO(poId, poNumber, company, itemCount) {
     } else {
       backToArchiveHome();
     }
+  } catch (e) {
+    toast('❌ ลบไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// ── Delete entire archived month (Admin only) ──
+async function deleteArchiveMonth() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    toast('❌ เฉพาะ Admin เท่านั้น'); return;
+  }
+  if (!_arcCurrentYearMonth) { toast('❌ ไม่พบข้อมูลเดือน'); return; }
+
+  // Fetch all archived POs and filter by the currently-open month.
+  const { data: allArc, error: eFetch } = await sb
+    .from('po_list').select('*').eq('is_archived', true);
+  if (eFetch) { toast('❌ ดึงข้อมูลไม่สำเร็จ: ' + eFetch.message); return; }
+  const monthPOs = (allArc || []).filter(p =>
+    ((p.due_date || p.order_date || '').slice(0, 7) === _arcCurrentYearMonth)
+  );
+  if (monthPOs.length === 0) {
+    toast('⚠️ ไม่มี PO ในเดือนนี้');
+    backToArchiveHome();
+    return;
+  }
+
+  const label = _arcCurrentLabel || _arcCurrentYearMonth;
+  const ok1 = confirm(
+    `ลบ Archive เดือน "${label}" ทั้งหมด?\n` +
+    `- ${monthPOs.length} PO\n` +
+    `ข้อมูลทั้งหมดจะหายถาวรและกู้คืนไม่ได้\n\n` +
+    `ควร Export ออกก่อน ถ้ายังไม่ได้ทำ`
+  );
+  if (!ok1) return;
+  const ok2 = confirm(`ยืนยันอีกครั้ง — ลบ ${monthPOs.length} PO เดือน "${label}"?`);
+  if (!ok2) return;
+
+  try {
+    const poNums = monthPOs.map(p => p.po_number);
+    const poIds  = monthPOs.map(p => p.id);
+    // Delete items first (FK constraint)
+    const { error: e1 } = await sb.from('po_items').delete().in('po_number', poNums);
+    if (e1) throw e1;
+    const { error: e2 } = await sb.from('po_list').delete().in('id', poIds);
+    if (e2) throw e2;
+
+    await logActivity('delete_archive_month', 'archive', {
+      year_month: _arcCurrentYearMonth,
+      label,
+      po_count: monthPOs.length,
+      po_numbers: poNums
+    });
+    toast(`🗑️ ลบ Archive เดือน ${label} เรียบร้อย (${monthPOs.length} PO)`);
+    backToArchiveHome();
+    await loadArchiveList();
   } catch (e) {
     toast('❌ ลบไม่สำเร็จ: ' + e.message);
   }
