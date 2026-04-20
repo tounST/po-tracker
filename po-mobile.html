@@ -4959,6 +4959,12 @@ async function openArchiveMonth(yearMonth, label) {
           </div>`;
       });
       const recvDate = fixDateStr(po.order_date || '');
+      // "ปิด PO" = latest sent_date across items (when the last item shipped)
+      const closeDate = poItems
+        .map(it => fixDateStr(it.sent_date || ''))
+        .filter(Boolean)
+        .sort()
+        .pop();
       const cardId = 'arc-card-' + po.po_number.replace(/[^a-zA-Z0-9-]/g, '');
       const isAdmin = currentUser && currentUser.role === 'admin';
       const moreBtn = isAdmin ? `
@@ -4984,6 +4990,7 @@ async function openArchiveMonth(yearMonth, label) {
             </div>
           </div>
           ${recvDate ? `<div style="font-size:14px;color:var(--muted);margin-top:4px;">รับของ: ${thaiDate(recvDate)}</div>` : ''}
+          ${closeDate ? `<div style="font-size:14px;color:var(--success);font-weight:600;margin-top:2px;">ปิด PO: ${thaiDate(closeDate)}</div>` : ''}
           <div class="arc-summary">${poItems.length} ชิ้นงาน · กดเพื่อดูรายละเอียด</div>
           <div class="arc-items-wrap">${itemsHtml || '<div style="font-size:14px;color:var(--muted);">ไม่มีชิ้นงาน</div>'}</div>
         </div>`;
@@ -5024,6 +5031,10 @@ async function unarchivePO(poId, poNumber) {
     if (error) throw error;
     await logActivity('unarchive', 'po', { po_number: poNumber });
     toast('✅ เอา ' + poNumber + ' กลับแล้ว');
+    // Refresh db so the un-archived PO reappears on Update/Dashboard
+    const data = await loadFromSupabase();
+    if (data) { db = data; saveData(db); }
+    renderDashboard();
     await openArchiveMonth(_arcCurrentYearMonth, _arcCurrentLabel);
   } catch (e) {
     toast('❌ ไม่สำเร็จ: ' + e.message);
@@ -5174,9 +5185,16 @@ async function manualArchive() {
     // Log archive activity
     await logActivity('archive', 'po', { po_count: completePOs.length, po_numbers: completePOs.map(p => p.po_number) });
 
-    // รีโหลดทั้ง Archive list และ Dashboard
+    // รีโหลด db + รีเฟรช Archive list + Dashboard + Update PO list
+    const data = await loadFromSupabase();
+    if (data) { db = data; saveData(db); }
     await loadArchiveList();
-    if (typeof loadFromSupabase === 'function') loadFromSupabase();
+    renderDashboard();
+    // If user is on Update tab viewing the PO list, re-render so the
+    // just-archived POs disappear immediately
+    const updateTab = document.getElementById('tab-update');
+    const onPoList = document.getElementById('update-select-section')?.style.display !== 'none';
+    if (updateTab?.classList.contains('active') && onPoList) backToPoList();
 
   } catch(e) {
     resultEl.style.color = 'var(--red)';
