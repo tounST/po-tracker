@@ -1129,6 +1129,85 @@ button { font-family: inherit; }
 }
 .icon-btn-delete:hover { color: var(--danger); background: var(--danger-bg); }
 
+/* ═══ USER MODAL + row actions ═══ */
+.user-table-row .user-row-actions {
+  display: flex; gap: 4px; justify-content: flex-end;
+}
+.user-row-icon-btn {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--ink-3); cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.user-row-icon-btn:hover { background: var(--bg); color: var(--ink); border-color: var(--line); }
+.user-row-icon-btn.danger:hover { color: var(--danger); background: var(--danger-bg); border-color: var(--danger); }
+
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(42,37,32,0.45);
+  display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.modal-backdrop.show { display: flex; }
+.modal-card {
+  background: var(--surface); color: var(--ink);
+  width: 480px; max-width: 92vw; max-height: 90vh;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(42,37,32,0.3);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.modal-title { font-size: 18px; font-weight: 800; color: var(--ink); margin: 0; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: none; background: transparent; color: var(--ink-3);
+  font-size: 20px; line-height: 1; cursor: pointer; font-family: inherit;
+}
+.modal-close:hover { background: var(--bg); color: var(--ink); }
+
+.modal-body { padding: 18px 22px; overflow-y: auto; }
+.modal-field { margin-bottom: 14px; }
+.modal-field label { font-size: 12px; font-weight: 700; color: var(--ink-2); display: block; margin-bottom: 6px; }
+.modal-field input[type=text],
+.modal-field input[type=number],
+.modal-field select {
+  width: 100%; height: 40px; padding: 0 12px;
+  border: 1px solid var(--line-deep); border-radius: 9px;
+  background: var(--bg); color: var(--ink);
+  font-size: 13px; font-family: inherit; outline: none;
+}
+.modal-field input:focus, .modal-field select:focus { border-color: var(--accent); }
+.modal-field input.pin-input {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 6px; font-size: 16px; font-weight: 700; text-align: center;
+}
+
+.station-checks {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+  padding: 4px 0;
+}
+.station-check {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink);
+  cursor: pointer; user-select: none;
+}
+.station-check input { margin: 0; accent-color: var(--accent); }
+.station-check.on { background: var(--accent-soft); border-color: var(--accent); }
+
+.modal-footer {
+  padding: 14px 22px 18px;
+  display: flex; gap: 10px; justify-content: flex-end;
+  border-top: 1px solid var(--line);
+}
+
 /* ═══ TOAST + LOADING ═══ */
 #toast-container {
   position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
@@ -1305,6 +1384,50 @@ button { font-family: inherit; }
 <div id="toast-container"></div>
 <div id="loading-overlay"><div class="spinner"></div></div>
 
+<!-- User CRUD modal (admin only) -->
+<div class="modal-backdrop" id="user-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2 class="modal-title" id="user-modal-title">เพิ่มผู้ใช้ใหม่</h2>
+      <button class="modal-close" id="user-modal-close" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field">
+        <label>ชื่อที่แสดง *</label>
+        <input type="text" id="um-dname" placeholder="เช่น สมชาย ขยันงาน">
+      </div>
+      <div class="modal-field">
+        <label>Username * (ภาษาอังกฤษ ตัวเล็ก)</label>
+        <input type="text" id="um-uname" placeholder="เช่น somchai" autocomplete="off">
+      </div>
+      <div class="modal-field">
+        <label>PIN * (ตัวเลข 4 หลัก, ห้ามซ้ำกับคนอื่น)</label>
+        <input type="text" id="um-pin" class="pin-input" maxlength="4" inputmode="numeric" placeholder="••••">
+      </div>
+      <div class="modal-field">
+        <label>Role</label>
+        <select id="um-role">
+          <option value="admin">👑 Admin</option>
+          <option value="supervisor">⭐ หัวหน้า</option>
+          <option value="manager">📋 ผู้จัดการ</option>
+          <option value="staff" selected>👷 พนักงาน</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Station (จุดงานที่อัพเดทสถานะได้)</label>
+        <div class="station-checks" id="um-stations"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="um-cancel-btn">ยกเลิก</button>
+      <button class="btn btn-primary" id="um-save-btn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+        บันทึก
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════
 //  CONFIG + STATE
@@ -1343,6 +1466,9 @@ const PERMISSIONS = {
 };
 const ROLE_LABELS = { admin: 'Admin', supervisor: 'Supervisor', manager: 'Manager', staff: 'Staff' };
 const ROLE_COLORS = { admin: '#A33B2E', supervisor: '#B8832A', manager: '#3F5AA6', staff: '#4A7F3F' };
+const ROLE_TH = { admin: '👑 Admin', supervisor: '⭐ หัวหน้า', manager: '📋 ผู้จัดการ', staff: '👷 พนักงาน' };
+const USER_STATION_KEYS   = ['all','receiving','production','qc','shipping'];
+const USER_STATION_LABELS = { all: 'ทั้งหมด', receiving: '📥 รับของ', production: '🔄 ผลิต', qc: '🔍 QC', shipping: '📦 ส่งของ' };
 
 function hasPermission(permKey) {
   if (!currentUser) return false;
@@ -2065,7 +2191,164 @@ const ACTION_LABELS = {
   delete_archived_po: 'ลบ PO ถาวร',
   delete_archive_month: 'ลบ Archive เดือน',
   export_archive: 'Export Archive',
+  add_user: 'เพิ่มผู้ใช้',
+  edit_user: 'แก้ไขผู้ใช้',
+  delete_user: 'ลบผู้ใช้',
 };
+
+// ═══════════════════════════════════════════════════
+//  USER CRUD MODAL (admin only)
+// ═══════════════════════════════════════════════════
+let userModalEditId = null;  // null = adding new, else UUID being edited
+
+function openUserModal(data) {
+  userModalEditId = data?.id || null;
+  document.getElementById('user-modal-title').textContent = data ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้ใหม่';
+  document.getElementById('um-dname').value = data?.display_name || '';
+  document.getElementById('um-uname').value = data?.username || '';
+  document.getElementById('um-pin').value   = data?.pin || '';
+  document.getElementById('um-role').value  = data?.role || 'staff';
+  renderStationChecks(data?.station || 'all');
+  document.getElementById('user-modal').classList.add('show');
+  setTimeout(() => document.getElementById('um-dname').focus(), 50);
+}
+function closeUserModal() {
+  document.getElementById('user-modal').classList.remove('show');
+  userModalEditId = null;
+}
+
+function renderStationChecks(selectedStr) {
+  const selected = (selectedStr || 'all').split(',').map(s => s.trim());
+  const host = document.getElementById('um-stations');
+  host.innerHTML = USER_STATION_KEYS.map(k => {
+    const checked = selected.includes(k);
+    return `<label class="station-check ${checked ? 'on' : ''}" data-station="${k}">
+      <input type="checkbox" value="${k}" ${checked ? 'checked' : ''}>
+      ${USER_STATION_LABELS[k]}
+    </label>`;
+  }).join('');
+  // Mutual-exclusion rule: 'all' clears others; any other clears 'all'
+  host.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.onchange = () => {
+      const boxes = host.querySelectorAll('input[type=checkbox]');
+      if (cb.value === 'all' && cb.checked) {
+        boxes.forEach(b => { if (b.value !== 'all') b.checked = false; });
+      } else if (cb.value !== 'all' && cb.checked) {
+        boxes.forEach(b => { if (b.value === 'all') b.checked = false; });
+      }
+      // Sync .on class for visual state
+      boxes.forEach(b => b.closest('.station-check').classList.toggle('on', b.checked));
+    };
+  });
+}
+
+function getStationValue() {
+  const host = document.getElementById('um-stations');
+  const checked = [...host.querySelectorAll('input[type=checkbox]:checked')].map(b => b.value);
+  return checked.length === 0 ? '' : checked.join(',');
+}
+
+async function validateUserForm(excludeId) {
+  const dname = document.getElementById('um-dname').value.trim();
+  const uname = document.getElementById('um-uname').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+  const pin   = document.getElementById('um-pin').value.trim();
+  const role  = document.getElementById('um-role').value;
+  const station = getStationValue();
+
+  if (!dname)                 { toast('⚠️ กรุณากรอกชื่อที่แสดง'); return null; }
+  if (!uname)                 { toast('⚠️ กรุณากรอก Username'); return null; }
+  if (!/^[0-9]{4}$/.test(pin)) { toast('⚠️ PIN ต้องเป็นตัวเลข 4 หลัก'); return null; }
+  if (!station)                { toast('⚠️ กรุณาเลือก Station อย่างน้อย 1 จุด'); return null; }
+
+  // Dedup checks — exclude the row being edited
+  let qU = sb.from('users').select('id').eq('username', uname);
+  if (excludeId) qU = qU.neq('id', excludeId);
+  const { data: dupU } = await qU;
+  if (dupU && dupU.length > 0) { toast(`⚠️ Username "${uname}" ถูกใช้แล้ว`); return null; }
+
+  let qP = sb.from('users').select('id').eq('pin', pin);
+  if (excludeId) qP = qP.neq('id', excludeId);
+  const { data: dupP } = await qP;
+  if (dupP && dupP.length > 0) { toast(`⚠️ PIN "${pin}" ถูกใช้แล้ว`); return null; }
+
+  return { display_name: dname, username: uname, pin, role, station };
+}
+
+async function submitUserModal() {
+  const vals = await validateUserForm(userModalEditId);
+  if (!vals) return;
+  showLoading(true);
+  try {
+    if (userModalEditId) {
+      // EDIT
+      const { data: old } = await sb.from('users').select('*').eq('id', userModalEditId).single();
+      const { error } = await sb.from('users').update(vals).eq('id', userModalEditId);
+      if (error) throw error;
+      const changes = {};
+      if (old) {
+        ['display_name','username','pin','role','station'].forEach(f => {
+          if (old[f] !== vals[f]) changes[f] = `${old[f] || ''} → ${vals[f]}`;
+        });
+      }
+      await logActivity('edit_user', 'user', { username: vals.username, changes });
+      toast(`✅ แก้ไข "${vals.display_name}" สำเร็จ`);
+    } else {
+      // ADD
+      const { error } = await sb.from('users').insert({ ...vals, is_active: true });
+      if (error) throw error;
+      await logActivity('add_user', 'user', { username: vals.username, display_name: vals.display_name, role: vals.role, station: vals.station });
+      toast(`✅ เพิ่ม "${vals.display_name}" สำเร็จ`);
+    }
+    closeUserModal();
+    renderManageUsers();  // reload list
+  } catch(e) {
+    console.error('[submitUserModal]', e);
+    toast('❌ บันทึกไม่สำเร็จ: ' + (e.message || e), 4000);
+  }
+  showLoading(false);
+}
+
+async function deleteUserDesktop(u) {
+  const name = u.display_name || u.username;
+  if (!confirm(`ลบผู้ใช้ "${name}" ถาวร?\n\nกิจกรรมที่ ${name} เคยทำใน activity log จะอ้างอิง id เดิม (เก็บไว้เป็นประวัติ)`)) return;
+  showLoading(true);
+  try {
+    const { error } = await sb.from('users').delete().eq('id', u.id);
+    if (error) throw error;
+    await logActivity('delete_user', 'user', { username: u.username, display_name: u.display_name });
+    toast(`🗑️ ลบ "${name}" แล้ว`);
+    renderManageUsers();
+  } catch(e) {
+    console.error('[deleteUserDesktop]', e);
+    toast('❌ ลบไม่สำเร็จ: ' + (e.message || e), 4000);
+  }
+  showLoading(false);
+}
+
+// Wire modal-level handlers once at bootstrap
+function wireUserModal() {
+  document.getElementById('user-modal-close').onclick = closeUserModal;
+  document.getElementById('um-cancel-btn').onclick = closeUserModal;
+  document.getElementById('um-save-btn').onclick = submitUserModal;
+  // Click backdrop to close
+  document.getElementById('user-modal').onclick = (e) => {
+    if (e.target.id === 'user-modal') closeUserModal();
+  };
+  // Escape to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('user-modal').classList.contains('show')) {
+      closeUserModal();
+    }
+  });
+  // Username input: normalize on type
+  document.getElementById('um-uname').oninput = (e) => {
+    e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  };
+  // PIN input: digits only
+  document.getElementById('um-pin').oninput = (e) => {
+    e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+  };
+}
 
 // ═══════════════════════════════════════════════════
 //  RENDER: PO LIST
@@ -3615,11 +3898,10 @@ async function renderManageUsers() {
 
   body.innerHTML = `
     <div style="display: flex; justify-content: flex-end; margin-bottom: 14px;">
-      <a href="po-mobile.html" style="text-decoration: none;">
-        <button class="btn btn-ghost">
-          ➕ เพิ่ม/แก้ไขผู้ใช้ที่ version mobile
-        </button>
-      </a>
+      <button class="btn btn-primary" id="btn-add-user">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        เพิ่มผู้ใช้
+      </button>
     </div>
 
     <div class="two-col" style="grid-template-columns: 1fr 360px;">
@@ -3630,12 +3912,13 @@ async function renderManageUsers() {
         ${users.map(u => {
           const initials = [...(u.display_name || u.username || '?')].slice(0, 2).join('');
           const stations = (u.station || '').split(',').filter(Boolean).map(s => s.trim());
+          const isSelf = currentUser && u.id === currentUser.id;
           return `
-            <div class="user-table-row">
+            <div class="user-table-row" data-uid="${escapeHtml(u.id)}">
               <div class="user-avatar-big" style="background: ${ROLE_COLORS[u.role] || '#999'};">${escapeHtml(initials)}</div>
               <div class="user-name-cell">
                 <div class="name">${escapeHtml(u.display_name || u.username)}</div>
-                <div class="sub">PIN ••••${u.is_active === false ? ' · inactive' : ''}</div>
+                <div class="sub">PIN ••••${u.is_active === false ? ' · inactive' : ''}${isSelf ? ' · คุณ' : ''}</div>
               </div>
               <div class="user-username">${escapeHtml(u.username)}</div>
               <div>
@@ -3647,7 +3930,16 @@ async function renderManageUsers() {
                   : `<span class="station-tag">ALL</span>`
                 }
               </div>
-              <div style="color: var(--ink-3); font-size: 16px;">⋯</div>
+              <div class="user-row-actions">
+                <button class="user-row-icon-btn" data-edit-uid="${escapeHtml(u.id)}" title="แก้ไข">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </button>
+                ${isSelf ? '' : `
+                  <button class="user-row-icon-btn danger" data-del-uid="${escapeHtml(u.id)}" title="ลบ">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+                  </button>
+                `}
+              </div>
             </div>
           `;
         }).join('')}
@@ -3668,6 +3960,22 @@ async function renderManageUsers() {
       </aside>
     </div>
   `;
+
+  // Wire "+ เพิ่มผู้ใช้"
+  document.getElementById('btn-add-user').onclick = () => openUserModal(null);
+  // Wire edit + delete
+  body.querySelectorAll('[data-edit-uid]').forEach(btn => {
+    btn.onclick = () => {
+      const u = users.find(x => x.id === btn.dataset.editUid);
+      if (u) openUserModal(u);
+    };
+  });
+  body.querySelectorAll('[data-del-uid]').forEach(btn => {
+    btn.onclick = () => {
+      const u = users.find(x => x.id === btn.dataset.delUid);
+      if (u) deleteUserDesktop(u);
+    };
+  });
 }
 
 async function renderManageMaster(configType) {
@@ -3791,6 +4099,7 @@ function escapeHtml(s) {
 // ═══════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   initPINKeypad();
+  wireUserModal();
 });
 </script>
 
