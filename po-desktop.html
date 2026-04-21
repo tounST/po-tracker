@@ -1678,11 +1678,21 @@ async function refreshData() {
   const data = await loadFromSupabase();
   if (data) db = { ...db, ...data };
   if (currentRoute === 'dashboard') db.activities = await loadActivity(15);
-  // Re-render whatever's visible
+
+  // Don't blow away the user's in-progress work on a background refresh.
+  // If they've started editing on the current page, silently update db
+  // and skip the re-render — they'll see fresh data on their next action
+  // (save / cancel / navigate) or next manual refresh.
+  const hasActiveEdit =
+    (currentRoute === 'detail' && (detailState.selection.size > 0 || !!detailState.targetStatus)) ||
+    (currentRoute === 'create' && createState) ||
+    (currentRoute === 'qc'     && qcState.selectedItemId);
+  if (hasActiveEdit) return;
+
   const cfg = ROUTES[currentRoute];
   if (cfg) {
-    cfg.render();
-    document.getElementById('tb-sub').textContent = cfg.subBuilder();
+    cfg.render(currentRouteParams);
+    document.getElementById('tb-sub').textContent = cfg.subBuilder(currentRouteParams);
   }
 }
 
