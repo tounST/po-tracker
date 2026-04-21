@@ -549,6 +549,135 @@ button { font-family: inherit; }
 .note-box.empty { color: var(--ink-3); font-style: italic; }
 .divider { height: 1px; background: var(--line); margin: 18px 0; }
 
+/* Interactive item rows on Detail */
+.item-row-desk {
+  cursor: pointer; transition: background 0.12s;
+}
+.item-row-desk:hover { background: var(--bg); }
+.item-row-desk.selected { background: var(--accent-soft); }
+.item-row-desk.selected .item-check-box {
+  background: var(--accent);
+  border-color: var(--accent);
+  position: relative;
+}
+.item-row-desk.selected .item-check-box::after {
+  content: '✓'; color: #fff; font-size: 14px; font-weight: 800;
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Sticky action bar at bottom of detail page */
+.detail-action-bar {
+  position: sticky; bottom: 20px;
+  background: var(--ink); color: var(--bg);
+  padding: 16px 20px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(42,37,32,0.18);
+  margin-top: 20px;
+  display: none;
+  flex-direction: column; gap: 14px;
+  z-index: 10;
+}
+.detail-action-bar.show { display: flex; }
+.detail-action-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.detail-action-count {
+  font-size: 14px; font-weight: 800;
+  background: var(--accent); color: #fff;
+  padding: 5px 12px; border-radius: 99px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.detail-action-label {
+  font-size: 12.5px; font-weight: 700; opacity: 0.6;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.detail-status-picker {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  flex: 1;
+}
+.detail-status-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 10px 8px;
+  border-radius: 10px;
+  background: rgba(246,241,234,0.08);
+  border: 1.5px solid rgba(246,241,234,0.12);
+  color: rgba(246,241,234,0.78);
+  font-family: inherit; font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+}
+.detail-status-btn:hover:not(.active) { background: rgba(246,241,234,0.12); color: #fff; }
+.detail-status-btn.active {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.detail-status-btn .dot {
+  width: 8px; height: 8px; border-radius: 99px; margin-bottom: 2px;
+}
+
+.detail-rework-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  background: rgba(246,241,234,0.08);
+  color: rgba(246,241,234,0.78);
+  font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+}
+.detail-rework-toggle.on { background: var(--danger-bg); color: var(--danger); }
+
+.detail-qc-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px;
+  background: rgba(246,241,234,0.05);
+  border-radius: 10px;
+}
+.detail-qc-picker {
+  display: flex; gap: 8px;
+}
+.detail-qc-btn {
+  padding: 10px 18px; border-radius: 10px;
+  border: 1.5px solid; background: rgba(246,241,234,0.05);
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.detail-qc-btn.pass {
+  border-color: var(--success); color: var(--success);
+}
+.detail-qc-btn.pass.active { background: var(--success); color: #fff; }
+.detail-qc-btn.fail {
+  border-color: var(--danger); color: var(--danger);
+}
+.detail-qc-btn.fail.active { background: var(--danger); color: #fff; }
+.detail-qc-reason {
+  flex: 1;
+  height: 40px; padding: 0 12px;
+  border-radius: 9px; border: 1px solid rgba(246,241,234,0.2);
+  background: rgba(246,241,234,0.05); color: #fff;
+  font-size: 13px; font-family: inherit;
+  outline: none;
+}
+
+.detail-action-save {
+  margin-left: auto;
+  padding: 0 22px; height: 42px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 800; cursor: pointer;
+  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: filter 0.15s;
+}
+.detail-action-save:hover:not(:disabled) { filter: brightness(1.1); }
+.detail-action-save:disabled { opacity: 0.4; cursor: not-allowed; }
+.detail-action-cancel {
+  padding: 0 16px; height: 42px;
+  background: transparent; color: rgba(246,241,234,0.6);
+  border: 1px solid rgba(246,241,234,0.15);
+  border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+}
+.detail-action-cancel:hover { color: #fff; border-color: rgba(246,241,234,0.3); }
+
 /* ═══ ROUND 2: CREATE PO ═══ */
 .form-group {
   background: var(--surface); border: 1px solid var(--line);
@@ -1035,6 +1164,14 @@ let createState = null;  // holds in-progress new-PO draft while on Create page
 let qcState = { selectedItemId: null, defectReason: '' };
 let archiveState = { months: [], currentMonth: null, currentMonthPOs: [] };
 let manageState = { tab: 'users' };
+let detailState = {
+  poId: null,
+  selection: new Set(),   // Set of item _sbId strings
+  targetStatus: '',       // one of: รับของแล้ว / กำลังผลิต / QC/เตรียมส่ง / ส่งแล้ว
+  targetRework: false,
+  qcDecision: null,       // null | 'pass' | 'fail'
+  qcReason: ''
+};
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 
 // Permissions — mirrored from po-mobile.html so both clients enforce the same rules
@@ -1451,6 +1588,7 @@ function goTo(route, params = {}) {
   if (currentRoute === 'create'  && route !== 'create')  createState = null;
   if (currentRoute === 'qc'      && route !== 'qc')      qcState = { selectedItemId: null, defectReason: '' };
   if (currentRoute === 'archive' && route !== 'archive') archiveState.currentMonth = null;
+  if (currentRoute === 'detail'  && route !== 'detail')  resetDetailState();
   const cfg = ROUTES[route];
   currentRoute = route;
   currentRouteParams = params;
@@ -1869,10 +2007,24 @@ function poStatusChip(status) {
 // ═══════════════════════════════════════════════════
 //  RENDER: PO DETAIL (Round 2)
 // ═══════════════════════════════════════════════════
+function resetDetailState() {
+  detailState = {
+    poId: null, selection: new Set(),
+    targetStatus: '', targetRework: false,
+    qcDecision: null, qcReason: ''
+  };
+}
+
 async function renderDetail(params) {
   const el = document.getElementById('page-detail');
   const poId = params?.poId;
   const po = db.pos.find(p => p.id === poId);
+
+  // Fresh selection when switching to a different PO
+  if (detailState.poId !== poId) {
+    resetDetailState();
+    detailState.poId = poId;
+  }
 
   if (!po) {
     el.innerHTML = `
@@ -1897,6 +2049,8 @@ async function renderDetail(params) {
   const groups = STATUS_ORDER.map(s => ({
     status: s, items: items.filter(i => (i.status || 'รับของแล้ว') === s)
   })).filter(g => g.items.length);
+
+  const canEdit = hasPermission('editAll');
 
   // Render skeleton first so user sees structure; timeline loaded async
   el.innerHTML = `
@@ -1936,6 +2090,7 @@ async function renderDetail(params) {
         <div style="display: flex; gap: 10px; align-items: baseline; margin-bottom: 18px;">
           <div style="font-size: 17px; font-weight: 800; color: var(--ink);">${escapeHtml(po.company || '—')}</div>
           ${poStatusChip(po.status)}
+          ${canEdit ? `<span style="font-size: 12px; color: var(--ink-3); margin-left: auto;">👆 แตะชิ้นงานเพื่อเลือก แล้วเปลี่ยนสถานะ</span>` : ''}
         </div>
 
         ${groups.length === 0
@@ -1955,6 +2110,8 @@ async function renderDetail(params) {
               `;
             }).join('')
         }
+
+        ${canEdit ? renderDetailActionBar() : ''}
       </div>
 
       <aside class="side-panel">
@@ -1968,21 +2125,227 @@ async function renderDetail(params) {
         <div class="note-box ${po.remark ? '' : 'empty'}">
           ${po.remark ? escapeHtml(po.remark) : 'ไม่มีหมายเหตุ'}
         </div>
-
-        <div class="divider"></div>
-        <div class="side-panel-label">การแก้ไข</div>
-        <div style="font-size: 12px; color: var(--ink-3); line-height: 1.5;">
-          การ update สถานะชิ้นงาน/QC ให้ทำผ่าน version mobile — <a href="po-mobile.html" style="color: var(--accent);">เปิด mobile ↗</a>
-        </div>
       </aside>
     </div>
   `;
 
   wireGotoLinks(el);
+  if (canEdit) wireDetailInteraction();
 
   // Load timeline async
   const timeline = await loadTimeline(po.id);
   renderDetailTimeline(timeline, po);
+}
+
+function renderDetailActionBar() {
+  return `
+    <div class="detail-action-bar" id="detail-action-bar">
+      <div class="detail-action-row">
+        <span class="detail-action-count" id="detail-action-count">0</span>
+        <span class="detail-action-label">ชิ้นที่เลือก · เปลี่ยนเป็น</span>
+        <div class="detail-status-picker">
+          <button class="detail-status-btn" data-status="รับของแล้ว">
+            <span class="dot" style="background: var(--info);"></span>
+            รับของ
+          </button>
+          <button class="detail-status-btn" data-status="กำลังผลิต">
+            <span class="dot" style="background: var(--warning);"></span>
+            กำลังผลิต
+          </button>
+          <button class="detail-status-btn" data-status="QC/เตรียมส่ง">
+            <span class="dot" style="background: var(--status-qc-fg);"></span>
+            QC / เตรียมส่ง
+          </button>
+          <button class="detail-status-btn" data-status="ส่งแล้ว">
+            <span class="dot" style="background: var(--success);"></span>
+            ส่งแล้ว
+          </button>
+        </div>
+      </div>
+      <div class="detail-action-row">
+        <button class="detail-rework-toggle" id="detail-rework-btn">🔁 ทำเครื่องหมาย rework</button>
+        <button class="detail-action-cancel" id="detail-cancel-btn">ยกเลิก</button>
+        <button class="detail-action-save" id="detail-save-btn" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+          บันทึก
+        </button>
+      </div>
+      <div id="detail-qc-row" style="display: none;" class="detail-qc-row">
+        <div class="detail-qc-picker">
+          <button class="detail-qc-btn pass" data-qc="pass">✓ ผ่าน QC</button>
+          <button class="detail-qc-btn fail" data-qc="fail">✕ ไม่ผ่าน</button>
+        </div>
+        <select class="detail-qc-reason" id="detail-qc-reason-select" style="display: none;">
+          <option value="">— เลือกสาเหตุ defect —</option>
+          ${(db.masters?.defects || []).map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+  `;
+}
+
+function wireDetailInteraction() {
+  const el = document.getElementById('page-detail');
+
+  // Item row click — toggle selection (but not when clicking inner links/buttons)
+  el.querySelectorAll('.item-row-desk[data-sbid]').forEach(row => {
+    row.onclick = (e) => {
+      // Don't toggle if click was on a link or a button within the row
+      if (e.target.closest('a, button')) return;
+      const sbid = row.dataset.sbid;
+      if (detailState.selection.has(sbid)) detailState.selection.delete(sbid);
+      else                                 detailState.selection.add(sbid);
+      row.classList.toggle('selected');
+      updateDetailActionBar();
+    };
+  });
+
+  // Status picker
+  el.querySelectorAll('.detail-status-btn[data-status]').forEach(btn => {
+    btn.onclick = () => {
+      detailState.targetStatus = btn.dataset.status;
+      detailState.qcDecision = null;
+      detailState.qcReason = '';
+      el.querySelectorAll('.detail-status-btn').forEach(b => b.classList.toggle('active', b === btn));
+      updateDetailActionBar();
+    };
+  });
+
+  // Rework toggle
+  const reworkBtn = el.querySelector('#detail-rework-btn');
+  if (reworkBtn) {
+    reworkBtn.onclick = () => {
+      detailState.targetRework = !detailState.targetRework;
+      reworkBtn.classList.toggle('on', detailState.targetRework);
+    };
+  }
+
+  // QC decision buttons
+  el.querySelectorAll('.detail-qc-btn[data-qc]').forEach(btn => {
+    btn.onclick = () => {
+      detailState.qcDecision = btn.dataset.qc;
+      detailState.qcReason = '';
+      el.querySelectorAll('.detail-qc-btn').forEach(b => b.classList.toggle('active', b === btn));
+      const reasonSel = el.querySelector('#detail-qc-reason-select');
+      if (reasonSel) {
+        reasonSel.style.display = detailState.qcDecision === 'fail' ? '' : 'none';
+        reasonSel.value = '';
+      }
+      updateDetailActionBar();
+    };
+  });
+
+  // QC defect reason
+  const reasonSel = el.querySelector('#detail-qc-reason-select');
+  if (reasonSel) {
+    reasonSel.onchange = () => {
+      detailState.qcReason = reasonSel.value;
+      updateDetailActionBar();
+    };
+  }
+
+  // Cancel + Save
+  el.querySelector('#detail-cancel-btn')?.addEventListener('click', () => {
+    resetDetailState();
+    detailState.poId = detailState.poId; // keep PO, clear selection only
+    renderDetail({ poId: detailState.poId });
+  });
+  el.querySelector('#detail-save-btn')?.addEventListener('click', saveDetailUpdate);
+
+  updateDetailActionBar();
+}
+
+function updateDetailActionBar() {
+  const bar = document.getElementById('detail-action-bar');
+  if (!bar) return;
+  const count = detailState.selection.size;
+  const cntEl = document.getElementById('detail-action-count');
+  if (cntEl) cntEl.textContent = count;
+
+  // Show/hide the QC sub-row when target is QC
+  const qcRow = document.getElementById('detail-qc-row');
+  if (qcRow) qcRow.style.display = (detailState.targetStatus === 'QC/เตรียมส่ง') ? '' : 'none';
+
+  // Enable Save only when ready
+  let ready = count > 0 && !!detailState.targetStatus;
+  if (ready && detailState.targetStatus === 'QC/เตรียมส่ง') {
+    if (!detailState.qcDecision) ready = false;
+    else if (detailState.qcDecision === 'fail' && !detailState.qcReason) ready = false;
+  }
+  const saveBtn = document.getElementById('detail-save-btn');
+  if (saveBtn) saveBtn.disabled = !ready;
+
+  // Show/hide bar based on selection
+  bar.classList.toggle('show', count > 0);
+}
+
+async function saveDetailUpdate() {
+  const s = detailState;
+  if (s.selection.size === 0 || !s.targetStatus) return;
+
+  const isQC = s.targetStatus === 'QC/เตรียมส่ง';
+  if (isQC) {
+    if (!s.qcDecision) { toast('⚠️ กรุณาเลือก ผ่าน / ไม่ผ่าน'); return; }
+    if (s.qcDecision === 'fail' && !s.qcReason) { toast('⚠️ กรุณาเลือกสาเหตุ defect'); return; }
+  }
+
+  // If QC + fail → actual DB status becomes 'กำลังผลิต' (rework back to production).
+  // QC + pass → status stays 'QC/เตรียมส่ง' but qc_passed=true (mobile uses this to show green chip).
+  const effectiveStatus = (isQC && s.qcDecision === 'fail') ? 'กำลังผลิต' : s.targetStatus;
+
+  showLoading(true);
+  const ids = [...s.selection];
+  let okCount = 0;
+  const errors = [];
+
+  for (const sbId of ids) {
+    // Find the actual item — we need po + part for logging
+    const item = db.items.find(i => i._sbId === sbId);
+    if (!item) continue;
+
+    const payload = {
+      status: effectiveStatus,
+      rework: s.targetRework || (isQC && s.qcDecision === 'fail'),
+    };
+    if (effectiveStatus === 'ส่งแล้ว') payload.sent_date = todayISO();
+    if (isQC) {
+      payload.qc_passed        = s.qcDecision === 'pass';
+      payload.qc_defect_reason = s.qcDecision === 'fail' ? s.qcReason : null;
+      payload.qc_checked_at    = new Date().toISOString();
+      payload.qc_checked_by    = currentUser.username;
+    }
+
+    try {
+      const { error } = await sb.from('po_items').update(payload).eq('id', sbId);
+      if (error) throw error;
+      await logActivity(
+        isQC ? (s.qcDecision === 'pass' ? 'qc_pass' : 'qc_fail') : 'update_status',
+        'item',
+        {
+          po_number: item.po, part_name: item.part,
+          status: effectiveStatus,
+          rework: payload.rework,
+          reason: s.qcDecision === 'fail' ? s.qcReason : null
+        }
+      );
+      okCount++;
+    } catch(e) {
+      console.error('[saveDetailUpdate]', item, e);
+      errors.push(item.part);
+    }
+  }
+
+  if (errors.length === 0) {
+    toast(`✅ อัพเดท ${okCount} ชิ้น → ${s.targetStatus}${s.qcDecision === 'fail' ? ' (rework)' : ''}`, 2800);
+  } else {
+    toast(`⚠️ สำเร็จ ${okCount}, ล้มเหลว ${errors.length}: ${errors.join(', ')}`, 4000);
+  }
+
+  resetDetailState();
+  detailState.poId = s.poId;
+  await refreshData();
+  renderDetail({ poId: detailState.poId });
+  showLoading(false);
 }
 
 function renderDetailItemRow(it, idx) {
@@ -1992,8 +2355,13 @@ function renderDetailItemRow(it, idx) {
     : it.color && /ขาว/.test(it.color) ? '#FFFFFF'
     : it.color && /แดง/.test(it.color) ? '#C0392B'
     : '#8A7F72';
+  const isSelected = detailState.selection.has(it._sbId);
+  // "ผ่าน QC" chip when item is in QC status + qc_passed (matches mobile convention)
+  const qcPassedChip = (it.status === 'QC/เตรียมส่ง' && it.qcPassed === true)
+    ? '<span class="status-chip status-chip-sm status-ship">ผ่าน QC</span>'
+    : '';
   return `
-    <div class="item-row-desk">
+    <div class="item-row-desk ${isSelected ? 'selected' : ''}" data-sbid="${escapeHtml(it._sbId || '')}">
       <div class="item-check-box"></div>
       <div class="item-name-cell">
         <div class="part">${escapeHtml(it.part)}</div>
@@ -2004,6 +2372,7 @@ function renderDetailItemRow(it, idx) {
         <span>${escapeHtml(it.color || '—')}</span>
       </div>
       <div>
+        ${qcPassedChip}
         ${it.rework ? '<span class="status-chip status-chip-sm status-rework">🔁 rework</span>' : ''}
         ${it.sentDate ? `<span class="td-date-mono mute">ส่ง ${it.sentDate.slice(5)}</span>` : ''}
       </div>
