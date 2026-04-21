@@ -633,6 +633,215 @@ button { font-family: inherit; }
 .sum-v.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
 .sum-v.hi { color: var(--accent); }
 
+/* ═══ ROUND 3: QC ═══ */
+.qc-split { display: grid; grid-template-columns: 1fr 400px; gap: 20px; align-items: start; }
+.qc-queue-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.qc-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px; cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.qc-card:hover { border-color: var(--line-deep); }
+.qc-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.qc-card-head {
+  width: 100%; aspect-ratio: 4/3; border-radius: 8px;
+  background: repeating-linear-gradient(45deg, var(--bg-deep) 0 6px, var(--bg) 6px 12px);
+  margin-bottom: 10px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3); text-align: center; padding: 8px;
+}
+.qc-card-placeholder { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 1px; font-weight: 700; opacity: 0.6; }
+.qc-card-pono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 800; color: var(--ink); }
+.qc-card-part { font-size: 13px; color: var(--ink-2); margin-top: 2px; font-weight: 700; }
+.qc-card-color { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+.qc-inspect {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 20px; position: sticky; top: 28px;
+}
+.qc-inspect-photo {
+  width: 100%; aspect-ratio: 4/3; border-radius: 10px;
+  background: repeating-linear-gradient(45deg, var(--bg-deep) 0 8px, var(--bg) 8px 16px);
+  margin-bottom: 14px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3); text-align: center;
+}
+.qc-inspect-photo-label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 1px; font-weight: 700; }
+
+.defect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.defect-opt {
+  padding: 10px 12px; border-radius: 9px;
+  background: var(--bg); border: 1px solid var(--line);
+  font-size: 12px; font-weight: 500; color: var(--ink-2);
+  cursor: pointer; font-family: inherit; text-align: left;
+}
+.defect-opt.selected { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); font-weight: 700; }
+.defect-opt:hover:not(.selected) { border-color: var(--line-deep); }
+
+.qc-cta-row { display: flex; gap: 8px; margin-top: 18px; }
+.btn-success { background: var(--success); color: #fff; border: none; padding: 0 16px; height: 40px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-success:hover { filter: brightness(1.08); }
+.btn-danger { background: var(--danger); color: #fff; border: none; padding: 0 16px; height: 40px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-danger:hover { filter: brightness(1.08); }
+
+.qc-empty-inspect {
+  text-align: center; padding: 40px 20px; color: var(--ink-3);
+}
+.qc-empty-inspect .emoji { font-size: 40px; display: block; margin-bottom: 12px; }
+
+/* ═══ ROUND 3: ARCHIVE ═══ */
+.archive-year-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px; color: var(--ink-3);
+  letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+  margin: 18px 0 10px;
+}
+.month-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.month-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 18px;
+  position: relative; overflow: hidden; cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s;
+}
+.month-card:hover:not(.current) { border-color: var(--line-deep); transform: translateY(-1px); }
+.month-card.current { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.month-card-tag {
+  position: absolute; top: 14px; right: 14px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px; font-weight: 800; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+.month-card-en {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px; font-weight: 800;
+  color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+.month-card.current .month-card-en { color: rgba(246,241,234,0.55); }
+.month-card-label { font-size: 22px; font-weight: 800; margin-top: 4px; letter-spacing: -0.5px; color: var(--ink); }
+.month-card.current .month-card-label { color: var(--bg); }
+.month-card-count { font-size: 40px; font-weight: 800; margin-top: 16px; letter-spacing: -1.5px; line-height: 1; color: var(--ink); }
+.month-card.current .month-card-count { color: #F5D4AC; }
+.month-card-sub {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; color: var(--ink-3); margin-top: 4px;
+}
+.month-card.current .month-card-sub { color: rgba(246,241,234,0.55); }
+
+.archive-month-detail {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 24px;
+}
+.archive-month-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 18px; gap: 12px;
+}
+.archive-po-card {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.archive-po-card:last-child { margin-bottom: 0; }
+.archive-po-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-bottom: 6px; flex-wrap: wrap;
+}
+.archive-po-meta-row {
+  display: flex; gap: 18px; font-size: 12px; color: var(--ink-3);
+  margin-top: 4px; flex-wrap: wrap;
+}
+.archive-po-meta-row .mono { color: var(--ink-2); font-weight: 600; }
+
+/* ═══ ROUND 3: MANAGE ═══ */
+.manage-tabs {
+  display: flex; gap: 4px; margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.manage-tab {
+  padding: 12px 18px;
+  font-size: 13px; font-weight: 700; color: var(--ink-3);
+  border: none; background: transparent;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; cursor: pointer;
+  font-family: inherit; white-space: nowrap;
+}
+.manage-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.manage-tab:hover:not(.active) { color: var(--ink-2); }
+
+.user-table { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.user-table-head, .user-table-row {
+  display: grid; grid-template-columns: 44px 1.5fr 1fr 1fr 1.3fr 40px;
+  gap: 14px; padding: 14px 18px; align-items: center;
+}
+.user-table-head {
+  padding: 12px 18px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--line-deep);
+  font-size: 10.5px; font-weight: 800; color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: 1.2px;
+}
+.user-table-row { font-size: 13px; border-bottom: 1px solid var(--line); }
+.user-table-row:last-child { border-bottom: none; }
+.user-avatar-big {
+  width: 32px; height: 32px; border-radius: 99px;
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 12px;
+}
+.user-name-cell .name { font-size: 13px; font-weight: 700; color: var(--ink); }
+.user-name-cell .sub { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.user-username { font-family: 'JetBrains Mono', ui-monospace, monospace; color: var(--ink-2); }
+.role-pill { font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 99px; display: inline-block; }
+.stations-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.station-tag {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px; font-weight: 600;
+  background: var(--bg-deep); color: var(--ink-2);
+  padding: 3px 7px; border-radius: 5px;
+}
+
+.role-breakdown { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.role-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+}
+.role-row:last-child { border-bottom: none; }
+.role-dot { width: 10px; height: 10px; border-radius: 99px; flex-shrink: 0; }
+.role-row-main { flex: 1; }
+.role-th { font-size: 13px; font-weight: 700; color: var(--ink); }
+.role-en { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.5px; }
+.role-count { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 16px; font-weight: 800; color: var(--ink); }
+
+/* Master data editor (companies/models/parts/colors/defects) */
+.master-editor { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.master-add-row {
+  padding: 14px 18px; background: var(--bg-deep);
+  border-bottom: 1px solid var(--line);
+  display: flex; gap: 10px;
+}
+.master-add-row input {
+  flex: 1; height: 38px; padding: 0 12px;
+  border: 1px solid var(--line-deep); border-radius: 9px;
+  font-size: 13px; font-family: inherit; outline: none;
+  background: var(--surface);
+}
+.master-add-row input:focus { border-color: var(--accent); }
+.master-list-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.master-list-row:last-child { border-bottom: none; }
+.master-list-row .val {
+  flex: 1; font-size: 13px; color: var(--ink); font-weight: 500;
+}
+.master-list-row .meta {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; color: var(--ink-3);
+}
+.icon-btn-delete {
+  background: none; border: none; color: var(--ink-3);
+  cursor: pointer; padding: 6px; border-radius: 6px; display: inline-flex;
+}
+.icon-btn-delete:hover { color: var(--danger); background: var(--danger-bg); }
+
 /* ═══ TOAST + LOADING ═══ */
 #toast-container {
   position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
@@ -822,6 +1031,9 @@ let currentFilter = 'active';
 let pinInput = '';
 let sessionTimer = null;
 let createState = null;  // holds in-progress new-PO draft while on Create page
+let qcState = { selectedItemId: null, defectReason: '' };
+let archiveState = { months: [], currentMonth: null, currentMonthPOs: [] };
+let manageState = { tab: 'users' };
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 
 // Permissions — mirrored from po-mobile.html so both clients enforce the same rules
@@ -1223,15 +1435,21 @@ const ROUTES = {
   list:      { crumb: 'HOME / PURCHASE ORDERS',  title: 'PO ทั้งหมด',   subBuilder: () => `${db.pos.length} active`,      render: renderList,        sidebarKey: 'list' },
   detail:    { crumb: 'HOME / PO',               title: 'รายละเอียด PO', subBuilder: (p) => p.poId || '—',                 render: renderDetail,      sidebarKey: 'list' },
   create:    { crumb: 'HOME / PO / NEW',         title: 'สร้าง PO ใหม่', subBuilder: () => 'กรอกข้อมูลและรายการชิ้นงาน',    render: renderCreate,      sidebarKey: 'create' },
-  qc:        { crumb: 'HOME / QC',               title: 'QC Inspection', subBuilder: () => 'Round 3 — กำลังพัฒนา',        render: renderPlaceholder('QC'),      sidebarKey: 'qc' },
-  archive:   { crumb: 'HOME / ARCHIVE',          title: 'Past orders',   subBuilder: () => 'Round 3 — กำลังพัฒนา',        render: renderPlaceholder('Archive'), sidebarKey: 'archive' },
-  manage:    { crumb: 'HOME / SETTINGS / MANAGE', title: 'จัดการข้อมูล',  subBuilder: () => 'Round 3 — กำลังพัฒนา',        render: renderPlaceholder('จัดการ'),   sidebarKey: 'manage' },
+  qc:        { crumb: 'HOME / QC',               title: 'QC Inspection', subBuilder: () => {
+                  const q = db.items.filter(i => i.status === 'QC/เตรียมส่ง' && !i.qcPassed).length;
+                  const r = db.items.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
+                  return `${q} ชิ้นรอตรวจ · ${r} ชิ้น rework`;
+                }, render: renderQC, sidebarKey: 'qc' },
+  archive:   { crumb: 'HOME / ARCHIVE',          title: 'Past orders',   subBuilder: () => 'เรียกดูตามเดือน',              render: renderArchive, sidebarKey: 'archive' },
+  manage:    { crumb: 'HOME / SETTINGS / MANAGE', title: 'จัดการข้อมูล',  subBuilder: () => 'Master data & users',          render: renderManage,  sidebarKey: 'manage' },
 };
 
 function goTo(route, params = {}) {
   if (!ROUTES[route]) route = 'dashboard';
-  // If we're leaving Create without submitting, discard the in-progress draft
-  if (currentRoute === 'create' && route !== 'create') createState = null;
+  // Clean up page-specific state when leaving
+  if (currentRoute === 'create'  && route !== 'create')  createState = null;
+  if (currentRoute === 'qc'      && route !== 'qc')      qcState = { selectedItemId: null, defectReason: '' };
+  if (currentRoute === 'archive' && route !== 'archive') archiveState.currentMonth = null;
   const cfg = ROUTES[route];
   currentRoute = route;
   currentRouteParams = params;
@@ -2085,7 +2303,565 @@ function wireGotoLinks(root) {
 }
 
 // ═══════════════════════════════════════════════════
-//  PLACEHOLDER PAGES (Round 3)
+//  RENDER: QC (Round 3)
+// ═══════════════════════════════════════════════════
+function renderQC() {
+  const el = document.getElementById('page-qc');
+  // Queue = items in QC/เตรียมส่ง status that haven't passed QC yet
+  const queue = db.items.filter(i => i.status === 'QC/เตรียมส่ง' && !i.qcPassed);
+  const selected = queue.find(i => i._sbId === qcState.selectedItemId) || null;
+
+  el.innerHTML = `
+    <div class="qc-split">
+      <div>
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title-th">คิวรอตรวจ</h2>
+            <div class="section-title-en">Inspection queue</div>
+          </div>
+          <span class="status-chip status-chip-sm" style="background: var(--info-bg); color: var(--info);">${queue.length} ชิ้น</span>
+        </div>
+
+        ${queue.length === 0
+          ? `<div class="empty-state"><span class="emoji">✅</span><p>ไม่มีชิ้นงานรอตรวจ QC</p></div>`
+          : `<div class="qc-queue-grid">${queue.map(renderQCCard).join('')}</div>`
+        }
+      </div>
+
+      <aside class="qc-inspect">
+        ${selected ? renderQCInspectPanel(selected) : renderQCEmptyInspect()}
+      </aside>
+    </div>
+  `;
+
+  // Wire card clicks
+  el.querySelectorAll('.qc-card[data-item]').forEach(card => {
+    card.onclick = () => {
+      qcState.selectedItemId = card.dataset.item;
+      qcState.defectReason = '';
+      renderQC();
+    };
+  });
+  // Wire defect options
+  el.querySelectorAll('.defect-opt[data-reason]').forEach(btn => {
+    btn.onclick = () => {
+      qcState.defectReason = btn.dataset.reason;
+      el.querySelectorAll('.defect-opt').forEach(b => b.classList.toggle('selected', b === btn));
+    };
+  });
+  // Wire Pass/Fail
+  const passBtn = el.querySelector('#btn-qc-pass');
+  const failBtn = el.querySelector('#btn-qc-fail');
+  if (passBtn) passBtn.onclick = () => qcCommit('pass', selected);
+  if (failBtn) failBtn.onclick = () => qcCommit('fail', selected);
+}
+
+function renderQCCard(it) {
+  const isSelected = it._sbId === qcState.selectedItemId;
+  const po = db.pos.find(p => p.id === it.po);
+  return `
+    <div class="qc-card ${isSelected ? 'selected' : ''}" data-item="${escapeHtml(it._sbId)}">
+      <div class="qc-card-head">
+        <div>
+          <div class="qc-card-placeholder">PART PHOTO</div>
+          <div style="font-size: 10px; margin-top: 6px; color: var(--ink-3);">ยังไม่รองรับภาพ</div>
+        </div>
+      </div>
+      <div class="qc-card-pono">${escapeHtml(it.po)}</div>
+      <div class="qc-card-part">${escapeHtml(it.part)}</div>
+      <div class="qc-card-color">${escapeHtml(it.color || '—')}${po ? ' · ' + escapeHtml(po.company || '') : ''}</div>
+    </div>
+  `;
+}
+
+function renderQCEmptyInspect() {
+  return `
+    <div class="qc-empty-inspect">
+      <span class="emoji">👈</span>
+      <div style="font-weight: 700; color: var(--ink-2); margin-bottom: 6px;">เลือกชิ้นงานจากคิว</div>
+      <div style="font-size: 12px;">คลิกชิ้นด้านซ้ายเพื่อตรวจสอบ</div>
+    </div>
+  `;
+}
+
+function renderQCInspectPanel(it) {
+  const po = db.pos.find(p => p.id === it.po);
+  const defects = db.masters?.defects || [];
+  return `
+    <div class="section-header" style="margin-bottom: 10px;">
+      <div class="section-title-wrap">
+        <h2 class="section-title-th">กำลังตรวจ</h2>
+        <div class="section-title-en">Now inspecting</div>
+      </div>
+    </div>
+
+    <div class="qc-inspect-photo">
+      <div class="qc-inspect-photo-label">${escapeHtml(it.part.toUpperCase())} · ${escapeHtml((it.color || '').toUpperCase())}</div>
+    </div>
+
+    <div class="qc-card-pono" style="font-size: 14px;">${escapeHtml(it.po)}</div>
+    <div class="qc-card-part" style="font-size: 14px;">${escapeHtml(it.part)}${it.color ? ' · ' + escapeHtml(it.color) : ''}</div>
+    ${po ? `<div class="qc-card-color">${escapeHtml(po.company || '')}${po.model ? ' · ' + escapeHtml(po.model) : ''}</div>` : ''}
+
+    <div style="font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin-top: 18px; margin-bottom: 8px;">เหตุผลตีกลับ (เลือกถ้าไม่ผ่าน)</div>
+    ${defects.length === 0
+      ? `<div style="font-size: 12px; color: var(--ink-3); padding: 10px; background: var(--bg); border-radius: 8px;">ยังไม่มีสาเหตุ defect — เพิ่มได้ในหน้า "จัดการ" → tab สาเหตุ defect</div>`
+      : `<div class="defect-grid">${defects.map(d => `
+          <button class="defect-opt ${qcState.defectReason === d ? 'selected' : ''}" data-reason="${escapeHtml(d)}">${escapeHtml(d)}</button>
+        `).join('')}</div>`
+    }
+
+    <div class="qc-cta-row">
+      <button class="btn-success" id="btn-qc-pass" style="flex: 1;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+        ผ่าน · Pass
+      </button>
+      <button class="btn-danger" id="btn-qc-fail" style="flex: 1;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        ไม่ผ่าน · Fail
+      </button>
+    </div>
+  `;
+}
+
+async function qcCommit(decision, item) {
+  if (!item) return;
+  if (decision === 'fail' && !qcState.defectReason) {
+    toast('⚠️ กรุณาเลือกสาเหตุตีกลับก่อน'); return;
+  }
+
+  const payload = decision === 'pass'
+    ? {
+        qc_passed: true,
+        qc_defect_reason: null,
+        qc_checked_at: new Date().toISOString(),
+        qc_checked_by: currentUser.username
+      }
+    : {
+        status: 'กำลังผลิต',
+        qc_passed: false,
+        qc_defect_reason: qcState.defectReason,
+        qc_checked_at: new Date().toISOString(),
+        qc_checked_by: currentUser.username,
+        rework: true
+      };
+
+  showLoading(true);
+  try {
+    const { error } = await sb.from('po_items').update(payload).eq('id', item._sbId);
+    if (error) throw error;
+
+    await logActivity(decision === 'pass' ? 'qc_pass' : 'qc_fail', 'po_item', {
+      po_number: item.po,
+      part_name: item.part,
+      reason: decision === 'fail' ? qcState.defectReason : null
+    });
+
+    toast(decision === 'pass'
+      ? `✅ ผ่าน QC: ${item.part}`
+      : `🔄 ส่งกลับผลิตใหม่: ${item.part} (${qcState.defectReason})`, 2600);
+
+    qcState.selectedItemId = null;
+    qcState.defectReason = '';
+    await refreshData();
+  } catch(e) {
+    console.error('[qcCommit]', e);
+    toast('❌ ไม่สำเร็จ: ' + e.message, 3500);
+  }
+  showLoading(false);
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER: ARCHIVE (Round 3)
+// ═══════════════════════════════════════════════════
+async function loadArchiveMonths() {
+  try {
+    const { data, error } = await sb
+      .from('po_list')
+      .select('po_number, due_date, order_date')
+      .eq('is_archived', true);
+    if (error) throw error;
+    // Group by YYYY-MM (use due_date, fallback order_date)
+    const groups = {};
+    (data || []).forEach(p => {
+      const dateStr = p.due_date || p.order_date || '';
+      const ym = dateStr.slice(0, 7);
+      if (!ym) return;
+      groups[ym] = (groups[ym] || 0) + 1;
+    });
+    return Object.entries(groups)
+      .map(([ym, count]) => ({ ym, count }))
+      .sort((a, b) => b.ym.localeCompare(a.ym));  // newest first
+  } catch(e) {
+    console.warn('[loadArchiveMonths]', e);
+    return [];
+  }
+}
+
+async function loadArchiveMonthDetail(ym) {
+  try {
+    const { data: allArc, error } = await sb.from('po_list').select('*').eq('is_archived', true);
+    if (error) throw error;
+    const monthPOs = (allArc || []).filter(p =>
+      ((p.due_date || p.order_date || '').slice(0, 7) === ym)
+    );
+    const poNums = monthPOs.map(p => p.po_number);
+    let itemData = [];
+    if (poNums.length > 0) {
+      const { data } = await sb.from('po_items').select('*').in('po_number', poNums);
+      itemData = data || [];
+    }
+    return monthPOs.map(p => {
+      const items = itemData.filter(i => i.po_number === p.po_number);
+      const closeDate = items
+        .map(i => fixDateStr(i.sent_date || ''))
+        .filter(Boolean)
+        .sort()
+        .pop();
+      return { ...p, items, closeDate };
+    });
+  } catch(e) {
+    console.warn('[loadArchiveMonthDetail]', e);
+    return [];
+  }
+}
+
+async function renderArchive() {
+  const el = document.getElementById('page-archive');
+  el.innerHTML = `
+    <div class="section-header">
+      <div class="section-title-wrap">
+        <h2 class="section-title-th">เดือนที่ผ่านมา</h2>
+        <div class="section-title-en">By month</div>
+      </div>
+    </div>
+    <div style="color: var(--ink-3); font-size: 13px;">⏳ กำลังโหลด...</div>
+  `;
+
+  // If a month is selected, show drill-in view instead
+  if (archiveState.currentMonth) {
+    await renderArchiveMonthDetail(archiveState.currentMonth);
+    return;
+  }
+
+  const months = await loadArchiveMonths();
+  archiveState.months = months;
+
+  // Group months by year for easier scanning
+  const currentYM = todayISO().slice(0, 7);
+  const byYear = {};
+  months.forEach(m => {
+    const y = m.ym.slice(0, 4);
+    (byYear[y] = byYear[y] || []).push(m);
+  });
+
+  let html = `
+    <div class="section-header">
+      <div class="section-title-wrap">
+        <h2 class="section-title-th">เดือนที่ผ่านมา</h2>
+        <div class="section-title-en">By month</div>
+      </div>
+      <span class="status-chip status-chip-sm" style="background: var(--info-bg); color: var(--info);">${months.length} เดือน</span>
+    </div>
+  `;
+
+  if (months.length === 0) {
+    html += `<div class="empty-state"><span class="emoji">📭</span><p>ยังไม่มี PO ใน Archive</p></div>`;
+  } else {
+    const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a));
+    years.forEach(y => {
+      html += `<div class="archive-year-label">ปี ${Number(y) + 543} · ${y}</div>`;
+      html += `<div class="month-grid">`;
+      byYear[y].forEach(m => {
+        const [yy, mm] = m.ym.split('-');
+        const isCurrent = m.ym === currentYM;
+        const thaiMonth = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(mm) - 1];
+        const enMonth = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][Number(mm) - 1];
+        html += `
+          <div class="month-card ${isCurrent ? 'current' : ''}" data-ym="${m.ym}">
+            ${isCurrent ? `<div class="month-card-tag">● CURRENT</div>` : ''}
+            <div class="month-card-en">${enMonth} ${yy}</div>
+            <div class="month-card-label">${thaiMonth} ${Number(yy) + 543}</div>
+            <div class="month-card-count">${m.count}</div>
+            <div class="month-card-sub">PO เสร็จ</div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    });
+  }
+
+  el.innerHTML = html;
+  el.querySelectorAll('.month-card[data-ym]').forEach(card => {
+    card.onclick = () => {
+      archiveState.currentMonth = card.dataset.ym;
+      renderArchive();
+    };
+  });
+}
+
+async function renderArchiveMonthDetail(ym) {
+  const el = document.getElementById('page-archive');
+  const [yy, mm] = ym.split('-');
+  const thaiMonth = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(mm) - 1];
+  const label = `${thaiMonth} ${Number(yy) + 543}`;
+
+  el.innerHTML = `
+    <button class="back-link" id="arc-back">← เดือนทั้งหมด</button>
+    <div class="archive-month-detail">
+      <div class="archive-month-header">
+        <div>
+          <h2 style="font-size: 22px; font-weight: 800; margin: 0;">Archive — ${escapeHtml(label)}</h2>
+          <div style="font-size: 12px; color: var(--ink-3); margin-top: 4px;">⏳ กำลังโหลด PO ในเดือนนี้...</div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('arc-back').onclick = () => {
+    archiveState.currentMonth = null;
+    renderArchive();
+  };
+
+  const monthPOs = await loadArchiveMonthDetail(ym);
+  archiveState.currentMonthPOs = monthPOs;
+
+  let body = `
+    <div class="archive-month-header">
+      <div>
+        <h2 style="font-size: 22px; font-weight: 800; margin: 0;">Archive — ${escapeHtml(label)}</h2>
+        <div style="font-size: 12px; color: var(--ink-3); margin-top: 4px;">${monthPOs.length} PO · อ่านอย่างเดียว (แก้ไข/ลบให้ใช้ mobile)</div>
+      </div>
+    </div>
+  `;
+  if (monthPOs.length === 0) {
+    body += `<div class="empty-state"><span class="emoji">📭</span><p>ไม่มี PO ในเดือนนี้</p></div>`;
+  } else {
+    body += monthPOs.map(p => `
+      <div class="archive-po-card">
+        <div class="archive-po-head">
+          <div>
+            <span class="td-po-no" style="font-size: 14px;">${escapeHtml(p.po_number)}</span>
+            <span style="font-size: 13px; color: var(--ink-2); margin-left: 10px;">${escapeHtml(p.company || '—')}</span>
+            ${p.car_model ? `<span style="font-size: 12px; color: var(--ink-3); margin-left: 6px;">· ${escapeHtml(p.car_model)}</span>` : ''}
+          </div>
+          <span class="status-chip status-chip-sm status-complete">ครบแล้ว</span>
+        </div>
+        <div class="archive-po-meta-row">
+          <span>รับของ <span class="mono">${p.order_date ? fixDateStr(p.order_date) : '—'}</span></span>
+          ${p.closeDate ? `<span>ปิด PO <span class="mono" style="color: var(--success); font-weight: 700;">${p.closeDate}</span></span>` : ''}
+          <span>${p.items.length} ชิ้น</span>
+          ${p.remark ? `<span style="flex-basis: 100%; color: var(--ink-3); margin-top: 4px;">📝 ${escapeHtml(p.remark)}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  el.querySelector('.archive-month-detail').innerHTML = body;
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER: MANAGE (Round 3)
+// ═══════════════════════════════════════════════════
+const MANAGE_TABS = [
+  { key: 'users',     label: 'ผู้ใช้ / Users' },
+  { key: 'company',   label: 'บริษัท / Companies' },
+  { key: 'car_model', label: 'รุ่นรถ / Models' },
+  { key: 'part_name', label: 'ชิ้นงาน / Parts' },
+  { key: 'defect_reason', label: 'สาเหตุ defect' },
+];
+
+function renderManage() {
+  if (!hasPermission('manage')) {
+    document.getElementById('page-manage').innerHTML = `
+      <div class="empty-state"><span class="emoji">🔒</span><p>เฉพาะ Admin เท่านั้น</p></div>
+    `;
+    return;
+  }
+
+  const el = document.getElementById('page-manage');
+  el.innerHTML = `
+    <div class="manage-tabs" id="manage-tabs">
+      ${MANAGE_TABS.map(t => `
+        <button class="manage-tab ${manageState.tab === t.key ? 'active' : ''}" data-tab="${t.key}">${escapeHtml(t.label)}</button>
+      `).join('')}
+    </div>
+    <div id="manage-body"></div>
+  `;
+  document.querySelectorAll('.manage-tab[data-tab]').forEach(btn => {
+    btn.onclick = () => { manageState.tab = btn.dataset.tab; renderManage(); };
+  });
+
+  if (manageState.tab === 'users') renderManageUsers();
+  else renderManageMaster(manageState.tab);
+}
+
+async function renderManageUsers() {
+  const body = document.getElementById('manage-body');
+  body.innerHTML = `<div style="color: var(--ink-3); font-size: 13px;">⏳ กำลังโหลด...</div>`;
+
+  let users = [];
+  try {
+    const { data, error } = await sb.from('users').select('*').order('role').order('display_name');
+    if (error) throw error;
+    users = data || [];
+  } catch(e) {
+    body.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>โหลดผู้ใช้ไม่สำเร็จ: ${escapeHtml(e.message)}</p></div>`;
+    return;
+  }
+
+  // Count by role
+  const counts = { admin: 0, supervisor: 0, manager: 0, staff: 0 };
+  users.forEach(u => { if (counts[u.role] !== undefined) counts[u.role]++; });
+
+  body.innerHTML = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 14px;">
+      <a href="po-mobile.html" style="text-decoration: none;">
+        <button class="btn btn-ghost">
+          ➕ เพิ่ม/แก้ไขผู้ใช้ที่ version mobile
+        </button>
+      </a>
+    </div>
+
+    <div class="two-col" style="grid-template-columns: 1fr 360px;">
+      <div class="user-table">
+        <div class="user-table-head">
+          <div></div><div>Name</div><div>Username</div><div>Role</div><div>Stations</div><div></div>
+        </div>
+        ${users.map(u => {
+          const initials = [...(u.display_name || u.username || '?')].slice(0, 2).join('');
+          const stations = (u.station || '').split(',').filter(Boolean).map(s => s.trim());
+          return `
+            <div class="user-table-row">
+              <div class="user-avatar-big" style="background: ${ROLE_COLORS[u.role] || '#999'};">${escapeHtml(initials)}</div>
+              <div class="user-name-cell">
+                <div class="name">${escapeHtml(u.display_name || u.username)}</div>
+                <div class="sub">PIN ••••${u.is_active === false ? ' · inactive' : ''}</div>
+              </div>
+              <div class="user-username">${escapeHtml(u.username)}</div>
+              <div>
+                <span class="role-pill" style="background: ${ROLE_COLORS[u.role]}22; color: ${ROLE_COLORS[u.role]};">${escapeHtml(ROLE_LABELS[u.role] || u.role)}</span>
+              </div>
+              <div class="stations-row">
+                ${stations.length > 0
+                  ? stations.map(s => `<span class="station-tag">${escapeHtml(s.toUpperCase())}</span>`).join('')
+                  : `<span class="station-tag">ALL</span>`
+                }
+              </div>
+              <div style="color: var(--ink-3); font-size: 16px;">⋯</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <aside class="role-breakdown">
+        <div class="side-panel-label">Role breakdown</div>
+        ${Object.entries(ROLE_LABELS).map(([key, label]) => `
+          <div class="role-row">
+            <span class="role-dot" style="background: ${ROLE_COLORS[key]};"></span>
+            <div class="role-row-main">
+              <div class="role-th">${escapeHtml(label)}</div>
+              <div class="role-en">${escapeHtml(key)}</div>
+            </div>
+            <div class="role-count">${counts[key]}</div>
+          </div>
+        `).join('')}
+      </aside>
+    </div>
+  `;
+}
+
+async function renderManageMaster(configType) {
+  const body = document.getElementById('manage-body');
+  body.innerHTML = `<div style="color: var(--ink-3); font-size: 13px;">⏳ กำลังโหลด...</div>`;
+
+  let rows = [];
+  try {
+    const { data, error } = await sb.from('config').select('*')
+      .eq('config_type', configType).order('config_value');
+    if (error) throw error;
+    rows = data || [];
+  } catch(e) {
+    body.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>โหลดไม่สำเร็จ: ${escapeHtml(e.message)}</p></div>`;
+    return;
+  }
+
+  const labelMap = {
+    company: 'บริษัท',
+    car_model: 'รุ่นรถ',
+    part_name: 'ชิ้นงาน',
+    defect_reason: 'สาเหตุ defect',
+  };
+  const label = labelMap[configType] || configType;
+
+  body.innerHTML = `
+    <div class="master-editor">
+      <div class="master-add-row">
+        <input id="master-new-val" placeholder="เพิ่ม${escapeHtml(label)}ใหม่..." />
+        <button class="btn btn-primary" id="master-add-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          เพิ่ม
+        </button>
+      </div>
+      ${rows.length === 0
+        ? `<div style="padding: 40px; text-align: center; color: var(--ink-3); font-size: 13px;">ยังไม่มีรายการ — เพิ่มเลย</div>`
+        : rows.map(r => `
+            <div class="master-list-row">
+              <span class="val">${escapeHtml(r.config_value)}</span>
+              <span class="meta">id:${String(r.id).slice(0, 6)}</span>
+              <button class="icon-btn-delete" data-del="${r.id}" data-val="${escapeHtml(r.config_value)}" title="ลบ">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+              </button>
+            </div>
+          `).join('')
+      }
+    </div>
+  `;
+
+  const input = document.getElementById('master-new-val');
+  const addBtn = document.getElementById('master-add-btn');
+  const doAdd = async () => {
+    const val = (input.value || '').trim();
+    if (!val) { toast('⚠️ กรอกค่าก่อน'); return; }
+    if (rows.some(r => r.config_value === val)) { toast('⚠️ มีค่านี้อยู่แล้ว'); return; }
+    showLoading(true);
+    try {
+      const { error } = await sb.from('config').insert({ config_type: configType, config_value: val });
+      if (error) throw error;
+      await logActivity('add_config', 'config', { type: configType, value: val });
+      toast(`✅ เพิ่ม "${val}" แล้ว`);
+      await refreshData();
+      renderManageMaster(configType);
+    } catch(e) {
+      toast('❌ เพิ่มไม่สำเร็จ: ' + e.message, 3500);
+    }
+    showLoading(false);
+  };
+  addBtn.onclick = doAdd;
+  input.onkeydown = (e) => { if (e.key === 'Enter') doAdd(); };
+
+  body.querySelectorAll('[data-del]').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.del;
+      const val = btn.dataset.val;
+      if (!confirm(`ลบ "${val}"?\n(ข้อมูลที่เคยใช้ค่านี้ใน PO เก่ายังคงอยู่)`)) return;
+      showLoading(true);
+      try {
+        const { error } = await sb.from('config').delete().eq('id', id);
+        if (error) throw error;
+        await logActivity('delete_config', 'config', { type: configType, value: val });
+        toast(`🗑️ ลบ "${val}" แล้ว`);
+        await refreshData();
+        renderManageMaster(configType);
+      } catch(e) {
+        toast('❌ ลบไม่สำเร็จ: ' + e.message, 3500);
+      }
+      showLoading(false);
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  PLACEHOLDER PAGES (future rounds)
 // ═══════════════════════════════════════════════════
 function renderPlaceholder(name) {
   return () => {
