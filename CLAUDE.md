@@ -105,6 +105,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG12: Archive แล้ว Update tab ยังโชว์ PO ที่ archive | ✅ Fixed (2026-04-20) → `await loadFromSupabase()` + assign db + renderDashboard หลัง archive/unarchive |
 | BUG13: QC panel ค้างโชว์เมื่อเปิด PO อื่น | ✅ Fixed (2026-04-20) → backToPoList ล้าง qc-panel display + qc-decision .selected + qc-fail-detail ครบ |
 | BUG14: ปุ่ม + Add PO ไม่อยู่กลางเมื่อบาง role | ✅ Fixed (2026-04-20) → CSS `order` split tabs ซ้าย/ขวา รอบ primary ตาม visible count |
+| BUG15 (PC): Detail page หน้าเปล่าเวลาเปิด PO | ✅ Fixed (2026-04-21) → ลืมเพิ่ม `<section id="page-detail">` ใน HTML body ทำให้ `getElementById` คืน null |
+| BUG16 (PC): Auto-refresh ทุก 30 วิ ทำให้ Detail เปลี่ยนเป็น "ไม่พบ PO" mid-edit | ✅ Fixed (2026-04-21) → pass currentRouteParams เข้า render + skip re-render ถ้ามี active edit state |
+| BUG17 (PC+Mobile): CHECK constraint `po_items_status_check` ไม่มี 'QC/เตรียมส่ง' → QC Pass save fail | ✅ Fixed (2026-04-21) DB migration `fix_po_items_status_check_allow_qc_prefix` — รองรับทั้ง mobile + desktop ที่เคย silent fail |
+| BUG18 (PC): Save error แสดงแค่ชื่อชิ้นงาน ไม่บอกสาเหตุ | ✅ Fixed (2026-04-21) → surface error.message + code + details + hint ใน toast + console |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
@@ -155,6 +159,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - **Archive "ปิด PO"**: แสดงวันที่ปิด = MAX(sent_date) ของ items ในแต่ละ PO card
   - **Archive delete month** (Admin only): ปุ่มลบทั้งเดือน + double confirm เพื่อเคลียร์ข้อมูลที่ export แล้ว
   - **Tab bar balanced per role**: ปุ่ม + (Add PO) centered เสมอ, tabs ที่ visible แบ่งซ้าย/ขวาเท่า ๆ กันผ่าน CSS `order`
+- ✅ **PC Version — ลำดับ 1 complete** (2026-04-21 ถึง 2026-04-22) — ทำใน branch `Dev-PC` แล้ว merge main
+  - **ไฟล์ใหม่**: `po-desktop.html` (~4100 บรรทัด, single-file เหมือน mobile), `index.html` viewport router (PC≥1024+mouse → desktop, อื่น ๆ → mobile), `.gitignore`
+  - **8 screens ครบ**: Login (PIN pad + keyboard), Dashboard (KPI + Due soon + Urgent + Activity), PO List (filter + 9-col table), PO Detail (multi-select + bulk status update + **QC tri-state** Pass/Fail/Pending + reason display), Create PO (form + datalist autocomplete + auto PO number), QC Inspect (queue + inspect commit), Archive (expand + admin actions + Excel export), Manage (tabs + **User CRUD ครบ** modal + master data CRUD-lite)
+  - **DB migration** `fix_po_items_status_check_allow_qc_prefix` (2026-04-21) — แก้ schema drift ที่ constraint ไม่มี 'QC/เตรียมส่ง' → mobile's QC Pass flow ที่เคย silent fail ตอนนี้ทำงานแล้วด้วย
+  - **QC tri-state ใหม่** (ไม่อยู่ใน design handoff — extension): เพิ่ม "รอตรวจสอบ" button ข้าง Pass/Fail → ย้าย item ไปคิว QC โดยไม่ตัดสินเอง (match real factory workflow ที่แยกคนย้ายกับคนตรวจ)
+  - **Isolation philosophy**: mobile + desktop share Supabase backend + identical data writes, แต่ code ไม่ share (copy logic แทน `<script src>` เพื่อให้แก้ mobile ไม่กระทบ desktop และกลับกัน)
+  - **Bugs แก้ไปเพิ่ม (BUG15-18)**: missing DOM container, auto-refresh wipes state, CHECK constraint drift, silent save errors
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
@@ -227,24 +238,54 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 
 ---
 
-### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-20)
-**ไม่มี** — Mobile UI เสร็จสมบูรณ์แล้ว กำลังรอ user ทดสอบใช้งานจริง
+### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-22)
+**ไม่มี** — PC Version (ลำดับ 1) + User CRUD เสร็จแล้ว ทั้ง 2 clients ครอบคลุมฟีเจอร์เท่ากัน. next up = **ลำดับ 1.5 Granular permission expansion** (toun ขอ)
 
 ---
 
 ### 📋 ขั้นตอนที่เหลือ (เรียงตามลำดับ)
 
-#### **🎯 ลำดับ 1: PC Version** (parked — ทำเมื่อ Mobile stable)
-จาก design bundle `For PC/_unzip/po_tracker_handoff/` — 8 หน้าจอ desktop layout
-- [ ] Desktop Shell: Sidebar 248px ซ้าย + Topbar บน
-- [ ] Dashboard — Sidebar + KPI row + 2-col (due list + activity)
-- [ ] PO List — ตาราง 9 คอลัมน์ (data table)
-- [ ] PO Detail — main + 340px side panel (timeline, notes)
-- [ ] Create PO — form ซ้าย + sticky summary ขวา
-- [ ] QC Inspect — queue grid 3-col + inspect panel 400px
-- [ ] Archive — month cards 4-col + stats
-- [ ] Manage — tabs + role breakdown
-- **เวลาประเมิน**: 2-5 วัน | **ทำใน**: `@media (min-width: 1024px)` block
+#### **✅ ลำดับ 1: PC Version** — **เสร็จ 2026-04-22** (ดูรายละเอียดใน Phase 2D หรือ "สิ่งที่ทำเสร็จแล้ว" ด้านบน)
+
+#### **🎯 ลำดับ 1.5: Granular Permission Expansion** (งานถัดไป — toun ขอ 2026-04-22)
+> "เพิ่มสิทธิผู้ใช้ อีกนิด เพราะอยากให้ admin มีอำนาจเยอะกว่านี้ แยกในแต่ละหมวด"
+
+**ปัจจุบัน** — PERMISSIONS matrix เป็น role-based แบบ coarse-grained:
+```
+admin:      viewAll + createPO + editAll + delete + manage + archive
+supervisor: viewAll + createPO + editAll + delete + archive
+manager:    viewAll + createPO + editAll
+staff:      (station-based, editAll=false)
+```
+
+**toun อยากได้อะไร** (ต้องถามเคลียร์ก่อนเริ่ม code):
+- admin "แยกในแต่ละหมวด" = อะไร?
+  1. **Admin override per-feature** — admin เปิด/ปิดสิทธิ์ของ role ต่าง ๆ ได้เอง (UI ที่ Manage → Permissions tab)
+  2. **Per-user custom permissions** — กำหนด permission แต่ละ user แยก (ไม่ใช่เฉพาะ role)
+  3. **Per-category restrict** — จำกัด access ตามประเภทข้อมูล (เช่น supervisor ดูเฉพาะ PO ของบริษัทที่ตัวเองดูแล)
+  4. **Fine-grained view permission** — แยกสิทธิ์เห็น vs แก้ (ปัจจุบัน = บันเดิล)
+- Admin เพิ่มอำนาจอะไร ที่ยังทำไม่ได้?
+  - ตอนนี้ admin มีทุกอย่างแล้ว (ใน PERMISSIONS matrix) — toun ต้องการ **อำนาจ "ใหม่"** อะไร? เช่น impersonate user / force logout ทุกคน / audit log detailed view / etc.
+
+**แนวทางเทคนิคเบื้องต้น** (ถ้าตัดสินใจว่าไปทางไหนแล้ว):
+- เพิ่ม column `permissions JSONB` ใน `users` table → override default role permissions per user
+- หรือเพิ่ม table `permissions` แยก กับ role + permission_key + value
+- UI: Manage → เพิ่ม tab "Permissions" → table 2D (role × permission) — admin tick เปิด/ปิด
+- **ไม่ควรทำก่อนรู้คำตอบ** — ถามก่อน
+
+**คำถามที่ต้องถาม toun ก่อนเริ่ม**:
+1. **Use case**: ลองยกตัวอย่าง 1-2 scenarios ที่ permission ปัจจุบันไม่รองรับ — เช่น "อยากให้ supervisor A สร้าง PO ได้ แต่ supervisor B สร้างไม่ได้" หรือ "อยากให้ manager ลบ PO ได้" อะไรแบบนี้
+2. **Granularity**: ต้องการแยกระดับไหน? (per-role / per-user / per-feature / per-record)
+3. **UI เพิ่มที่ไหน**: Manage → tab ใหม่ "Permissions" หรือ extend User modal?
+4. **Who can change**: แค่ admin เปลี่ยนสิทธิ์คนอื่นได้, หรือให้ supervisor เปลี่ยนสิทธิ์ staff ได้ด้วย?
+
+#### **⭐ ลำดับ 2: Phase 3 — ฟีเจอร์ธุรกิจ** (6 ฟีเจอร์)
+- [ ] โหมดจุดงาน UI จริง — หลัง login แต่ละ station เห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
+- [ ] ระบบสต๊อกวัตถุดิบ/สี — เพิ่ม table `stock`, `stock_movements` ใน Supabase
+- [ ] ระบบคิดต้นทุน — คำนวณต้นทุน PO จากชิ้น × สี + ค่าแรง (SQL view)
+- [ ] Line แจ้งเตือน — Supabase Edge Function + Line Notify webhook (เตือนลูกค้าเมื่อส่ง)
+- [ ] เชื่อม n8n workflow — เปิด REST API สำหรับ automation
+- [ ] Dashboard สรุปยอดผลิต/ส่ง — chart ยอดรายเดือน, top customers, top parts
 
 #### **⭐ ลำดับ 2: Phase 3 — ฟีเจอร์ธุรกิจ** (6 ฟีเจอร์)
 - [ ] โหมดจุดงาน UI จริง — หลัง login แต่ละ station เห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
@@ -285,14 +326,15 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 ---
 
 ### สรุปจำนวนขั้นตอนที่เหลือ
-| ระดับ | จำนวนงาน | เวลาประเมิน |
-|---|---|---|
-| **1. PC Version** | 8 หน้าจอ | 2-5 วัน |
-| **2. Phase 3 ฟีเจอร์ธุรกิจ** | 6 ฟีเจอร์ | 2-4 สัปดาห์ |
-| **3. Hardening + Backup** | 5 งาน | 3-5 วัน |
-| **4. Phase 4 Scale Up** | 4 งาน | ~1-2 เดือน |
-| **5. Optional — i18n Burmese** | 4 งาน | 1-2 สัปดาห์ (ถ้าทำ) |
-| **รวม (ไม่รวม optional)** | **~23 งาน** | **~2-3 เดือน** |
+| ระดับ | จำนวนงาน | เวลาประเมิน | สถานะ |
+|---|---|---|---|
+| **1. PC Version** | 8 หน้าจอ + CRUD | 2-3 วัน | ✅ **เสร็จ 2026-04-22** |
+| **1.5. Granular Permissions** | 1 feature พร้อม UI | 1-2 วัน | 🎯 **งานถัดไป — toun ขอ** |
+| **2. Phase 3 ฟีเจอร์ธุรกิจ** | 6 ฟีเจอร์ | 2-4 สัปดาห์ | ⏳ pending |
+| **3. Hardening + Backup** | 5 งาน | 3-5 วัน | ⚠️ ควรทำก่อน user > 5 คน |
+| **4. Phase 4 Scale Up** | 4 งาน | ~1-2 เดือน | 🔮 เมื่อธุรกิจโตจริง |
+| **5. Optional — i18n Burmese** | 4 งาน | 1-2 สัปดาห์ | 🌏 optional, parked |
+| **รวมที่เหลือ (ไม่รวม optional)** | **~16 งาน** | **~1.5-2.5 เดือน** | |
 
 ## Architecture & Decision Log
 - **ทำไมใช้ JSONP → fetch + credentials:omit**: Chrome ส่ง Google session cookie กับ JSONP → GAS redirect loop
@@ -309,6 +351,10 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - **ทำไม QC Pass/Fail ไม่เขียน DB ทันที**: ให้ consistency กับ status อื่น (รับของ/ผลิต/ส่ง) ที่ตั้ง staged state แล้ว commit ผ่าน "บันทึก" bar. Pass/Fail เป็นแค่ decision stage + ตัวเลือก reason (ถ้า Fail); saveUpdate เป็น single commit path — ลด race condition + ง่ายต่อการ undo
 - **ทำไม "ปิด PO" ใช้ MAX(sent_date) แทน column `archived_at`**: หลีกเลี่ยง schema change. Semantic ตรงกว่า — "ปิด PO" คือตอนของชิ้นสุดท้ายออก ไม่ใช่ตอน admin กดปุ่ม archive (อาจช้ากว่าเป็นสัปดาห์). Derived data > stored data ที่มีโอกาส de-sync
 - **ทำไม tab bar ใช้ CSS `order` balance รอบ primary**: `display:none` ทำให้ flex sibling ขยายเติมที่ → primary + ถูก push ไปขวา. Alternative `visibility:hidden` ทำให้เหลือ slot ว่างทางขวา. การ compute `order` ใน JS ให้ non-primary tabs แบ่งซ้าย/ขวา รอบ primary = ไม่มี gap, ไม่ใช้ magic pixel, responsive
+- **ทำไม PC/Mobile เป็น 2 ไฟล์ HTML แยก (ไม่ share script)**: mobile = locked stable, desktop = active dev. ถ้า share `shared.js` แล้วแก้ function สำหรับ desktop อาจ break mobile โดยไม่ได้ตั้งใจ. ยอมเสีย DRY (~100 บรรทัด duplicate) เพื่อ isolation. DB (Supabase) เดียวเป็น sync point, ไม่ต้อง share code
+- **ทำไม QC tri-state (pass/fail/pending) ไม่ใช่ binary**: real factory workflow แยก 2 **บทบาท** — worker ย้ายของไปคิว (ไม่ต้องตรวจ) + QC inspector ตัดสิน (pass/fail). Binary บังคับ worker ตัดสินแทน inspector = ผิด domain model. Pending = `qc_passed IS NULL` ใน DB (nullable boolean รองรับอยู่แล้ว ไม่ต้อง migrate)
+- **ทำไม viewport router ใช้ `wide && !isTouch`**: iPad (wide + touch) ควรได้ mobile UI (44px tap target) ไม่ใช่ desktop UI (32px click target). การใช้ touch detection ร่วมกับ width = ครอบคลุม iPad, 2-in-1 laptops ที่มี touchscreen. Override ผ่าน `?v=mobile` หรือ `?v=desktop` สำหรับ edge cases
+- **ทำไม DB CHECK constraint ต้อง sync กับ code value**: เรื่อง `po_items_status_check` drift — constraint ของ DB กำหนดค่าที่อนุญาตไม่ตรงกับ code (DB มี 'เตรียมส่ง', code เขียน 'QC/เตรียมส่ง'). ทำให้ QC Pass silent fail. บทเรียน: ถ้า schema rule อยู่ทั้ง DB และ code ต้อง review กันเป็นคู่เสมอ ไม่งั้นจะ drift
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
