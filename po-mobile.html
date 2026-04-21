@@ -2418,6 +2418,28 @@ function initPINKeypad() {
   backBtn.textContent = '⌫';
   backBtn.onclick = backspacePIN;
   keypadEl.appendChild(backBtn);
+
+  // Physical keyboard support — only active while the login screen is visible.
+  // Attach once (idempotent via the _pinKbBound flag) so re-calls to
+  // initPINKeypad don't stack listeners.
+  if (!window._pinKbBound) {
+    window._pinKbBound = true;
+    document.addEventListener('keydown', (e) => {
+      const loginVisible = !document.getElementById('pin-login-screen')?.classList.contains('hidden');
+      if (!loginVisible) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        addPINDigit(Number(e.key));
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        backspacePIN();
+      } else if (e.key === 'Enter' && pinInput.length === 4) {
+        e.preventDefault();
+        submitPIN();
+      }
+    });
+  }
 }
 
 function addPINDigit(digit) {
