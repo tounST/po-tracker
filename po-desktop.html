@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
 
 <style>
 :root {
@@ -929,6 +930,111 @@ button { font-family: inherit; }
   margin-top: 4px; flex-wrap: wrap;
 }
 .archive-po-meta-row .mono { color: var(--ink-2); font-weight: 600; }
+
+/* ═══ ARCHIVE — expandable PO cards + dropdown ═══ */
+.archive-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.archive-toolbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.archive-po-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  margin-bottom: 10px; overflow: hidden;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.archive-po-card:last-child { margin-bottom: 0; }
+.archive-po-card:hover { border-color: var(--line-deep); }
+.archive-po-card.expanded { box-shadow: 0 2px 8px rgba(42,37,32,0.05); }
+.archive-po-head {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer; user-select: none;
+}
+.archive-po-head-main { flex: 1; min-width: 0; }
+.archive-po-head-row {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+.archive-po-head-row .pono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 14px; font-weight: 800; color: var(--ink);
+}
+.archive-po-head-row .company { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.archive-po-head-row .model { font-size: 12px; color: var(--ink-3); }
+.archive-po-meta-inline {
+  display: flex; gap: 16px; font-size: 11.5px;
+  color: var(--ink-3); margin-top: 4px; flex-wrap: wrap;
+}
+.archive-po-meta-inline .mono { color: var(--ink-2); font-weight: 600; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.archive-po-toggle-icon {
+  color: var(--ink-3); font-size: 12px;
+  transition: transform 0.15s;
+}
+.archive-po-card.expanded .archive-po-toggle-icon { transform: rotate(90deg); }
+
+.archive-po-items {
+  display: none;
+  padding: 10px 16px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+.archive-po-card.expanded .archive-po-items { display: block; }
+.archive-po-items-label {
+  font-size: 10.5px; color: var(--ink-3);
+  letter-spacing: 1px; font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.archive-item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 120px;
+  gap: 12px; padding: 8px 0;
+  font-size: 12.5px;
+  border-bottom: 1px dashed var(--line);
+  align-items: center;
+}
+.archive-item-row:last-child { border-bottom: none; }
+.archive-item-row .part { font-weight: 700; color: var(--ink); }
+.archive-item-row .color { color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.archive-item-row .sent {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: var(--success); font-weight: 700; text-align: right;
+}
+.archive-item-row .sent.muted { color: var(--ink-3); font-weight: 500; }
+
+/* Dropdown menu on each archived PO (admin only) */
+.archive-more-wrap { position: relative; flex-shrink: 0; }
+.archive-more-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--ink-3); font-size: 18px; line-height: 1;
+  cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.archive-more-btn:hover { background: var(--bg); color: var(--ink); border-color: var(--line); }
+.archive-dropdown {
+  display: none;
+  position: absolute; top: calc(100% + 4px); right: 0;
+  background: var(--surface); border: 1px solid var(--line-deep);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(42,37,32,0.15);
+  min-width: 180px; z-index: 50;
+  padding: 4px;
+}
+.archive-dropdown.open { display: block; }
+.archive-dropdown button {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 9px 12px;
+  background: transparent; border: none;
+  font-family: inherit; font-size: 13px; color: var(--ink);
+  text-align: left; cursor: pointer; border-radius: 7px;
+  font-weight: 600;
+}
+.archive-dropdown button:hover { background: var(--bg); }
+.archive-dropdown button.danger-action { color: var(--danger); }
+.archive-dropdown button.danger-action:hover { background: var(--danger-bg); }
+.archive-dropdown-divider { height: 1px; background: var(--line); margin: 4px 2px; }
 
 /* ═══ ROUND 3: MANAGE ═══ */
 .manage-tabs {
@@ -1958,6 +2064,7 @@ const ACTION_LABELS = {
   unarchive: 'เอา PO กลับ',
   delete_archived_po: 'ลบ PO ถาวร',
   delete_archive_month: 'ลบ Archive เดือน',
+  export_archive: 'Export Archive',
 };
 
 // ═══════════════════════════════════════════════════
@@ -3042,6 +3149,177 @@ async function loadArchiveMonthDetail(ym) {
   }
 }
 
+// ─── Archive actions (unarchive / delete-po / delete-month / export) ───
+async function unarchivePO(poId, poNumber) {
+  if (!confirm(`เอา ${poNumber} กลับไปหน้าหลัก?`)) return;
+  showLoading(true);
+  try {
+    const { error } = await sb.from('po_list').update({
+      is_archived: false,
+      updated_at: new Date().toISOString()
+    }).eq('id', poId);
+    if (error) throw error;
+    await logActivity('unarchive', 'po', { po_number: poNumber });
+    toast(`✅ เอา ${poNumber} กลับแล้ว`);
+    // Refresh active db so the PO reappears on Dashboard/List
+    const data = await loadFromSupabase();
+    if (data) db = { ...db, ...data };
+    renderDashboard();
+    // Redraw current archive month
+    await renderArchiveMonthDetail(archiveState.currentMonth);
+  } catch(e) {
+    console.error('[unarchivePO]', e);
+    toast('❌ ไม่สำเร็จ: ' + (e.message || e));
+  }
+  showLoading(false);
+}
+
+async function deleteArchivedPO(poId, poNumber, company, itemCount) {
+  if (!confirm(
+    `ลบ ${poNumber} ถาวร?\n` +
+    `บริษัท: ${company}\n` +
+    `ชิ้นงาน: ${itemCount} ชิ้น\n\n` +
+    `ข้อมูลจะหายและกู้คืนไม่ได้`
+  )) return;
+  showLoading(true);
+  try {
+    // FK constraint — items first, then po_list
+    const { error: e1 } = await sb.from('po_items').delete().eq('po_number', poNumber);
+    if (e1) throw e1;
+    const { error: e2 } = await sb.from('po_list').delete().eq('id', poId);
+    if (e2) throw e2;
+    await logActivity('delete_archived_po', 'po', { po_number: poNumber, company, item_count: itemCount });
+    toast(`🗑️ ลบ ${poNumber} ถาวรแล้ว`);
+
+    // If the month is now empty, bail to archive home; else re-render month
+    const { data: rest } = await sb
+      .from('po_list').select('due_date, order_date').eq('is_archived', true);
+    const stillHasThisMonth = (rest || []).some(p =>
+      (p.due_date || p.order_date || '').slice(0, 7) === archiveState.currentMonth
+    );
+    if (stillHasThisMonth) {
+      await renderArchiveMonthDetail(archiveState.currentMonth);
+    } else {
+      archiveState.currentMonth = null;
+      await renderArchive();
+    }
+  } catch(e) {
+    console.error('[deleteArchivedPO]', e);
+    toast('❌ ลบไม่สำเร็จ: ' + (e.message || e));
+  }
+  showLoading(false);
+}
+
+async function deleteArchiveMonth(ym, label) {
+  if (!currentUser || currentUser.role !== 'admin') {
+    toast('❌ เฉพาะ Admin เท่านั้น'); return;
+  }
+  const pos = archiveState.currentMonthPOs || [];
+  if (pos.length === 0) { toast('⚠️ ไม่มี PO ในเดือนนี้'); return; }
+
+  // Double confirm because this wipes multiple POs permanently
+  const ok1 = confirm(
+    `ลบ Archive เดือน "${label}" ทั้งหมด?\n` +
+    `- ${pos.length} PO\n\n` +
+    `ข้อมูลทั้งหมดจะหายถาวรและกู้คืนไม่ได้\n` +
+    `ควร Export ออกก่อนถ้ายังไม่ได้ทำ`
+  );
+  if (!ok1) return;
+  const ok2 = confirm(`ยืนยันอีกครั้ง — ลบ ${pos.length} PO ของเดือน "${label}"?`);
+  if (!ok2) return;
+
+  showLoading(true);
+  try {
+    const poNums = pos.map(p => p.po_number);
+    const poIds  = pos.map(p => p.id);
+    const { error: e1 } = await sb.from('po_items').delete().in('po_number', poNums);
+    if (e1) throw e1;
+    const { error: e2 } = await sb.from('po_list').delete().in('id', poIds);
+    if (e2) throw e2;
+
+    await logActivity('delete_archive_month', 'archive', {
+      year_month: ym, label, po_count: pos.length, po_numbers: poNums
+    });
+    toast(`🗑️ ลบ Archive เดือน ${label} เรียบร้อย (${pos.length} PO)`, 3200);
+    archiveState.currentMonth = null;
+    await renderArchive();
+  } catch(e) {
+    console.error('[deleteArchiveMonth]', e);
+    toast('❌ ลบไม่สำเร็จ: ' + (e.message || e));
+  }
+  showLoading(false);
+}
+
+async function exportArchiveMonth(ym, label) {
+  if (typeof XLSX === 'undefined') { toast('❌ โหลด library ไม่สำเร็จ — ลองรีเฟรชหน้า'); return; }
+  const monthPOs = archiveState.currentMonthPOs || [];
+  if (monthPOs.length === 0) { toast('⚠️ ไม่มีข้อมูลในเดือนนี้'); return; }
+
+  toast('⏳ กำลัง Export...', 1400);
+  try {
+    // Styles (match mobile palette so files look identical)
+    const hdrStyle   = { fill: { fgColor: { rgb: '6A1B9A' } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, alignment: { horizontal: 'center', vertical: 'center' } };
+    const altStyle   = { fill: { fgColor: { rgb: 'F3E5F5' } } };
+    const sentStyle  = { fill: { fgColor: { rgb: 'C8E6C9' } } };
+    const cellS = (v, s) => (s ? { v, s } : { v });
+    const rowStyle = (cells, s) => cells.map(v => cellS(v, s));
+
+    // Sheet 1: PO summary
+    const hdr1 = ['เลขที่ PO','บริษัท','รุ่นรถ','วันรับ','กำหนดส่ง','สถานะ PO','ชิ้นทั้งหมด','ส่งแล้ว','ปิด PO','หมายเหตุ'];
+    const data1 = [hdr1.map(h => cellS(h, hdrStyle))];
+    monthPOs.forEach((po, ri) => {
+      const its = po.items || [];
+      const sent = its.filter(i => i.status === 'ส่งแล้ว').length;
+      const style = ri % 2 === 0 ? null : altStyle;
+      const row = [
+        po.po_number, po.company || '', po.car_model || '',
+        po.order_date ? po.order_date.slice(0, 10) : '',
+        po.due_date   ? po.due_date.slice(0, 10)   : '',
+        po.po_status || '',
+        its.length, sent,
+        po.closeDate || '',
+        po.remark || ''
+      ];
+      data1.push(style ? rowStyle(row, style) : row.map(v => ({ v })));
+    });
+    const ws1 = XLSX.utils.aoa_to_sheet(data1);
+    ws1['!cols'] = [14, 22, 16, 12, 12, 14, 10, 10, 12, 22].map(w => ({ wch: w }));
+
+    // Sheet 2: all items
+    const hdr2 = ['เลขที่ PO','บริษัท','รุ่นรถ','ชิ้นงาน','สี','สถานะ','rework','วันที่ส่ง','Bundle PO','QC reason'];
+    const data2 = [hdr2.map(h => cellS(h, hdrStyle))];
+    const poMap = Object.fromEntries(monthPOs.map(p => [p.po_number, p]));
+    monthPOs.forEach(po => (po.items || []).forEach((it, ri) => {
+      const parent = poMap[po.po_number] || {};
+      const isSent = it.status === 'ส่งแล้ว';
+      const style = isSent ? sentStyle : (ri % 2 === 0 ? null : altStyle);
+      const row = [
+        it.po_number, parent.company || '', parent.car_model || '',
+        it.part_name || '', it.color || '', it.status || '',
+        it.rework ? '🔁 ใช่' : '',
+        it.sent_date ? it.sent_date.slice(0, 10) : '',
+        it.bundle_po || '',
+        it.qc_defect_reason || ''
+      ];
+      data2.push(style ? rowStyle(row, style) : row.map(v => ({ v })));
+    }));
+    const ws2 = XLSX.utils.aoa_to_sheet(data2);
+    ws2['!cols'] = [14, 22, 16, 22, 14, 14, 10, 12, 14, 18].map(w => ({ wch: w }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'สรุป PO');
+    XLSX.utils.book_append_sheet(wb, ws2, 'รายการชิ้นงาน');
+    XLSX.writeFile(wb, `Archive-${ym}.xlsx`);
+
+    const itemTotal = monthPOs.reduce((t, p) => t + (p.items?.length || 0), 0);
+    await logActivity('export_archive', 'archive', { year_month: ym, label, po_count: monthPOs.length, item_count: itemTotal });
+    toast(`✅ Export สำเร็จ: Archive-${ym}.xlsx (${monthPOs.length} PO, ${itemTotal} ชิ้น)`, 3200);
+  } catch(e) {
+    console.error('[exportArchiveMonth]', e);
+    toast('❌ Export ล้มเหลว: ' + (e.message || e), 4000);
+  }
+}
+
 async function renderArchive() {
   const el = document.getElementById('page-archive');
   el.innerHTML = `
@@ -3121,17 +3399,11 @@ async function renderArchiveMonthDetail(ym) {
   const [yy, mm] = ym.split('-');
   const thaiMonth = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][Number(mm) - 1];
   const label = `${thaiMonth} ${Number(yy) + 543}`;
+  archiveState.currentLabel = label;
 
   el.innerHTML = `
     <button class="back-link" id="arc-back">← เดือนทั้งหมด</button>
-    <div class="archive-month-detail">
-      <div class="archive-month-header">
-        <div>
-          <h2 style="font-size: 22px; font-weight: 800; margin: 0;">Archive — ${escapeHtml(label)}</h2>
-          <div style="font-size: 12px; color: var(--ink-3); margin-top: 4px;">⏳ กำลังโหลด PO ในเดือนนี้...</div>
-        </div>
-      </div>
-    </div>
+    <div style="color: var(--ink-3); font-size: 13px;">⏳ กำลังโหลด PO ในเดือน ${escapeHtml(label)}...</div>
   `;
   document.getElementById('arc-back').onclick = () => {
     archiveState.currentMonth = null;
@@ -3141,39 +3413,151 @@ async function renderArchiveMonthDetail(ym) {
   const monthPOs = await loadArchiveMonthDetail(ym);
   archiveState.currentMonthPOs = monthPOs;
 
+  const isAdmin = currentUser && currentUser.role === 'admin';
+
   let body = `
-    <div class="archive-month-header">
+    <button class="back-link" id="arc-back">← เดือนทั้งหมด</button>
+
+    <div class="archive-toolbar">
       <div>
         <h2 style="font-size: 22px; font-weight: 800; margin: 0;">Archive — ${escapeHtml(label)}</h2>
-        <div style="font-size: 12px; color: var(--ink-3); margin-top: 4px;">${monthPOs.length} PO · อ่านอย่างเดียว (แก้ไข/ลบให้ใช้ mobile)</div>
+        <div style="font-size: 12px; color: var(--ink-3); margin-top: 4px;">
+          ${monthPOs.length} PO · กดชื่อ PO เพื่อดูรายการชิ้นงาน
+        </div>
+      </div>
+      <div class="archive-toolbar-actions">
+        <button class="btn btn-ghost" id="arc-export-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export Excel
+        </button>
+        ${isAdmin ? `
+          <button class="btn" id="arc-delete-month-btn" style="background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+            ลบทั้งเดือน
+          </button>
+        ` : ''}
       </div>
     </div>
   `;
+
   if (monthPOs.length === 0) {
     body += `<div class="empty-state"><span class="emoji">📭</span><p>ไม่มี PO ในเดือนนี้</p></div>`;
   } else {
-    body += monthPOs.map(p => `
-      <div class="archive-po-card">
-        <div class="archive-po-head">
-          <div>
-            <span class="td-po-no" style="font-size: 14px;">${escapeHtml(p.po_number)}</span>
-            <span style="font-size: 13px; color: var(--ink-2); margin-left: 10px;">${escapeHtml(p.company || '—')}</span>
-            ${p.car_model ? `<span style="font-size: 12px; color: var(--ink-3); margin-left: 6px;">· ${escapeHtml(p.car_model)}</span>` : ''}
+    body += monthPOs.map(p => {
+      const cardId = 'arc-card-' + String(p.po_number).replace(/[^a-zA-Z0-9-]/g, '');
+      return `
+        <div class="archive-po-card" id="${cardId}">
+          <div class="archive-po-head" data-toggle="${cardId}">
+            <div class="archive-po-head-main">
+              <div class="archive-po-head-row">
+                <span class="pono">${escapeHtml(p.po_number)}</span>
+                <span class="company">${escapeHtml(p.company || '—')}</span>
+                ${p.car_model ? `<span class="model">· ${escapeHtml(p.car_model)}</span>` : ''}
+                <span class="status-chip status-chip-sm status-complete">ครบแล้ว</span>
+              </div>
+              <div class="archive-po-meta-inline">
+                <span>รับของ <span class="mono">${p.order_date ? fixDateStr(p.order_date) : '—'}</span></span>
+                ${p.closeDate ? `<span>ปิด PO <span class="mono" style="color: var(--success);">${p.closeDate}</span></span>` : ''}
+                <span>${p.items.length} ชิ้น</span>
+                ${p.remark ? `<span>📝 ${escapeHtml(p.remark)}</span>` : ''}
+              </div>
+            </div>
+            ${isAdmin ? `
+              <div class="archive-more-wrap" onclick="event.stopPropagation()">
+                <button class="archive-more-btn" data-dd="${cardId}" title="เพิ่มเติม">⋯</button>
+                <div class="archive-dropdown" id="dd-${cardId}">
+                  <button data-unarc="${p.id}" data-pono="${escapeHtml(p.po_number)}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9 9 0 016.4 2.6L21 8M21 3v5h-5"/></svg>
+                    เอากลับ
+                  </button>
+                  <div class="archive-dropdown-divider"></div>
+                  <button class="danger-action" data-delpo="${p.id}" data-pono="${escapeHtml(p.po_number)}" data-company="${escapeHtml(p.company || '')}" data-count="${p.items.length}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+                    ลบถาวร
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+            <span class="archive-po-toggle-icon">▶</span>
           </div>
-          <span class="status-chip status-chip-sm status-complete">ครบแล้ว</span>
+          <div class="archive-po-items">
+            <div class="archive-po-items-label">รายการชิ้นงาน · ${p.items.length}</div>
+            ${p.items.length === 0
+              ? `<div style="color: var(--ink-3); font-size: 12px;">ไม่มีข้อมูลชิ้นงาน</div>`
+              : p.items.map(it => `
+                <div class="archive-item-row">
+                  <div class="part">${escapeHtml(it.part_name || '—')}</div>
+                  <div class="color">${escapeHtml(it.color || '—')}</div>
+                  <div style="color: var(--ink-3); font-size: 11.5px;">
+                    ${it.rework ? '<span style="color: var(--danger); font-weight: 700;">🔁 rework</span> ' : ''}
+                    ${it.status || ''}
+                  </div>
+                  <div class="sent ${it.sent_date ? '' : 'muted'}">
+                    ${it.sent_date ? '✓ ส่ง ' + fixDateStr(it.sent_date) : '—'}
+                  </div>
+                </div>
+              `).join('')
+            }
+          </div>
         </div>
-        <div class="archive-po-meta-row">
-          <span>รับของ <span class="mono">${p.order_date ? fixDateStr(p.order_date) : '—'}</span></span>
-          ${p.closeDate ? `<span>ปิด PO <span class="mono" style="color: var(--success); font-weight: 700;">${p.closeDate}</span></span>` : ''}
-          <span>${p.items.length} ชิ้น</span>
-          ${p.remark ? `<span style="flex-basis: 100%; color: var(--ink-3); margin-top: 4px;">📝 ${escapeHtml(p.remark)}</span>` : ''}
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
-  el.querySelector('.archive-month-detail').innerHTML = body;
+  el.innerHTML = body;
+
+  // Wire back button (re-rendered)
+  document.getElementById('arc-back').onclick = () => {
+    archiveState.currentMonth = null;
+    renderArchive();
+  };
+
+  // Export + Delete Month buttons
+  document.getElementById('arc-export-btn')?.addEventListener('click', () => exportArchiveMonth(ym, label));
+  document.getElementById('arc-delete-month-btn')?.addEventListener('click', () => deleteArchiveMonth(ym, label));
+
+  // PO card expand/collapse
+  el.querySelectorAll('.archive-po-head[data-toggle]').forEach(head => {
+    head.onclick = () => {
+      const card = document.getElementById(head.dataset.toggle);
+      card?.classList.toggle('expanded');
+    };
+  });
+
+  // Dropdown menu toggles (admin)
+  el.querySelectorAll('.archive-more-btn[data-dd]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const dd = document.getElementById('dd-' + btn.dataset.dd);
+      const wasOpen = dd?.classList.contains('open');
+      closeAllArcDropdowns();
+      if (!wasOpen) dd?.classList.add('open');
+    };
+  });
+  el.querySelectorAll('[data-unarc]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      closeAllArcDropdowns();
+      unarchivePO(btn.dataset.unarc, btn.dataset.pono);
+    };
+  });
+  el.querySelectorAll('[data-delpo]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      closeAllArcDropdowns();
+      deleteArchivedPO(btn.dataset.delpo, btn.dataset.pono, btn.dataset.company, Number(btn.dataset.count));
+    };
+  });
 }
+
+function closeAllArcDropdowns() {
+  document.querySelectorAll('.archive-dropdown.open').forEach(d => d.classList.remove('open'));
+}
+
+// Global click-outside to close any open archive dropdown
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.archive-more-wrap')) closeAllArcDropdowns();
+});
 
 // ═══════════════════════════════════════════════════
 //  RENDER: MANAGE (Round 3)
