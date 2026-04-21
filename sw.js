@@ -3,11 +3,13 @@
 //  Version: v1.0 — 2026-03-20
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME = 'po-tracker-v5';
+const CACHE_NAME = 'po-tracker-v6';
 
 // ไฟล์ที่จะ cache ไว้ใช้ offline
 const CACHE_FILES = [
+  '/po-tracker/index.html',
   '/po-tracker/po-mobile.html',
+  '/po-tracker/po-desktop.html',
   '/po-tracker/manifest.json',
   'https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap'
 ];
@@ -16,8 +18,12 @@ const CACHE_FILES = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // cache แค่ไฟล์หลัก — ถ้า font โหลดไม่ได้ก็ไม่ fail
-      return cache.addAll(['/po-tracker/po-mobile.html']).catch(() => {});
+      // cache หน้า HTML หลัก — ถ้าบาง URL โหลดไม่ได้ ก็ไม่ให้ install fail
+      return cache.addAll([
+        '/po-tracker/index.html',
+        '/po-tracker/po-mobile.html',
+        '/po-tracker/po-desktop.html'
+      ]).catch(() => {});
     })
   );
   self.skipWaiting();

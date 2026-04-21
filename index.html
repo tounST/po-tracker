@@ -1,9 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-  <meta http-equiv="refresh" content="0;url=po-mobile.html">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PO Tracker</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    background: #F6F1EA;
+    color: #2A2520;
+    font-family: 'Sarabun', system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+  }
+  .hint { font-size: 14px; color: #8A7F72; }
+  .hint a { color: #B85C3C; }
+</style>
 </head>
 <body>
-  <p>กำลังเปิด PO Tracker... <a href="po-mobile.html">คลิกที่นี่</a></p>
+  <div>
+    <p class="hint">กำลังเปิด PO Tracker…</p>
+    <p class="hint">หากไม่ redirect ภายใน 2 วิ: <a href="po-mobile.html">Mobile</a> · <a href="po-desktop.html">Desktop</a></p>
+  </div>
+
+  <script>
+    // Viewport-aware router — desktop (>=1024px + not touch) → po-desktop.html
+    // Mobile / tablet / touch → po-mobile.html
+    // User can override via ?v=mobile or ?v=desktop in URL
+    (function() {
+      const params = new URLSearchParams(location.search);
+      const override = params.get('v');
+      if (override === 'mobile')  { location.replace('po-mobile.html'  + location.hash); return; }
+      if (override === 'desktop') { location.replace('po-desktop.html' + location.hash); return; }
+
+      const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+      const wide = window.innerWidth >= 1024;
+
+      // Wide viewport AND no-touch primary (i.e., real PC with mouse+keyboard)
+      // → Desktop. Otherwise → Mobile.
+      const target = (wide && !isTouch) ? 'po-desktop.html' : 'po-mobile.html';
+      location.replace(target + location.hash);
+    })();
+  </script>
 </body>
 </html>

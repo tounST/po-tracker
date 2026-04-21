@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2A2520">
+<title>PO Tracker · Desktop</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --bg: #F6F1EA;
+  --bg-deep: #EDE5DA;
+  --surface: #FCFAF6;
+  --surface-2: #FFFFFF;
+  --ink: #2A2520;
+  --ink-2: #5A4F42;
+  --ink-3: #8A7F72;
+  --line: #E5DDD0;
+  --line-deep: #D6CCBD;
+  --accent: #B85C3C;
+  --accent-soft: #F4E3D8;
+  --accent-ink: #5A2818;
+  --success: #4A7F3F;
+  --success-bg: #E0EBD8;
+  --warning: #B8832A;
+  --warning-bg: #F3E6CB;
+  --danger: #A33B2E;
+  --danger-bg: #F4D9D4;
+  --info: #3F6E8C;
+  --info-bg: #D9E6EE;
+  --status-qc-fg: #4B3D78;
+  --status-qc-bg: #E3DDF0;
+  --role-admin: #A33B2E;
+  --role-supervisor: #B8832A;
+  --role-manager: #3F5AA6;
+  --role-staff: #4A7F3F;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Sarabun', 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: 'tnum' 1; }
+button { font-family: inherit; }
+
+/* ═══ LOGIN SCREEN ═══ */
+#pin-login-screen {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--bg);
+  display: flex;
+}
+#pin-login-screen.hidden { display: none; }
+
+.login-brand-panel {
+  width: 42%; background: var(--ink); color: var(--bg);
+  padding: 56px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.login-brand-top { display: flex; align-items: center; gap: 12px; }
+.login-brand-mark {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 16px; letter-spacing: -0.3px;
+}
+.login-brand-name { font-size: 16px; font-weight: 800; }
+.login-brand-sub {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; opacity: 0.55; letter-spacing: 0.5px; margin-top: 2px;
+}
+.login-hero-title {
+  font-size: 40px; font-weight: 800;
+  letter-spacing: -1.2px; line-height: 1.1;
+}
+.login-hero-sub {
+  font-size: 15px; opacity: 0.6; margin-top: 16px;
+  max-width: 380px; line-height: 1.55;
+}
+.login-brand-foot {
+  display: flex; gap: 18px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; opacity: 0.55; letter-spacing: 0.5px;
+}
+
+.login-form-panel {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 48px;
+}
+.login-form {
+  width: 400px; max-width: 100%;
+  text-align: center;
+}
+.login-kicker {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; color: var(--ink-3);
+  letter-spacing: 2px; text-transform: uppercase; font-weight: 800;
+}
+.login-title {
+  font-size: 32px; font-weight: 800;
+  letter-spacing: -0.8px; margin-top: 6px;
+}
+.login-desc { font-size: 14px; color: var(--ink-3); margin-top: 6px; }
+
+.pin-dots {
+  display: flex; justify-content: center; gap: 16px; margin: 36px 0 24px;
+}
+.pin-dot {
+  width: 18px; height: 18px; border-radius: 99px;
+  background: transparent;
+  border: 2px solid var(--line-deep);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.pin-dot.filled {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+
+.pin-keypad {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; max-width: 320px; margin: 0 auto;
+}
+.pin-key {
+  min-height: 64px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line-deep);
+  font-size: 22px; font-weight: 700; color: var(--ink);
+  cursor: pointer; transition: background 0.1s, transform 0.08s;
+  font-family: inherit;
+}
+.pin-key:hover:not(.empty) { background: var(--bg-deep); }
+.pin-key:active:not(.empty) { transform: scale(0.96); }
+.pin-key.empty { background: transparent; border: none; cursor: default; }
+.pin-key.backspace { font-size: 24px; color: var(--ink-2); }
+
+.pin-hint {
+  font-size: 12px; color: var(--ink-3);
+  margin-top: 18px;
+}
+.pin-error {
+  color: var(--danger); font-size: 13px; font-weight: 600;
+  min-height: 20px; margin-top: 14px;
+}
+.shake { animation: shake 0.45s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* ═══ SHELL ═══ */
+#app-shell { display: flex; min-height: 100vh; }
+#app-shell.hidden { display: none; }
+
+.sidebar {
+  width: 248px; flex-shrink: 0;
+  background: var(--ink); color: var(--bg);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+}
+.sidebar-brand {
+  padding: 20px 20px 14px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid #3A332C;
+}
+.sidebar-mark {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; letter-spacing: -0.3px;
+}
+.sidebar-brand-text { display: flex; flex-direction: column; min-width: 0; }
+.sidebar-brand-name { font-size: 14px; font-weight: 800; letter-spacing: -0.2px; line-height: 1.2; }
+.sidebar-brand-sub { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; opacity: 0.55; letter-spacing: 0.5px; margin-top: 2px; }
+
+.sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+.sidebar-section-label {
+  font-size: 9.5px; opacity: 0.45; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+  padding: 6px 10px 8px;
+}
+.sidebar-item {
+  display: flex; align-items: center;
+  gap: 12px; padding: 11px 12px;
+  border-radius: 10px;
+  color: rgba(246,241,234,0.72);
+  margin-bottom: 2px; cursor: pointer;
+  position: relative; user-select: none;
+}
+.sidebar-item:hover:not(.active) { background: rgba(246,241,234,0.04); }
+.sidebar-item.active { background: #3A332C; color: #fff; }
+.sidebar-item.active::before {
+  content: ''; position: absolute;
+  left: -12px; top: 10px; bottom: 10px;
+  width: 3px; border-radius: 99px; background: var(--accent);
+}
+.sidebar-item svg { flex-shrink: 0; opacity: 0.85; }
+.sidebar-item.active svg { opacity: 1; }
+.sidebar-item-label { font-size: 13.5px; font-weight: 500; letter-spacing: -0.1px; }
+.sidebar-item.active .sidebar-item-label { font-weight: 700; }
+.sidebar-item.hidden-item { display: none; }
+
+.sidebar-user {
+  padding: 14px 12px;
+  border-top: 1px solid #3A332C;
+  display: flex; align-items: center; gap: 10px;
+}
+.sidebar-avatar {
+  width: 34px; height: 34px; border-radius: 99px;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; flex-shrink: 0;
+}
+.sidebar-user-text { flex: 1; min-width: 0; }
+.sidebar-user-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25; }
+.sidebar-user-role { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; opacity: 0.55; letter-spacing: 0.3px; line-height: 1.25; margin-top: 2px; }
+.sidebar-logout {
+  margin-left: 4px; padding: 6px; border-radius: 8px; cursor: pointer;
+  color: rgba(246,241,234,0.55); background: transparent; border: none;
+}
+.sidebar-logout:hover { color: #fff; background: rgba(246,241,234,0.05); }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  padding: 22px 32px 18px;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px; background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-text { min-width: 0; flex: 1; }
+.topbar-breadcrumb {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; color: var(--ink-3);
+  margin-bottom: 6px; letter-spacing: 0.5px;
+}
+.topbar-title-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.topbar-title { font-size: 28px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.1; color: var(--ink); margin: 0; }
+.topbar-subtitle { font-size: 14px; color: var(--ink-3); }
+
+.topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.search-box {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 14px;
+  display: flex; align-items: center; gap: 10px;
+  width: 280px;
+}
+.search-box input {
+  border: none; background: transparent; outline: none;
+  font-size: 13px; color: var(--ink); flex: 1; font-family: inherit;
+}
+.search-box input::placeholder { color: var(--ink-3); }
+.search-kbd {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px; color: var(--ink-3);
+  background: var(--bg-deep); padding: 2px 6px; border-radius: 5px;
+}
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 99px;
+  background: var(--success);
+  margin-right: 6px;
+  transition: background 0.3s;
+}
+.sync-dot.syncing { background: var(--warning); }
+.sync-dot.error { background: var(--danger); }
+
+.btn { padding: 0 16px; height: 40px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; border: none; font-family: inherit; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-ghost { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line-deep); }
+.btn-ghost:hover { border-color: var(--ink-3); }
+.btn-icon { width: 40px; padding: 0; justify-content: center; }
+
+.content { flex: 1; padding: 28px 32px; overflow-y: auto; }
+.content-inner { max-width: 1360px; margin: 0 auto; }
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ═══ DASHBOARD ═══ */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.kpi-label { font-size: 12.5px; font-weight: 700; color: var(--ink-2); line-height: 1.2; }
+.kpi-row-val { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-top: 10px; }
+.kpi-value { font-size: 36px; font-weight: 800; letter-spacing: -1.2px; line-height: 1; color: var(--ink); }
+.kpi-trend {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px; font-weight: 700;
+  padding: 3px 8px; border-radius: 99px; margin-bottom: 4px;
+}
+.kpi-trend.ok { color: var(--success); background: var(--success-bg); }
+.kpi-trend.warn { color: var(--warning); background: var(--warning-bg); }
+.kpi-trend.bad { color: var(--danger); background: var(--danger-bg); }
+.kpi-trend.accent { color: var(--accent); background: var(--accent-soft); }
+.kpi-sub {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; color: var(--ink-3);
+  margin-top: 6px; letter-spacing: 0.3px;
+}
+
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
+.section-title-wrap { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.section-title-th { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; color: var(--ink); white-space: nowrap; margin: 0; }
+.section-title-en {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px; color: var(--ink-3);
+  letter-spacing: 1px; text-transform: uppercase; font-weight: 700;
+}
+
+.due-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.due-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  cursor: pointer; transition: border-color 0.12s;
+}
+.due-card:hover { border-color: var(--line-deep); }
+.due-card.danger-top { border-top: 3px solid var(--danger); }
+.due-card.warning-top { border-top: 3px solid var(--warning); }
+.due-card.info-top { border-top: 3px solid var(--line-deep); }
+.due-chip {
+  padding: 4px 10px; border-radius: 99px;
+  font-size: 11px; font-weight: 800;
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+}
+.due-chip::before { content: ''; width: 5px; height: 5px; border-radius: 99px; background: currentColor; }
+.due-chip.danger { background: var(--danger-bg); color: var(--danger); }
+.due-chip.warning { background: var(--warning-bg); color: var(--warning); }
+.due-chip.info { background: var(--info-bg); color: var(--info); }
+.due-head-row { display: flex; align-items: center; justify-content: space-between; }
+.due-pono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 14px; font-weight: 800; color: var(--ink); }
+.due-company { font-size: 12px; color: var(--ink-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.due-model { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.due-foot { margin-top: auto; padding-top: 8px; border-top: 1px dashed var(--line); }
+.due-foot-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.due-foot-label { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+.due-foot-val { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 700; color: var(--ink); }
+.progress { display: flex; align-items: center; gap: 6px; }
+.progress-track { flex: 1; height: 4px; border-radius: 99px; background: var(--bg-deep); overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); }
+.progress-pct { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700; color: var(--ink-2); }
+
+.split-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+.card-box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+
+.urgent-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--danger);
+  cursor: pointer;
+}
+.urgent-row:hover { background: var(--bg); }
+.urgent-row:last-child { border-bottom: none; }
+.urgent-badge {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--danger-bg); color: var(--danger);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.urgent-main { flex: 1; min-width: 0; }
+.urgent-title { display: flex; align-items: baseline; gap: 10px; }
+.urgent-pono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 14px; font-weight: 800; color: var(--ink); }
+.urgent-company { font-size: 13px; color: var(--ink-2); }
+.urgent-meta { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+.status-chip { padding: 5px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; display: inline-block; }
+.status-chip-sm { padding: 3px 8px; font-size: 11px; }
+.status-inprog { background: var(--warning-bg); color: var(--warning); }
+.status-partial { background: #F3E0D8; color: #A35530; }
+.status-order { background: var(--info-bg); color: var(--info); }
+.status-complete { background: var(--success-bg); color: var(--success); }
+
+.activity-box { padding: 14px; }
+.activity-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.activity-row:last-child { border-bottom: none; }
+.activity-avatar { width: 30px; height: 30px; border-radius: 99px; background: var(--bg-deep); color: var(--ink); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.activity-main { flex: 1; min-width: 0; }
+.activity-text { font-size: 13px; color: var(--ink); }
+.activity-text b { font-weight: 700; }
+.activity-meta { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+/* ═══ PO LIST ═══ */
+.filter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+.pill {
+  padding: 8px 14px; border-radius: 99px;
+  background: var(--surface); color: var(--ink-2);
+  border: 1px solid var(--line-deep);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+}
+.pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pill:hover:not(.active) { border-color: var(--ink-3); }
+.flex-spacer { flex: 1; }
+
+.data-table { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.data-header, .data-row {
+  display: grid;
+  grid-template-columns: 150px 2fr 1.2fr 95px 95px 60px 1.3fr 120px 40px;
+  gap: 14px;
+}
+.data-header {
+  padding: 12px 18px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--line-deep);
+  font-size: 10.5px; font-weight: 800;
+  color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: 1.2px;
+}
+.data-row {
+  padding: 16px 18px; align-items: center;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px; cursor: pointer;
+  transition: background 0.12s;
+}
+.data-row:last-child { border-bottom: none; }
+.data-row:hover { background: var(--bg); }
+.td-po { display: flex; align-items: center; gap: 7px; }
+.td-po-no { font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 800; color: var(--ink); }
+.td-company-main { font-weight: 700; color: var(--ink); }
+.td-company-sub { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.td-model { color: var(--ink-2); }
+.td-date-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; }
+.td-date-mono.mute { color: var(--ink-3); }
+.td-date-mono.strong { color: var(--ink); font-weight: 700; }
+.td-qty { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink-2); }
+.td-prog { display: flex; align-items: center; gap: 8px; }
+.td-prog-track { flex: 1; height: 5px; border-radius: 99px; background: var(--bg-deep); overflow: hidden; }
+.td-prog-fill { height: 100%; background: var(--accent); }
+.td-prog-pct { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: var(--ink-2); }
+.td-action { color: var(--ink-3); display: flex; justify-content: flex-end; }
+
+/* Empty states */
+.empty-state {
+  background: var(--surface); border: 1px dashed var(--line-deep);
+  border-radius: 14px; padding: 48px 24px;
+  text-align: center; color: var(--ink-3);
+}
+.empty-state .emoji { font-size: 40px; display: block; margin-bottom: 12px; }
+
+/* Placeholder pages (Round 2/3 not implemented) */
+.placeholder-wrap {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 48px 24px; text-align: center;
+}
+.placeholder-title { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+.placeholder-desc { font-size: 14px; color: var(--ink-3); max-width: 520px; margin: 0 auto 20px; line-height: 1.6; }
+.placeholder-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; background: var(--accent); color: #fff;
+  text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px;
+}
+.placeholder-link:hover { filter: brightness(1.08); }
+
+/* ═══ TOAST + LOADING ═══ */
+#toast-container {
+  position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 1000; display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--ink); color: #fff;
+  padding: 12px 20px; border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+  box-shadow: 0 8px 24px rgba(42,37,32,0.12);
+  animation: slideDown 0.3s ease-out;
+  max-width: 420px;
+}
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+#loading-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(42,37,32,0.35);
+  display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(2px);
+}
+#loading-overlay.show { display: flex; }
+.spinner {
+  width: 44px; height: 44px; border-radius: 99px;
+  border: 3px solid rgba(246,241,234,0.3);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ PIN LOGIN ═══════════════ -->
+<div id="pin-login-screen">
+  <aside class="login-brand-panel">
+    <div class="login-brand-top">
+      <div class="login-brand-mark">PO</div>
+      <div>
+        <div class="login-brand-name">PO Tracker</div>
+        <div class="login-brand-sub">workshop v2.0 · desktop</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="login-hero-title">จัดการใบสั่งผลิต<br>ชิ้นงานพ่นสี</div>
+      <div class="login-hero-sub">Track every part from receiving to shipping — across the paint shop floor, in real time.</div>
+    </div>
+
+    <div class="login-brand-foot">
+      <span>© 2026</span>
+      <span>v2.0</span>
+      <span>Desktop</span>
+    </div>
+  </aside>
+
+  <section class="login-form-panel">
+    <div class="login-form">
+      <div class="login-kicker">Sign in</div>
+      <h1 class="login-title" style="margin: 6px 0 0;">ยินดีต้อนรับกลับมา</h1>
+      <div class="login-desc">ใส่ PIN 4 หลัก · Enter 4-digit PIN</div>
+
+      <div class="pin-dots" id="pin-dots-wrap">
+        <div class="pin-dot" id="pin-dot-0"></div>
+        <div class="pin-dot" id="pin-dot-1"></div>
+        <div class="pin-dot" id="pin-dot-2"></div>
+        <div class="pin-dot" id="pin-dot-3"></div>
+      </div>
+
+      <div class="pin-keypad" id="pin-keypad"></div>
+
+      <div class="pin-hint">พิมพ์จาก keyboard ได้ 0-9 · Backspace ลบ · Enter ยืนยัน</div>
+      <div class="pin-error" id="pin-error"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════ APP SHELL ═══════════════ -->
+<div id="app-shell" class="hidden">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-mark">PO</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">PO Tracker</div>
+        <div class="sidebar-brand-sub">workshop v2</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">main</div>
+      <a class="sidebar-item" data-page="dashboard" data-perm="all">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V10z"/></svg>
+        <span class="sidebar-item-label">ภาพรวม</span>
+      </a>
+      <a class="sidebar-item" data-page="list" data-perm="all">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        <span class="sidebar-item-label">PO ทั้งหมด</span>
+      </a>
+      <a class="sidebar-item" data-page="create" data-perm="createPO">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="sidebar-item-label">สร้าง PO</span>
+      </a>
+      <a class="sidebar-item" data-page="qc" data-perm="all">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M8 11l2 2 4-4"/></svg>
+        <span class="sidebar-item-label">QC</span>
+      </a>
+      <a class="sidebar-item" data-page="archive" data-perm="archive">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8M10 12h4"/></svg>
+        <span class="sidebar-item-label">Archive</span>
+      </a>
+
+      <div class="sidebar-section-label" style="margin-top:8px;">settings</div>
+      <a class="sidebar-item" data-page="manage" data-perm="manage">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3h.1a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8v.1a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+        <span class="sidebar-item-label">จัดการ</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+      <div class="sidebar-user-text">
+        <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+        <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+      </div>
+      <button class="sidebar-logout" id="btn-logout" title="ออกจากระบบ · Log out">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-text">
+        <div class="topbar-breadcrumb" id="tb-crumb">HOME / DASHBOARD</div>
+        <div class="topbar-title-row">
+          <h1 class="topbar-title" id="tb-title">สวัสดี</h1>
+          <div class="topbar-subtitle" id="tb-sub">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <span class="sync-dot" id="sync-dot" title="Sync status"></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input placeholder="ค้นหา PO, บริษัท, ชิ้น…" readonly>
+          <span class="search-kbd">⌘K</span>
+        </div>
+        <button class="btn btn-ghost" id="btn-refresh" title="Refresh">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9 9 0 016.4 2.6L21 8M21 3v5h-5M21 12a9 9 0 01-9 9 9 9 0 01-6.4-2.6L3 16M3 21v-5h5"/></svg>
+          รีเฟรช
+        </button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="content-inner">
+        <section class="page" id="page-dashboard"></section>
+        <section class="page" id="page-list"></section>
+        <section class="page" id="page-create"></section>
+        <section class="page" id="page-qc"></section>
+        <section class="page" id="page-archive"></section>
+        <section class="page" id="page-manage"></section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<div id="loading-overlay"><div class="spinner"></div></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONFIG + STATE
+// ═══════════════════════════════════════════════════
+const SUPABASE_URL      = 'https://rkdxbxtakvisroxelrvq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHhieHRha3Zpc3JveGVscnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMzM2MjgsImV4cCI6MjA4OTkwOTYyOH0.KvTaFrdXCERYl77hVt5x5_udMQn7YSy6GFdDoyu9bOU';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let db = { pos: [], items: [], activities: [] };
+let currentRoute = 'dashboard';
+let currentFilter = 'active';
+let pinInput = '';
+let sessionTimer = null;
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
+
+// Permissions — mirrored from po-mobile.html so both clients enforce the same rules
+const PERMISSIONS = {
+  admin:      { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: true,  archive: true  },
+  supervisor: { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: false, archive: true  },
+  manager:    { viewAll: true,  createPO: true, editAll: true,  delete: false, manage: false, archive: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, manage: false, archive: false }
+};
+const ROLE_LABELS = { admin: 'Admin', supervisor: 'Supervisor', manager: 'Manager', staff: 'Staff' };
+const ROLE_COLORS = { admin: '#A33B2E', supervisor: '#B8832A', manager: '#3F5AA6', staff: '#4A7F3F' };
+
+function hasPermission(permKey) {
+  if (!currentUser) return false;
+  if (permKey === 'all') return true;
+  return !!(PERMISSIONS[currentUser.role] || PERMISSIONS.staff)[permKey];
+}
+
+// ═══════════════════════════════════════════════════
+//  HELPERS — date & formatting
+// ═══════════════════════════════════════════════════
+function pad2(n) { return String(n).padStart(2, '0'); }
+function localISO(d) { return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function todayISO() { return localISO(new Date()); }
+
+function fixDateStr(s) {
+  if (!s) return '';
+  if (typeof s === 'string' && s.length >= 10) return s.slice(0, 10);
+  if (s instanceof Date) return localISO(s);
+  try { return localISO(new Date(s)); } catch(e) { return ''; }
+}
+
+const THAI_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const THAI_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+function thaiDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+function thaiDateShort(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]}`;
+}
+function thaiToday() {
+  const d = new Date();
+  return `วัน${THAI_DAYS[d.getDay()]} · ${d.getDate()} ${['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][d.getMonth()]} ${d.getFullYear()+543}`;
+}
+function daysLeft(dueIso) {
+  if (!dueIso) return null;
+  const due = new Date(dueIso); due.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((due - today) / 86400000);
+}
+function relTime(iso) {
+  if (!iso) return '';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return 'เมื่อสักครู่';
+  if (diff < 3600) return `${Math.floor(diff/60)} นาทีก่อน`;
+  if (diff < 86400) return `${Math.floor(diff/3600)} ชม.ก่อน`;
+  if (diff < 604800) return `${Math.floor(diff/86400)} วันก่อน`;
+  return thaiDate(iso);
+}
+
+// ═══════════════════════════════════════════════════
+//  UI UTILITIES
+// ═══════════════════════════════════════════════════
+function toast(msg, ms = 2400) {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.2s'; }, ms - 200);
+  setTimeout(() => el.remove(), ms);
+}
+function showLoading(show) {
+  document.getElementById('loading-overlay').classList.toggle('show', show);
+}
+function setSyncDot(state) {
+  const el = document.getElementById('sync-dot');
+  if (!el) return;
+  el.classList.remove('syncing', 'error');
+  if (state === 'syncing') el.classList.add('syncing');
+  else if (state === 'error') el.classList.add('error');
+}
+
+// ═══════════════════════════════════════════════════
+//  PIN LOGIN
+// ═══════════════════════════════════════════════════
+function initPINKeypad() {
+  const keypadEl = document.getElementById('pin-keypad');
+  if (!keypadEl) return;
+  keypadEl.innerHTML = '';
+  for (let i = 1; i <= 9; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pin-key';
+    btn.textContent = i;
+    btn.onclick = () => addPINDigit(i);
+    keypadEl.appendChild(btn);
+  }
+  const empty = document.createElement('div');
+  empty.className = 'pin-key empty';
+  keypadEl.appendChild(empty);
+
+  const zero = document.createElement('button');
+  zero.type = 'button'; zero.className = 'pin-key'; zero.textContent = '0';
+  zero.onclick = () => addPINDigit(0);
+  keypadEl.appendChild(zero);
+
+  const back = document.createElement('button');
+  back.type = 'button'; back.className = 'pin-key backspace'; back.textContent = '⌫';
+  back.onclick = backspacePIN;
+  keypadEl.appendChild(back);
+
+  // Keyboard support
+  if (!window._pinKbBound) {
+    window._pinKbBound = true;
+    document.addEventListener('keydown', (e) => {
+      const visible = !document.getElementById('pin-login-screen')?.classList.contains('hidden');
+      if (!visible) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key >= '0' && e.key <= '9') { e.preventDefault(); addPINDigit(Number(e.key)); }
+      else if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); backspacePIN(); }
+      else if (e.key === 'Enter' && pinInput.length === 4) { e.preventDefault(); submitPIN(); }
+    });
+  }
+}
+
+function addPINDigit(d) {
+  if (pinInput.length >= 4) return;
+  pinInput += d;
+  updatePINDots();
+  if (pinInput.length === 4) setTimeout(submitPIN, 200);
+}
+function backspacePIN() {
+  if (pinInput.length > 0) { pinInput = pinInput.slice(0, -1); updatePINDots(); }
+}
+function updatePINDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`pin-dot-${i}`);
+    if (dot) dot.classList.toggle('filled', i < pinInput.length);
+  }
+}
+function playShakeAnimation() {
+  const wrap = document.getElementById('pin-dots-wrap');
+  if (!wrap) return;
+  wrap.classList.add('shake');
+  setTimeout(() => wrap.classList.remove('shake'), 500);
+}
+
+async function submitPIN() {
+  const pin = pinInput;
+  pinInput = '';
+  updatePINDots();
+  const errEl = document.getElementById('pin-error');
+  errEl.textContent = '';
+
+  try {
+    showLoading(true);
+    const { data, error } = await sb.from('users')
+      .select('*')
+      .eq('pin', pin)
+      .eq('is_active', true)
+      .single();
+    if (error || !data) {
+      errEl.textContent = '❌ PIN ไม่ถูกต้อง';
+      playShakeAnimation();
+      showLoading(false);
+      return;
+    }
+    currentUser = data;
+    sessionStorage.setItem('po_user_id', currentUser.id);
+    await logActivity('login_desktop', 'user', { username: currentUser.username });
+    await onLoginSuccess();
+  } catch (e) {
+    console.error('[login]', e);
+    errEl.textContent = '❌ เชื่อมต่อไม่ได้ — ลองใหม่';
+    showLoading(false);
+  }
+}
+
+async function logActivity(action, targetType, detail) {
+  if (!currentUser) return;
+  try {
+    await sb.from('activity_log').insert({
+      user_id: currentUser.id,
+      action, target_type: targetType, detail
+    });
+  } catch(e) { console.warn('[activity]', e); }
+}
+
+// ═══════════════════════════════════════════════════
+//  SESSION TIMEOUT
+// ═══════════════════════════════════════════════════
+function resetSessionTimer() {
+  if (!currentUser) return;
+  if (sessionTimer) clearTimeout(sessionTimer);
+  sessionTimer = setTimeout(() => {
+    logout(true);
+  }, SESSION_TIMEOUT_MS);
+}
+['click','keydown','scroll'].forEach(evt => {
+  document.addEventListener(evt, resetSessionTimer, { passive: true });
+});
+
+function logout(expired = false) {
+  if (currentUser) {
+    logActivity('logout_desktop', 'user', { username: currentUser.username, expired });
+  }
+  currentUser = null;
+  db = { pos: [], items: [], activities: [] };
+  sessionStorage.removeItem('po_user_id');
+  document.getElementById('app-shell').classList.add('hidden');
+  document.getElementById('pin-login-screen').classList.remove('hidden');
+  pinInput = '';
+  updatePINDots();
+  document.getElementById('pin-error').textContent = expired ? '⏰ หมดเวลา (30 นาที) — login ใหม่' : '';
+}
+
+// ═══════════════════════════════════════════════════
+//  DATA LAYER — Supabase queries
+// ═══════════════════════════════════════════════════
+async function loadFromSupabase() {
+  setSyncDot('syncing');
+  try {
+    const [{ data: poRows, error: e1 }, { data: cfgRows }] = await Promise.all([
+      sb.from('po_list').select('*').eq('is_archived', false).order('due_date'),
+      sb.from('config').select('*').order('config_value')
+    ]);
+    if (e1) throw new Error('po_list: ' + e1.message);
+
+    const activePONumbers = (poRows || []).map(p => p.po_number).filter(Boolean);
+    let itemRows = [];
+    if (activePONumbers.length > 0) {
+      const { data: iRows, error: e2 } = await sb.from('po_items').select('*').in('po_number', activePONumbers);
+      if (e2) throw new Error('po_items: ' + e2.message);
+      itemRows = iRows || [];
+    }
+
+    const pos = (poRows || []).map(p => ({
+      _sbId: p.id,
+      id: p.po_number,
+      company: p.company || '',
+      model: p.car_model || '',
+      recv: fixDateStr(p.order_date || ''),
+      due: fixDateStr(p.due_date || ''),
+      urgent: p.urgent || false,
+      status: p.po_status || 'Order',
+      remark: p.remark || ''
+    })).filter(p => p.id);
+
+    const items = (itemRows || []).map(i => ({
+      _sbId: i.id,
+      po: i.po_number,
+      part: i.part_name || '',
+      color: i.color || '',
+      urgent: i.urgent || false,
+      status: i.status || 'รับของแล้ว',
+      rework: i.rework || false,
+      sentDate: fixDateStr(i.sent_date || ''),
+      bundlePO: i.bundle_po || '',
+      remark: i.remark || '',
+      qcPassed: i.qc_passed,
+      qcDefectReason: i.qc_defect_reason || '',
+      qcCheckedBy: i.qc_checked_by || ''
+    })).filter(i => i.po && i.part);
+
+    setSyncDot('ok');
+    return { pos, items };
+  } catch(e) {
+    console.error('[loadFromSupabase]', e);
+    setSyncDot('error');
+    toast('❌ โหลดข้อมูลไม่สำเร็จ: ' + e.message, 3500);
+    return null;
+  }
+}
+
+// Recent activity — joins users to get display name
+async function loadActivity(limit = 15) {
+  try {
+    const { data, error } = await sb
+      .from('activity_log')
+      .select('id, action, target_type, detail, created_at, user_id')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+
+    // Fetch users to map user_id -> display name (cheap since user set is small)
+    const userIds = [...new Set((data || []).map(a => a.user_id).filter(Boolean))];
+    let userMap = {};
+    if (userIds.length > 0) {
+      const { data: users } = await sb.from('users').select('id, display_name, username').in('id', userIds);
+      userMap = Object.fromEntries((users || []).map(u => [u.id, u]));
+    }
+    return (data || []).map(a => ({ ...a, user: userMap[a.user_id] || null }));
+  } catch(e) {
+    console.warn('[loadActivity]', e);
+    return [];
+  }
+}
+
+// Derive per-PO computed fields (progress %, item counts)
+function enrichPO(po) {
+  const its = db.items.filter(i => i.po === po.id);
+  const total = its.length;
+  const sent = its.filter(i => i.status === 'ส่งแล้ว').length;
+  const progress = total ? Math.round(sent / total * 100) : 0;
+  return { ...po, items: its, total, sent, progress, daysLeft: daysLeft(po.due) };
+}
+
+// ═══════════════════════════════════════════════════
+//  SHELL + ROUTER
+// ═══════════════════════════════════════════════════
+const ROUTES = {
+  dashboard: { crumb: 'HOME / DASHBOARD',        title: 'สวัสดี',               subBuilder: () => thaiToday(), render: renderDashboard },
+  list:      { crumb: 'HOME / PURCHASE ORDERS',  title: 'PO ทั้งหมด',           subBuilder: () => `${db.pos.length} active`, render: renderList },
+  create:    { crumb: 'HOME / PO / NEW',         title: 'สร้าง PO ใหม่',         subBuilder: () => 'Round 2 — กำลังพัฒนา',     render: renderPlaceholder('สร้าง PO') },
+  qc:        { crumb: 'HOME / QC',               title: 'QC Inspection',        subBuilder: () => 'Round 3 — กำลังพัฒนา',     render: renderPlaceholder('QC') },
+  archive:   { crumb: 'HOME / ARCHIVE',          title: 'Past orders',           subBuilder: () => 'Round 3 — กำลังพัฒนา',     render: renderPlaceholder('Archive') },
+  manage:    { crumb: 'HOME / SETTINGS / MANAGE', title: 'จัดการข้อมูล',          subBuilder: () => 'Round 3 — กำลังพัฒนา',     render: renderPlaceholder('จัดการ') },
+};
+
+function goTo(route) {
+  if (!ROUTES[route]) route = 'dashboard';
+  const cfg = ROUTES[route];
+  currentRoute = route;
+
+  // Sidebar highlight
+  document.querySelectorAll('.sidebar-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === route);
+  });
+
+  // Topbar text
+  document.getElementById('tb-crumb').textContent = cfg.crumb;
+  const roleTitle = (route === 'dashboard' && currentUser)
+    ? `สวัสดี, ${currentUser.display_name || currentUser.username}`
+    : cfg.title;
+  document.getElementById('tb-title').textContent = roleTitle;
+  document.getElementById('tb-sub').textContent = cfg.subBuilder();
+
+  // Page visibility
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + route));
+
+  // Render
+  cfg.render();
+
+  // Scroll top
+  document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function applySidebarPermissions() {
+  document.querySelectorAll('.sidebar-item').forEach(el => {
+    const perm = el.dataset.perm;
+    const ok = !perm || perm === 'all' || hasPermission(perm);
+    el.classList.toggle('hidden-item', !ok);
+  });
+}
+
+function initShell() {
+  // Fill user info in sidebar
+  const name = currentUser.display_name || currentUser.username || '—';
+  const initials = [...(currentUser.display_name || currentUser.username || '?')].slice(0, 2).join('');
+  document.getElementById('sidebar-avatar').textContent = initials;
+  document.getElementById('sidebar-avatar').style.background = ROLE_COLORS[currentUser.role] || 'var(--accent)';
+  document.getElementById('sidebar-user-name').textContent = name;
+  document.getElementById('sidebar-user-role').textContent = (ROLE_LABELS[currentUser.role] || '?').toUpperCase();
+
+  applySidebarPermissions();
+
+  // Nav
+  document.querySelectorAll('.sidebar-item[data-page]').forEach(el => {
+    el.onclick = (e) => { e.preventDefault(); goTo(el.dataset.page); };
+  });
+
+  // Logout
+  document.getElementById('btn-logout').onclick = () => {
+    if (confirm('ออกจากระบบ?')) logout(false);
+  };
+
+  // Refresh
+  document.getElementById('btn-refresh').onclick = async () => {
+    await refreshData();
+    toast('🔄 อัพเดทข้อมูลแล้ว', 1600);
+  };
+}
+
+async function onLoginSuccess() {
+  document.getElementById('pin-login-screen').classList.add('hidden');
+  document.getElementById('app-shell').classList.remove('hidden');
+
+  const data = await loadFromSupabase();
+  if (data) db = { ...db, ...data };
+  db.activities = await loadActivity(15);
+
+  initShell();
+  resetSessionTimer();
+
+  // Default route by role — Staff goes to Dashboard too (same)
+  goTo('dashboard');
+  showLoading(false);
+}
+
+async function refreshData() {
+  const data = await loadFromSupabase();
+  if (data) db = { ...db, ...data };
+  if (currentRoute === 'dashboard') db.activities = await loadActivity(15);
+  // Re-render whatever's visible
+  const cfg = ROUTES[currentRoute];
+  if (cfg) {
+    cfg.render();
+    document.getElementById('tb-sub').textContent = cfg.subBuilder();
+  }
+}
+
+// Auto-refresh every 30s if tab visible
+setInterval(() => {
+  if (currentUser && !document.hidden) refreshData();
+}, 30000);
+
+// ═══════════════════════════════════════════════════
+//  RENDER: DASHBOARD
+// ═══════════════════════════════════════════════════
+function renderDashboard() {
+  const el = document.getElementById('page-dashboard');
+  const pos = db.pos.map(enrichPO);
+  const items = db.items;
+
+  // KPI
+  const totalPO = pos.length;
+  const totalItems = items.length;
+  const sent = items.filter(i => i.status === 'ส่งแล้ว').length;
+  const urgent = pos.filter(p => p.urgent && p.status !== 'Complete').length;
+  const rework = items.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
+
+  // Due Soon — sort by daysLeft, pick top 4 non-complete
+  const dueSoon = pos
+    .filter(p => p.status !== 'Complete' && p.due)
+    .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999))
+    .slice(0, 4);
+
+  // Urgent list (cap 5)
+  const urgentList = pos.filter(p => p.urgent && p.status !== 'Complete').slice(0, 5);
+
+  // Activity feed
+  const activities = (db.activities || []).slice(0, 6);
+
+  el.innerHTML = `
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">PO ใช้งาน</div>
+        <div class="kpi-row-val">
+          <div class="kpi-value">${totalPO}</div>
+          <div class="kpi-trend accent">LIVE</div>
+        </div>
+        <div class="kpi-sub">Active POs · ${totalItems} ชิ้น</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">ส่งแล้ว</div>
+        <div class="kpi-row-val">
+          <div class="kpi-value">${sent}</div>
+          <div class="kpi-trend ok">ชิ้น</div>
+        </div>
+        <div class="kpi-sub">Shipped · จากทั้งหมด</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">งานด่วน</div>
+        <div class="kpi-row-val">
+          <div class="kpi-value">${urgent}</div>
+          ${urgent > 0 ? '<div class="kpi-trend bad">!</div>' : ''}
+        </div>
+        <div class="kpi-sub">Urgent · ต้องเร่ง</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">ต้องแก้ไข</div>
+        <div class="kpi-row-val">
+          <div class="kpi-value">${rework}</div>
+        </div>
+        <div class="kpi-sub">Rework · ชิ้น</div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title-wrap">
+        <h2 class="section-title-th">ใกล้ถึงกำหนดส่ง</h2>
+        <div class="section-title-en">Due soon</div>
+      </div>
+    </div>
+    <div class="due-grid">
+      ${dueSoon.length
+        ? dueSoon.map(renderDueCard).join('')
+        : `<div class="empty-state" style="grid-column: 1 / -1;"><span class="emoji">🎯</span><p>ไม่มี PO ใกล้ deadline</p></div>`
+      }
+    </div>
+
+    <div class="split-grid">
+      <div>
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title-th">งานด่วน</h2>
+            <div class="section-title-en">Urgent orders</div>
+          </div>
+          ${urgentList.length
+            ? `<span class="status-chip status-chip-sm" style="background: var(--danger-bg); color: var(--danger);">${urgentList.length} รายการ</span>`
+            : ''
+          }
+        </div>
+        <div class="card-box">
+          ${urgentList.length
+            ? urgentList.map(renderUrgentRow).join('')
+            : `<div style="padding: 28px; text-align: center; color: var(--ink-3); font-size: 13px;">ไม่มีงานด่วน — ดีเลย ๆ</div>`
+          }
+        </div>
+      </div>
+
+      <div>
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title-th">กิจกรรมล่าสุด</h2>
+            <div class="section-title-en">Recent activity</div>
+          </div>
+        </div>
+        <div class="card-box activity-box">
+          ${activities.length
+            ? activities.map(renderActivityRow).join('')
+            : `<div style="padding: 14px; text-align: center; color: var(--ink-3); font-size: 13px;">ยังไม่มีกิจกรรม</div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderDueCard(po) {
+  const d = po.daysLeft;
+  const overdue = d !== null && d < 0;
+  const critical = d !== null && d >= 0 && d <= 1;
+  const soon = d !== null && d > 1 && d <= 3;
+  const tone = (overdue || critical) ? 'danger' : soon ? 'warning' : 'info';
+  const topCls = tone === 'danger' ? 'danger-top' : tone === 'warning' ? 'warning-top' : 'info-top';
+  const label = d === null ? '—'
+    : overdue ? `เลย ${Math.abs(d)} วัน`
+    : d === 0 ? 'วันนี้'
+    : d === 1 ? 'พรุ่งนี้'
+    : `อีก ${d} วัน`;
+
+  return `
+    <div class="due-card ${topCls}" data-po="${po.id}">
+      <div class="due-head-row">
+        <div class="due-chip ${tone}">${label}</div>
+        ${po.urgent ? '<span style="font-size: 13px;">🔥</span>' : ''}
+      </div>
+      <div>
+        <div class="due-pono">${escapeHtml(po.id)}</div>
+        <div class="due-company">${escapeHtml(po.company || '—')}</div>
+        <div class="due-model">${escapeHtml(po.model || '')}</div>
+      </div>
+      <div class="due-foot">
+        <div class="due-foot-row">
+          <span class="due-foot-label">กำหนดส่ง</span>
+          <span class="due-foot-val">${po.due ? po.due.slice(5) : '—'}</span>
+        </div>
+        <div class="progress">
+          <div class="progress-track"><div class="progress-fill" style="width:${po.progress}%"></div></div>
+          <span class="progress-pct">${po.progress}%</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderUrgentRow(po) {
+  return `
+    <div class="urgent-row" data-po="${po.id}">
+      <div class="urgent-badge">🔥</div>
+      <div class="urgent-main">
+        <div class="urgent-title">
+          <span class="urgent-pono">${escapeHtml(po.id)}</span>
+          <span class="urgent-company">${escapeHtml(po.company || '—')}</span>
+        </div>
+        <div class="urgent-meta">${escapeHtml(po.model || '')}${po.due ? ' · กำหนด ' + po.due.slice(5) : ''}</div>
+      </div>
+      ${poStatusChip(po.status)}
+    </div>
+  `;
+}
+
+function renderActivityRow(a) {
+  const name = a.user?.display_name || a.user?.username || '?';
+  const initials = [...name].slice(0, 2).join('');
+  const actionText = ACTION_LABELS[a.action] || a.action;
+  const poLine = a.detail?.po_number ? a.detail.po_number : '';
+  return `
+    <div class="activity-row">
+      <div class="activity-avatar">${escapeHtml(initials)}</div>
+      <div class="activity-main">
+        <div class="activity-text"><b>${escapeHtml(name)}</b> · ${escapeHtml(actionText)}</div>
+        <div class="activity-meta">${escapeHtml(poLine)}${poLine ? ' · ' : ''}${relTime(a.created_at)}</div>
+      </div>
+    </div>
+  `;
+}
+
+const ACTION_LABELS = {
+  login: 'เข้าสู่ระบบ',
+  login_desktop: 'เข้าสู่ระบบ (Desktop)',
+  logout: 'ออกจากระบบ',
+  logout_desktop: 'ออกจากระบบ (Desktop)',
+  create_po: 'สร้าง PO',
+  add_po: 'สร้าง PO',
+  update_status: 'อัพเดทสถานะชิ้นงาน',
+  qc_pass: 'ผ่าน QC',
+  qc_fail: 'ไม่ผ่าน QC',
+  archive: 'Archive PO',
+  unarchive: 'เอา PO กลับ',
+  delete_archived_po: 'ลบ PO ถาวร',
+  delete_archive_month: 'ลบ Archive เดือน',
+};
+
+// ═══════════════════════════════════════════════════
+//  RENDER: PO LIST
+// ═══════════════════════════════════════════════════
+function setListFilter(f) {
+  currentFilter = f;
+  renderList();
+}
+
+function renderList() {
+  const el = document.getElementById('page-list');
+  const pos = db.pos.map(enrichPO);
+
+  // Counts
+  const cnt = {
+    active:  pos.filter(p => p.status !== 'Complete').length,
+    inprog:  pos.filter(p => p.status === 'In progress').length,
+    partial: pos.filter(p => p.status === 'Partial Send').length,
+    urgent:  pos.filter(p => p.urgent && p.status !== 'Complete').length,
+    complete: pos.filter(p => p.status === 'Complete').length,
+    all: pos.length,
+  };
+
+  // Filter
+  let filtered = pos;
+  if (currentFilter === 'active')   filtered = pos.filter(p => p.status !== 'Complete');
+  else if (currentFilter === 'inprog')   filtered = pos.filter(p => p.status === 'In progress');
+  else if (currentFilter === 'partial')  filtered = pos.filter(p => p.status === 'Partial Send');
+  else if (currentFilter === 'urgent')   filtered = pos.filter(p => p.urgent && p.status !== 'Complete');
+  else if (currentFilter === 'complete') filtered = pos.filter(p => p.status === 'Complete');
+
+  // Sort by due date (closest first)
+  filtered.sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
+
+  el.innerHTML = `
+    <div class="filter-row">
+      <button class="pill ${currentFilter === 'active' ? 'active' : ''}" data-filter="active">กำลังทำ (${cnt.active})</button>
+      <button class="pill ${currentFilter === 'urgent' ? 'active' : ''}" data-filter="urgent">🔥 ด่วน (${cnt.urgent})</button>
+      <button class="pill ${currentFilter === 'partial' ? 'active' : ''}" data-filter="partial">ส่งบางส่วน (${cnt.partial})</button>
+      <button class="pill ${currentFilter === 'complete' ? 'active' : ''}" data-filter="complete">เสร็จแล้ว (${cnt.complete})</button>
+      <button class="pill ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">ทั้งหมด (${cnt.all})</button>
+      <div class="flex-spacer"></div>
+    </div>
+
+    ${filtered.length === 0
+      ? `<div class="empty-state"><span class="emoji">📋</span><p>ไม่มี PO ในกลุ่มนี้</p></div>`
+      : `
+      <div class="data-table">
+        <div class="data-header">
+          <div>PO No.</div>
+          <div>บริษัท / Company</div>
+          <div>รุ่นรถ</div>
+          <div>รับของ</div>
+          <div>กำหนดส่ง</div>
+          <div>ชิ้น</div>
+          <div>ความคืบหน้า</div>
+          <div>Status</div>
+          <div></div>
+        </div>
+        ${filtered.map(renderListRow).join('')}
+      </div>
+    `}
+  `;
+
+  // Wire filter pills
+  el.querySelectorAll('.pill[data-filter]').forEach(btn => {
+    btn.onclick = () => setListFilter(btn.dataset.filter);
+  });
+  // Row click — for Round 1 just show a toast; Round 2 wires up real detail
+  el.querySelectorAll('.data-row').forEach(row => {
+    row.onclick = () => toast('รายละเอียด PO อยู่ใน Round 2 — ใช้ version mobile ไปก่อน', 2600);
+  });
+}
+
+function renderListRow(po) {
+  return `
+    <div class="data-row" data-po="${po.id}">
+      <div class="td-po">
+        ${po.urgent ? '<span>🔥</span>' : ''}
+        <span class="td-po-no">${escapeHtml(po.id)}</span>
+      </div>
+      <div>
+        <div class="td-company-main">${escapeHtml(po.company || '—')}</div>
+        ${po.remark ? `<div class="td-company-sub">${escapeHtml(po.remark)}</div>` : ''}
+      </div>
+      <div class="td-model">${escapeHtml(po.model || '')}</div>
+      <div class="td-date-mono mute">${po.recv ? po.recv.slice(5) : '—'}</div>
+      <div class="td-date-mono strong">${po.due ? po.due.slice(5) : '—'}</div>
+      <div class="td-qty">${po.sent}/${po.total}</div>
+      <div class="td-prog">
+        <div class="td-prog-track"><div class="td-prog-fill" style="width:${po.progress}%"></div></div>
+        <span class="td-prog-pct">${po.progress}%</span>
+      </div>
+      <div>${poStatusChip(po.status)}</div>
+      <div class="td-action">›</div>
+    </div>
+  `;
+}
+
+function poStatusChip(status) {
+  const map = {
+    'Order':        { cls: 'status-order',    label: 'รอเริ่ม' },
+    'In progress':  { cls: 'status-inprog',   label: 'กำลังผลิต' },
+    'Partial Send': { cls: 'status-partial',  label: 'ส่งบางส่วน' },
+    'Complete':     { cls: 'status-complete', label: 'ครบแล้ว' },
+  };
+  const m = map[status] || { cls: 'status-order', label: status };
+  return `<span class="status-chip status-chip-sm ${m.cls}">${escapeHtml(m.label)}</span>`;
+}
+
+// ═══════════════════════════════════════════════════
+//  PLACEHOLDER PAGES (Round 2-3)
+// ═══════════════════════════════════════════════════
+function renderPlaceholder(name) {
+  return () => {
+    const el = document.getElementById('page-' + currentRoute);
+    el.innerHTML = `
+      <div class="placeholder-wrap">
+        <div class="placeholder-title">${escapeHtml(name)} — กำลังพัฒนา</div>
+        <div class="placeholder-desc">หน้านี้อยู่ใน Round 2/3 ของ PC version. ตอนนี้ถ้าต้องใช้ฟีเจอร์นี้ ให้ใช้ version mobile ไปก่อน — ข้อมูลเดียวกัน (Supabase backend ตัวเดียว)</div>
+        <a class="placeholder-link" href="po-mobile.html">↗ เปิด version mobile</a>
+      </div>
+    `;
+  };
+}
+
+// ═══════════════════════════════════════════════════
+//  MISC
+// ═══════════════════════════════════════════════════
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+// ═══════════════════════════════════════════════════
+//  BOOTSTRAP
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initPINKeypad();
+});
+</script>
+
+</body>
+</html>

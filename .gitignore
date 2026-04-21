@@ -1,0 +1,15 @@
+# Design handoff folders — kept locally as reference, OneDrive backs them up
+/For PC/
+/For mobile/
+/_po_tracker_unzip/
+/PO tracker.zip
+
+# Mockup scratch files (generated for preview only, not production)
+po-desktop-mockup.html
+
+# Editor / agent / system
+.vscode/
+.claude/
+.DS_Store
+Thumbs.db
+*.log
