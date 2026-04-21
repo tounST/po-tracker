@@ -513,6 +513,20 @@ button { font-family: inherit; }
 }
 .item-name-cell .part { font-weight: 700; color: var(--ink); }
 .item-name-cell .id { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); }
+/* QC result meta — shown under the item name when relevant */
+.item-name-cell .meta-qc-fail {
+  font-size: 11.5px; color: var(--danger); font-weight: 700;
+  margin-top: 3px; line-height: 1.3;
+}
+.item-name-cell .meta-qc-pending {
+  font-size: 11.5px; color: var(--info); font-weight: 700;
+  margin-top: 3px; line-height: 1.3;
+}
+.item-name-cell .meta-qc-checked {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px; color: var(--ink-3); font-weight: 600;
+  margin-top: 2px; line-height: 1.3;
+}
 .item-color-cell { display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
 .color-swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line-deep); flex-shrink: 0; }
 
@@ -2471,16 +2485,33 @@ function renderDetailItemRow(it, idx) {
     : it.color && /แดง/.test(it.color) ? '#C0392B'
     : '#8A7F72';
   const isSelected = detailState.selection.has(it._sbId);
-  // "ผ่าน QC" chip when item is in QC status + qc_passed (matches mobile convention)
-  const qcPassedChip = (it.status === 'QC/เตรียมส่ง' && it.qcPassed === true)
-    ? '<span class="status-chip status-chip-sm status-ship">ผ่าน QC</span>'
+
+  // QC state is tri-value here:
+  //   qcPassed === true  → item ตรวจแล้วผ่าน (chip เขียว)
+  //   qcPassed === false → item ตรวจแล้วไม่ผ่าน — แสดงเหตุผลด้วย
+  //   qcPassed == null   → ยังรอตรวจสอบ (ถ้าอยู่ในสถานะ QC)
+  let qcMetaLine = '';
+  if (it.qcPassed === false && it.qcDefectReason) {
+    qcMetaLine = `<div class="meta-qc-fail">❌ ไม่ผ่าน QC · ${escapeHtml(it.qcDefectReason)}</div>`;
+  } else if (it.status === 'QC/เตรียมส่ง' && it.qcPassed == null) {
+    qcMetaLine = `<div class="meta-qc-pending">⏳ รอตรวจสอบ</div>`;
+  }
+  const qcCheckedBy = (it.qcPassed === true || it.qcPassed === false) && it.qcCheckedBy
+    ? `<div class="meta-qc-checked">โดย ${escapeHtml(it.qcCheckedBy)}</div>`
     : '';
+
+  const qcPassedChip = (it.status === 'QC/เตรียมส่ง' && it.qcPassed === true)
+    ? '<span class="status-chip status-chip-sm status-ship">✓ ผ่าน QC</span>'
+    : '';
+
   return `
     <div class="item-row-desk ${isSelected ? 'selected' : ''}" data-sbid="${escapeHtml(it._sbId || '')}">
       <div class="item-check-box"></div>
       <div class="item-name-cell">
         <div class="part">${escapeHtml(it.part)}</div>
         <div class="id">#${num}</div>
+        ${qcMetaLine}
+        ${qcCheckedBy}
       </div>
       <div class="item-color-cell">
         <span class="color-swatch" style="background:${swatchColor};"></span>
