@@ -466,6 +466,173 @@ button { font-family: inherit; }
 }
 .placeholder-link:hover { filter: brightness(1.08); }
 
+/* ═══ ROUND 2: PO DETAIL ═══ */
+.two-col { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
+.two-col.narrow { grid-template-columns: 1fr 340px; }
+
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px; color: var(--ink-3); text-decoration: none;
+  letter-spacing: 0.5px; margin-bottom: 14px; cursor: pointer;
+  background: none; border: none; padding: 0;
+}
+.back-link:hover { color: var(--ink); }
+
+.hero-strip {
+  background: var(--ink); color: var(--bg);
+  border-radius: 14px; padding: 22px;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px;
+  margin-bottom: 20px;
+}
+.hero-cell + .hero-cell { padding-left: 18px; border-left: 1px solid #3A332C; }
+.hero-cell-label { font-size: 10px; opacity: 0.55; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; }
+.hero-cell-val { font-size: 22px; font-weight: 800; margin-top: 6px; letter-spacing: -0.5px; color: #fff; }
+.hero-cell-val.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.hero-cell-val.hi { color: #F5D4AC; }
+
+.items-group-wrap { margin-bottom: 18px; }
+.items-group-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.items-group-meta { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink-3); }
+.status-recv { background: var(--info-bg); color: var(--info); }
+.status-prod { background: #F0E4D1; color: #7A5614; }
+.status-qc-chip { background: var(--status-qc-bg); color: var(--status-qc-fg); }
+.status-ship { background: var(--success-bg); color: var(--success); }
+.status-rework { background: var(--danger-bg); color: var(--danger); }
+
+.item-box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.item-row-desk {
+  display: grid; grid-template-columns: 40px 1fr 1fr 140px 80px;
+  padding: 14px 18px; gap: 12px; align-items: center;
+  border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.item-row-desk:last-child { border-bottom: none; }
+.item-check-box {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.5px solid var(--line-deep); background: var(--bg);
+}
+.item-name-cell .part { font-weight: 700; color: var(--ink); }
+.item-name-cell .id { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); }
+.item-color-cell { display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
+.color-swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line-deep); flex-shrink: 0; }
+
+.side-panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 22px;
+  position: sticky; top: 28px;
+}
+.side-panel-label {
+  font-size: 11px; font-weight: 800; color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
+}
+
+.timeline { position: relative; }
+.timeline-line { position: absolute; left: 7px; top: 8px; bottom: 8px; width: 1px; background: var(--line-deep); }
+.timeline-event { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
+.timeline-event:last-child { padding-bottom: 0; }
+.timeline-dot {
+  width: 15px; height: 15px; border-radius: 99px;
+  background: var(--bg); border: 2px solid var(--line-deep);
+  flex-shrink: 0; margin-top: 2px; z-index: 1;
+}
+.timeline-dot.done { background: var(--accent); border-color: var(--accent); }
+.timeline-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+.timeline-title.pending { color: var(--ink-3); }
+.timeline-meta { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+.note-box {
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px;
+  font-size: 12px; color: var(--ink-2); line-height: 1.55;
+  min-height: 40px;
+}
+.note-box.empty { color: var(--ink-3); font-style: italic; }
+.divider { height: 1px; background: var(--line); margin: 18px 0; }
+
+/* ═══ ROUND 2: CREATE PO ═══ */
+.form-group {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 20px; margin-bottom: 16px;
+}
+.form-group-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.form-group-title-wrap { display: flex; align-items: baseline; gap: 10px; }
+.form-group-title { font-size: 15px; font-weight: 800; color: var(--ink); margin: 0; }
+.form-group-en { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; color: var(--ink-3); letter-spacing: 1.5px; font-weight: 700; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-field-label { font-size: 11.5px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; display: block; }
+.form-input, .form-textarea {
+  width: 100%; height: 42px; padding: 0 12px; margin: 0;
+  background: var(--bg); border: 1px solid var(--line-deep); border-radius: 9px;
+  font-size: 13px; font-weight: 500; color: var(--ink);
+  font-family: inherit; outline: none;
+  transition: border-color 0.12s;
+}
+.form-input.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.form-input:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { min-height: 68px; height: auto; padding: 12px; resize: vertical; line-height: 1.5; }
+
+.urgent-toggle-desk {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--ink); margin-top: 14px; cursor: pointer;
+  font-weight: 600; user-select: none;
+}
+.toggle-switch-desk {
+  width: 38px; height: 22px; border-radius: 99px; background: var(--line-deep);
+  position: relative; transition: background 0.15s;
+}
+.toggle-switch-desk::after {
+  content: ''; position: absolute; left: 2px; top: 2px;
+  width: 18px; height: 18px; border-radius: 99px; background: #fff;
+  transition: left 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.urgent-toggle-desk.on .toggle-switch-desk { background: var(--accent); }
+.urgent-toggle-desk.on .toggle-switch-desk::after { left: 18px; }
+
+.item-builder { border-top: 1px solid var(--line); margin-top: -6px; padding-top: 6px; }
+.item-builder-head, .item-builder-row {
+  display: grid; grid-template-columns: 40px 2fr 1.5fr 70px 40px;
+  gap: 10px; padding: 10px 14px; align-items: center;
+}
+.item-builder-head {
+  font-size: 10px; font-weight: 800; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid var(--line);
+}
+.item-builder-row { padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.item-builder-row:last-child { border-bottom: none; }
+.mini-val {
+  height: 36px; padding: 0 12px; display: flex; align-items: center;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  font-size: 13px; color: var(--ink); font-weight: 500;
+}
+.mini-val.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.mini-label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink-3); font-weight: 700; }
+.mini-input {
+  width: 100%; height: 36px; padding: 0 12px; margin: 0;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  font-size: 13px; color: var(--ink); font-family: inherit;
+  outline: none;
+}
+.mini-input.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; text-align: center; }
+.mini-input:focus { border-color: var(--accent); }
+.icon-btn-trash {
+  background: none; border: none; color: var(--ink-3);
+  cursor: pointer; padding: 4px; border-radius: 6px; display: inline-flex;
+}
+.icon-btn-trash:hover { color: var(--danger); background: var(--danger-bg); }
+
+.summary-card { padding: 18px; }
+.summary-pono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: var(--ink);
+}
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.sum-k { font-size: 11px; color: var(--ink-3); font-weight: 700; }
+.sum-v { font-size: 15px; font-weight: 800; color: var(--ink); margin-top: 2px; }
+.sum-v.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.sum-v.hi { color: var(--accent); }
+
 /* ═══ TOAST + LOADING ═══ */
 #toast-container {
   position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
@@ -648,11 +815,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
-let db = { pos: [], items: [], activities: [] };
+let db = { pos: [], items: [], activities: [], masters: { companies: [], models: [], parts: [], defects: [] } };
 let currentRoute = 'dashboard';
+let currentRouteParams = {};
 let currentFilter = 'active';
 let pinInput = '';
 let sessionTimer = null;
+let createState = null;  // holds in-progress new-PO draft while on Create page
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 
 // Permissions — mirrored from po-mobile.html so both clients enforce the same rules
@@ -925,14 +1094,92 @@ async function loadFromSupabase() {
       qcCheckedBy: i.qc_checked_by || ''
     })).filter(i => i.po && i.part);
 
+    // Master data from config table (type: company / car_model / part_name / defect_reason)
+    const masters = {
+      companies: (cfgRows || []).filter(c => c.config_type === 'company').map(c => c.config_value),
+      models:    (cfgRows || []).filter(c => c.config_type === 'car_model').map(c => c.config_value),
+      parts:     (cfgRows || []).filter(c => c.config_type === 'part_name').map(c => c.config_value),
+      defects:   (cfgRows || []).filter(c => c.config_type === 'defect_reason').map(c => c.config_value),
+    };
+
     setSyncDot('ok');
-    return { pos, items };
+    return { pos, items, masters };
   } catch(e) {
     console.error('[loadFromSupabase]', e);
     setSyncDot('error');
     toast('❌ โหลดข้อมูลไม่สำเร็จ: ' + e.message, 3500);
     return null;
   }
+}
+
+// Timeline for a single PO — pulls from activity_log rows whose detail.po_number matches
+async function loadTimeline(poNumber) {
+  try {
+    const { data, error } = await sb
+      .from('activity_log')
+      .select('id, action, detail, created_at, user_id')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+
+    const filtered = (data || []).filter(a => (a.detail?.po_number === poNumber));
+    const userIds = [...new Set(filtered.map(a => a.user_id).filter(Boolean))];
+    let userMap = {};
+    if (userIds.length > 0) {
+      const { data: users } = await sb.from('users').select('id, display_name, username').in('id', userIds);
+      userMap = Object.fromEntries((users || []).map(u => [u.id, u]));
+    }
+    return filtered.map(a => ({ ...a, user: userMap[a.user_id] || null }));
+  } catch(e) {
+    console.warn('[loadTimeline]', e);
+    return [];
+  }
+}
+
+// Insert new PO + items — mirrors po-mobile.html createPOInSupabase
+async function createPOInSupabase(po, items) {
+  const { data: poRow, error: e1 } = await sb.from('po_list').insert({
+    po_number:  po.id,
+    company:    po.company,
+    car_model:  po.model,
+    order_date: po.recv  || null,
+    due_date:   po.due   || null,
+    urgent:     po.urgent || false,
+    po_status:  'Order',
+    remark:     po.remark || ''
+  }).select('id').single();
+  if (e1) throw new Error('po_list insert: ' + e1.message);
+
+  if (items.length > 0) {
+    const poUuid = poRow.id;
+    const { error: e2 } = await sb.from('po_items').insert(
+      items.map(i => ({
+        po_id:      poUuid,
+        po_number:  po.id,
+        part_name:  i.part,
+        color:      i.color    || '',
+        urgent:     po.urgent  || false,
+        status:     'รับของแล้ว',
+        rework:     false
+      }))
+    );
+    if (e2) throw new Error('po_items insert: ' + e2.message);
+  }
+  return poRow.id;
+}
+
+// Auto-generate next PO number for today: PO-YYMMDD-NN
+function nextPONumber() {
+  const d = new Date();
+  const yy = String(d.getFullYear() % 100).padStart(2, '0');
+  const mm = pad2(d.getMonth() + 1);
+  const dd = pad2(d.getDate());
+  const prefix = `PO-${yy}${mm}${dd}-`;
+  const todayPOs = (db.pos || []).filter(p => p.id && p.id.startsWith(prefix));
+  const nums = todayPOs
+    .map(p => parseInt(p.id.slice(prefix.length), 10))
+    .filter(n => !isNaN(n));
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return prefix + pad2(next);
 }
 
 // Recent activity — joins users to get display name
@@ -972,37 +1219,47 @@ function enrichPO(po) {
 //  SHELL + ROUTER
 // ═══════════════════════════════════════════════════
 const ROUTES = {
-  dashboard: { crumb: 'HOME / DASHBOARD',        title: 'สวัสดี',               subBuilder: () => thaiToday(), render: renderDashboard },
-  list:      { crumb: 'HOME / PURCHASE ORDERS',  title: 'PO ทั้งหมด',           subBuilder: () => `${db.pos.length} active`, render: renderList },
-  create:    { crumb: 'HOME / PO / NEW',         title: 'สร้าง PO ใหม่',         subBuilder: () => 'Round 2 — กำลังพัฒนา',     render: renderPlaceholder('สร้าง PO') },
-  qc:        { crumb: 'HOME / QC',               title: 'QC Inspection',        subBuilder: () => 'Round 3 — กำลังพัฒนา',     render: renderPlaceholder('QC') },
-  archive:   { crumb: 'HOME / ARCHIVE',          title: 'Past orders',           subBuilder: () => 'Round 3 — กำลังพัฒนา',     render: renderPlaceholder('Archive') },
-  manage:    { crumb: 'HOME / SETTINGS / MANAGE', title: 'จัดการข้อมูล',          subBuilder: () => 'Round 3 — กำลังพัฒนา',     render: renderPlaceholder('จัดการ') },
+  dashboard: { crumb: 'HOME / DASHBOARD',        title: 'สวัสดี',       subBuilder: () => thaiToday(),                   render: renderDashboard,   sidebarKey: 'dashboard' },
+  list:      { crumb: 'HOME / PURCHASE ORDERS',  title: 'PO ทั้งหมด',   subBuilder: () => `${db.pos.length} active`,      render: renderList,        sidebarKey: 'list' },
+  detail:    { crumb: 'HOME / PO',               title: 'รายละเอียด PO', subBuilder: (p) => p.poId || '—',                 render: renderDetail,      sidebarKey: 'list' },
+  create:    { crumb: 'HOME / PO / NEW',         title: 'สร้าง PO ใหม่', subBuilder: () => 'กรอกข้อมูลและรายการชิ้นงาน',    render: renderCreate,      sidebarKey: 'create' },
+  qc:        { crumb: 'HOME / QC',               title: 'QC Inspection', subBuilder: () => 'Round 3 — กำลังพัฒนา',        render: renderPlaceholder('QC'),      sidebarKey: 'qc' },
+  archive:   { crumb: 'HOME / ARCHIVE',          title: 'Past orders',   subBuilder: () => 'Round 3 — กำลังพัฒนา',        render: renderPlaceholder('Archive'), sidebarKey: 'archive' },
+  manage:    { crumb: 'HOME / SETTINGS / MANAGE', title: 'จัดการข้อมูล',  subBuilder: () => 'Round 3 — กำลังพัฒนา',        render: renderPlaceholder('จัดการ'),   sidebarKey: 'manage' },
 };
 
-function goTo(route) {
+function goTo(route, params = {}) {
   if (!ROUTES[route]) route = 'dashboard';
+  // If we're leaving Create without submitting, discard the in-progress draft
+  if (currentRoute === 'create' && route !== 'create') createState = null;
   const cfg = ROUTES[route];
   currentRoute = route;
+  currentRouteParams = params;
 
-  // Sidebar highlight
+  // Sidebar highlight — may differ from route (e.g. detail highlights "list")
+  const sidebarKey = cfg.sidebarKey || route;
   document.querySelectorAll('.sidebar-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.page === route);
+    el.classList.toggle('active', el.dataset.page === sidebarKey);
   });
 
   // Topbar text
-  document.getElementById('tb-crumb').textContent = cfg.crumb;
+  const crumb = (route === 'detail' && params.poId)
+    ? `HOME / PO / ${params.poId}`
+    : cfg.crumb;
+  document.getElementById('tb-crumb').textContent = crumb;
   const roleTitle = (route === 'dashboard' && currentUser)
     ? `สวัสดี, ${currentUser.display_name || currentUser.username}`
+    : (route === 'detail' && params.poId)
+    ? params.poId
     : cfg.title;
   document.getElementById('tb-title').textContent = roleTitle;
-  document.getElementById('tb-sub').textContent = cfg.subBuilder();
+  document.getElementById('tb-sub').textContent = cfg.subBuilder(params);
 
   // Page visibility
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + route));
 
   // Render
-  cfg.render();
+  cfg.render(params);
 
   // Scroll top
   document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'instant' });
@@ -1188,6 +1445,11 @@ function renderDashboard() {
       </div>
     </div>
   `;
+
+  // Wire Dashboard card clicks → Detail
+  el.querySelectorAll('.due-card[data-po], .urgent-row[data-po]').forEach(node => {
+    node.onclick = () => goTo('detail', { poId: node.dataset.po });
+  });
 }
 
 function renderDueCard(po) {
@@ -1343,9 +1605,9 @@ function renderList() {
   el.querySelectorAll('.pill[data-filter]').forEach(btn => {
     btn.onclick = () => setListFilter(btn.dataset.filter);
   });
-  // Row click — for Round 1 just show a toast; Round 2 wires up real detail
-  el.querySelectorAll('.data-row').forEach(row => {
-    row.onclick = () => toast('รายละเอียด PO อยู่ใน Round 2 — ใช้ version mobile ไปก่อน', 2600);
+  // Row click → PO detail
+  el.querySelectorAll('.data-row[data-po]').forEach(row => {
+    row.onclick = () => goTo('detail', { poId: row.dataset.po });
   });
 }
 
@@ -1386,7 +1648,444 @@ function poStatusChip(status) {
 }
 
 // ═══════════════════════════════════════════════════
-//  PLACEHOLDER PAGES (Round 2-3)
+//  RENDER: PO DETAIL (Round 2)
+// ═══════════════════════════════════════════════════
+async function renderDetail(params) {
+  const el = document.getElementById('page-detail');
+  const poId = params?.poId;
+  const po = db.pos.find(p => p.id === poId);
+
+  if (!po) {
+    el.innerHTML = `
+      <button class="back-link" data-goto="list">← HOME / PURCHASE ORDERS</button>
+      <div class="empty-state"><span class="emoji">❓</span><p>ไม่พบ PO — อาจถูก archive ไปแล้ว</p></div>
+    `;
+    wireGotoLinks(el);
+    return;
+  }
+
+  const enriched = enrichPO(po);
+  const items = enriched.items;
+
+  // Group items by status
+  const STATUS_ORDER = ['รับของแล้ว','กำลังผลิต','QC/เตรียมส่ง','ส่งแล้ว'];
+  const STATUS_META = {
+    'รับของแล้ว':    { cls: 'status-recv', th: 'รับของแล้ว' },
+    'กำลังผลิต':     { cls: 'status-prod', th: 'กำลังผลิต' },
+    'QC/เตรียมส่ง':  { cls: 'status-qc-chip', th: 'QC / เตรียมส่ง' },
+    'ส่งแล้ว':        { cls: 'status-ship', th: 'ส่งแล้ว' },
+  };
+  const groups = STATUS_ORDER.map(s => ({
+    status: s, items: items.filter(i => (i.status || 'รับของแล้ว') === s)
+  })).filter(g => g.items.length);
+
+  // Render skeleton first so user sees structure; timeline loaded async
+  el.innerHTML = `
+    <button class="back-link" data-goto="list">← HOME / PO / ${escapeHtml(po.id)}</button>
+
+    <div class="hero-strip">
+      <div class="hero-cell">
+        <div class="hero-cell-label">รุ่นรถ</div>
+        <div class="hero-cell-val">${escapeHtml(po.model || '—')}</div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-cell-label">รับของ</div>
+        <div class="hero-cell-val mono">${po.recv || '—'}</div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-cell-label">กำหนดส่ง</div>
+        <div class="hero-cell-val mono hi">${po.due || '—'}</div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-cell-label">ชิ้นทั้งหมด</div>
+        <div class="hero-cell-val">${enriched.total} ชิ้น</div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-cell-label">Progress</div>
+        <div class="hero-cell-val mono">${enriched.progress}%</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        ${po.urgent ? `
+          <div style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--danger-bg); color: var(--danger); border-radius: 99px; font-size: 12px; font-weight: 800; margin-bottom: 14px;">
+            🔥 งานด่วน · URGENT
+          </div>
+        ` : ''}
+
+        <div style="display: flex; gap: 10px; align-items: baseline; margin-bottom: 18px;">
+          <div style="font-size: 17px; font-weight: 800; color: var(--ink);">${escapeHtml(po.company || '—')}</div>
+          ${poStatusChip(po.status)}
+        </div>
+
+        ${groups.length === 0
+          ? `<div class="empty-state"><span class="emoji">📦</span><p>ยังไม่มีชิ้นงานใน PO นี้</p></div>`
+          : groups.map(g => {
+              const meta = STATUS_META[g.status] || { cls: '', th: g.status };
+              return `
+                <div class="items-group-wrap">
+                  <div class="items-group-head">
+                    <span class="status-chip ${meta.cls}">${escapeHtml(meta.th)}</span>
+                    <span class="items-group-meta">${g.items.length} ชิ้น</span>
+                  </div>
+                  <div class="item-box">
+                    ${g.items.map((it, idx) => renderDetailItemRow(it, idx)).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')
+        }
+      </div>
+
+      <aside class="side-panel">
+        <div class="side-panel-label">Timeline</div>
+        <div class="timeline" id="detail-timeline">
+          <div style="font-size: 12px; color: var(--ink-3);">⏳ กำลังโหลด...</div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="side-panel-label">Notes</div>
+        <div class="note-box ${po.remark ? '' : 'empty'}">
+          ${po.remark ? escapeHtml(po.remark) : 'ไม่มีหมายเหตุ'}
+        </div>
+
+        <div class="divider"></div>
+        <div class="side-panel-label">การแก้ไข</div>
+        <div style="font-size: 12px; color: var(--ink-3); line-height: 1.5;">
+          การ update สถานะชิ้นงาน/QC ให้ทำผ่าน version mobile — <a href="po-mobile.html" style="color: var(--accent);">เปิด mobile ↗</a>
+        </div>
+      </aside>
+    </div>
+  `;
+
+  wireGotoLinks(el);
+
+  // Load timeline async
+  const timeline = await loadTimeline(po.id);
+  renderDetailTimeline(timeline, po);
+}
+
+function renderDetailItemRow(it, idx) {
+  const num = String(idx + 1).padStart(3, '0');
+  const swatchColor = it.color && /ดำ/.test(it.color) ? '#2A2520'
+    : it.color && /เงิน/.test(it.color) ? '#C0C0C0'
+    : it.color && /ขาว/.test(it.color) ? '#FFFFFF'
+    : it.color && /แดง/.test(it.color) ? '#C0392B'
+    : '#8A7F72';
+  return `
+    <div class="item-row-desk">
+      <div class="item-check-box"></div>
+      <div class="item-name-cell">
+        <div class="part">${escapeHtml(it.part)}</div>
+        <div class="id">#${num}</div>
+      </div>
+      <div class="item-color-cell">
+        <span class="color-swatch" style="background:${swatchColor};"></span>
+        <span>${escapeHtml(it.color || '—')}</span>
+      </div>
+      <div>
+        ${it.rework ? '<span class="status-chip status-chip-sm status-rework">🔁 rework</span>' : ''}
+        ${it.sentDate ? `<span class="td-date-mono mute">ส่ง ${it.sentDate.slice(5)}</span>` : ''}
+      </div>
+      <div style="color: var(--ink-3); text-align: right; font-size: 14px;">—</div>
+    </div>
+  `;
+}
+
+function renderDetailTimeline(events, po) {
+  const host = document.getElementById('detail-timeline');
+  if (!host) return;
+  if (!events.length) {
+    host.innerHTML = `<div style="font-size: 12px; color: var(--ink-3);">ยังไม่มีประวัติการทำงาน</div>`;
+    return;
+  }
+  host.innerHTML = `
+    <div class="timeline-line"></div>
+    ${events.map(e => {
+      const name = e.user?.display_name || e.user?.username || '?';
+      const label = ACTION_LABELS[e.action] || e.action;
+      const at = new Date(e.created_at);
+      const when = `${at.getDate()} ${THAI_MONTHS_SHORT[at.getMonth()]} ${pad2(at.getHours())}:${pad2(at.getMinutes())}`;
+      return `
+        <div class="timeline-event">
+          <div class="timeline-dot done"></div>
+          <div>
+            <div class="timeline-title">${escapeHtml(label)}</div>
+            <div class="timeline-meta">${escapeHtml(name)} · ${escapeHtml(when)}</div>
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER: CREATE PO (Round 2)
+// ═══════════════════════════════════════════════════
+function initCreateState() {
+  createState = {
+    id:      nextPONumber(),
+    company: '',
+    model:   '',
+    recv:    todayISO(),
+    due:     todayISO(),
+    urgent:  false,
+    remark:  '',
+    items:   [{ part: '', color: '', qty: 1 }],  // start with 1 empty row
+  };
+}
+
+function renderCreate() {
+  if (!hasPermission('createPO')) {
+    document.getElementById('page-create').innerHTML = `
+      <div class="empty-state"><span class="emoji">🔒</span><p>คุณไม่มีสิทธิ์สร้าง PO</p></div>
+    `;
+    return;
+  }
+
+  if (!createState) initCreateState();
+  const s = createState;
+  const masters = db.masters || { companies: [], models: [], parts: [] };
+
+  const el = document.getElementById('page-create');
+  el.innerHTML = `
+    <button class="back-link" data-goto="list">← HOME / PO / NEW</button>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 14px;">
+      <button class="btn btn-ghost" data-goto="list">ยกเลิก</button>
+      <button class="btn btn-primary" id="btn-submit-create">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+        สร้าง PO
+      </button>
+    </div>
+
+    <div class="two-col narrow">
+      <div>
+        <div class="form-group">
+          <div class="form-group-head">
+            <div class="form-group-title-wrap">
+              <h2 class="form-group-title">ข้อมูลทั่วไป</h2>
+              <div class="form-group-en">GENERAL</div>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label class="form-field-label">PO Number</label>
+              <input class="form-input mono" id="f-po-id" value="${escapeHtml(s.id)}">
+            </div>
+            <div>
+              <label class="form-field-label">บริษัท / Company</label>
+              <input class="form-input" id="f-company" list="dl-companies" value="${escapeHtml(s.company)}" placeholder="เลือกหรือพิมพ์บริษัท">
+              <datalist id="dl-companies">${masters.companies.map(c => `<option value="${escapeHtml(c)}">`).join('')}</datalist>
+            </div>
+            <div>
+              <label class="form-field-label">รุ่นรถ / Car model</label>
+              <input class="form-input" id="f-model" list="dl-models" value="${escapeHtml(s.model)}" placeholder="เลือกหรือพิมพ์รุ่นรถ">
+              <datalist id="dl-models">${masters.models.map(m => `<option value="${escapeHtml(m)}">`).join('')}</datalist>
+            </div>
+            <div></div>
+            <div>
+              <label class="form-field-label">วันรับของ</label>
+              <input type="date" class="form-input mono" id="f-recv" value="${s.recv}">
+            </div>
+            <div>
+              <label class="form-field-label">กำหนดส่ง</label>
+              <input type="date" class="form-input mono" id="f-due" value="${s.due}">
+            </div>
+          </div>
+
+          <div style="margin-top: 14px;">
+            <label class="form-field-label">Remark / หมายเหตุ</label>
+            <textarea class="form-textarea" id="f-remark" placeholder="เช่น: ด่วน, รอสีจากโรงงาน, ลูกค้าส่งกลับมา...">${escapeHtml(s.remark)}</textarea>
+          </div>
+
+          <div class="urgent-toggle-desk ${s.urgent ? 'on' : ''}" id="f-urgent">
+            <span class="toggle-switch-desk"></span>
+            🔥 งานด่วน (Urgent)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-group-head">
+            <div class="form-group-title-wrap">
+              <h2 class="form-group-title">รายการชิ้นงาน</h2>
+              <div class="form-group-en">ITEMS</div>
+            </div>
+            <button class="btn btn-ghost" id="btn-add-item" style="height: 32px; padding: 0 10px; font-size: 11px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              เพิ่มชิ้น
+            </button>
+          </div>
+          <div class="item-builder">
+            <div class="item-builder-head">
+              <div>#</div><div>ชิ้นงาน</div><div>สี</div><div>จำนวน</div><div></div>
+            </div>
+            <div id="items-container">
+              ${s.items.map((it, idx) => renderCreateItemRow(it, idx, masters)).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side-panel summary-card">
+        <div class="side-panel-label">Summary</div>
+        <div class="summary-pono" id="sum-pono">${escapeHtml(s.id)}</div>
+        <div style="font-size: 13px; color: var(--ink-2); margin-top: 2px;" id="sum-company">${escapeHtml(s.company || '—')}</div>
+        <div style="font-size: 12px; color: var(--ink-3); margin-top: 2px;" id="sum-model">${escapeHtml(s.model || '—')}</div>
+
+        <div class="summary-grid">
+          <div>
+            <div class="sum-k">ชิ้น</div>
+            <div class="sum-v mono" id="sum-qty">${s.items.reduce((t, i) => t + (Number(i.qty) || 0), 0)}</div>
+          </div>
+          <div>
+            <div class="sum-k">ด่วน</div>
+            <div class="sum-v" id="sum-urgent">${s.urgent ? '🔥 ใช่' : '—'}</div>
+          </div>
+          <div>
+            <div class="sum-k">รับของ</div>
+            <div class="sum-v mono" id="sum-recv">${s.recv ? s.recv.slice(5) : '—'}</div>
+          </div>
+          <div>
+            <div class="sum-k">กำหนดส่ง</div>
+            <div class="sum-v mono hi" id="sum-due">${s.due ? s.due.slice(5) : '—'}</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div style="font-size: 11px; color: var(--ink-3); line-height: 1.6;">
+          เมื่อสร้าง PO แล้ว ชิ้นงานทั้งหมดจะตั้งสถานะเริ่มต้นเป็น "รับของแล้ว" โดยอัตโนมัติ
+        </div>
+      </aside>
+    </div>
+  `;
+
+  wireCreateForm();
+  wireGotoLinks(el);
+}
+
+function renderCreateItemRow(it, idx, masters) {
+  const num = pad2(idx + 1);
+  return `
+    <div class="item-builder-row" data-idx="${idx}">
+      <span class="mini-label">${num}</span>
+      <input class="mini-input" data-f="part" list="dl-parts-${idx}" value="${escapeHtml(it.part || '')}" placeholder="เลือกชิ้นงาน">
+      <datalist id="dl-parts-${idx}">${(masters?.parts || []).map(p => `<option value="${escapeHtml(p)}">`).join('')}</datalist>
+      <input class="mini-input" data-f="color" value="${escapeHtml(it.color || '')}" placeholder="เช่น สีดำ B92">
+      <input class="mini-input mono" data-f="qty" type="number" min="1" value="${it.qty || 1}">
+      <button class="icon-btn-trash" data-remove-item="${idx}" title="ลบ">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+      </button>
+    </div>
+  `;
+}
+
+function wireCreateForm() {
+  const s = createState;
+
+  // Top-level fields
+  document.getElementById('f-po-id').oninput = e => { s.id = e.target.value; document.getElementById('sum-pono').textContent = s.id; };
+  document.getElementById('f-company').oninput = e => { s.company = e.target.value; document.getElementById('sum-company').textContent = s.company || '—'; };
+  document.getElementById('f-model').oninput = e => { s.model = e.target.value; document.getElementById('sum-model').textContent = s.model || '—'; };
+  document.getElementById('f-recv').oninput = e => { s.recv = e.target.value; document.getElementById('sum-recv').textContent = s.recv ? s.recv.slice(5) : '—'; };
+  document.getElementById('f-due').oninput  = e => { s.due  = e.target.value; document.getElementById('sum-due').textContent  = s.due  ? s.due.slice(5)  : '—'; };
+  document.getElementById('f-remark').oninput = e => { s.remark = e.target.value; };
+
+  const urgentEl = document.getElementById('f-urgent');
+  urgentEl.onclick = () => {
+    s.urgent = !s.urgent;
+    urgentEl.classList.toggle('on', s.urgent);
+    document.getElementById('sum-urgent').textContent = s.urgent ? '🔥 ใช่' : '—';
+  };
+
+  // Item rows — event delegation on the container
+  const container = document.getElementById('items-container');
+  container.oninput = (e) => {
+    const row = e.target.closest('.item-builder-row');
+    if (!row) return;
+    const idx = Number(row.dataset.idx);
+    const field = e.target.dataset.f;
+    if (!field) return;
+    s.items[idx][field] = field === 'qty' ? Math.max(1, Number(e.target.value) || 1) : e.target.value;
+    if (field === 'qty') {
+      const total = s.items.reduce((t, i) => t + (Number(i.qty) || 0), 0);
+      document.getElementById('sum-qty').textContent = total;
+    }
+  };
+  container.onclick = (e) => {
+    const btn = e.target.closest('[data-remove-item]');
+    if (!btn) return;
+    const idx = Number(btn.dataset.removeItem);
+    s.items.splice(idx, 1);
+    if (s.items.length === 0) s.items.push({ part: '', color: '', qty: 1 });
+    renderCreate();  // re-render so indexes update cleanly
+  };
+
+  // Add item button
+  document.getElementById('btn-add-item').onclick = () => {
+    s.items.push({ part: '', color: '', qty: 1 });
+    renderCreate();
+  };
+
+  // Submit
+  document.getElementById('btn-submit-create').onclick = submitCreate;
+}
+
+async function submitCreate() {
+  const s = createState;
+
+  // Validation
+  if (!s.id || !/^PO-[\w-]+$/i.test(s.id)) { toast('⚠️ PO Number ต้องขึ้นต้นด้วย PO-'); return; }
+  if (db.pos.some(p => p.id === s.id)) { toast('⚠️ PO Number นี้มีอยู่แล้ว'); return; }
+  if (!s.company) { toast('⚠️ กรุณาเลือกบริษัท'); return; }
+  if (!s.recv || !s.due) { toast('⚠️ กรุณากรอกวันที่'); return; }
+  const validItems = s.items.filter(i => i.part && i.part.trim() && (i.qty >= 1));
+  if (validItems.length === 0) { toast('⚠️ ต้องมีชิ้นงานอย่างน้อย 1 รายการ'); return; }
+
+  // Expand each item by qty into individual rows (mobile's convention — 1 row per piece)
+  const expandedItems = [];
+  validItems.forEach(i => {
+    for (let k = 0; k < i.qty; k++) {
+      expandedItems.push({ part: i.part.trim(), color: (i.color || '').trim() });
+    }
+  });
+
+  showLoading(true);
+  try {
+    await createPOInSupabase({
+      id: s.id, company: s.company, model: s.model,
+      recv: s.recv, due: s.due, urgent: s.urgent, remark: s.remark
+    }, expandedItems);
+
+    await logActivity('add_po', 'po', { po_number: s.id, company: s.company, item_count: expandedItems.length });
+
+    toast(`✅ สร้าง ${s.id} แล้ว (${expandedItems.length} ชิ้น)`, 2800);
+    createState = null;
+    await refreshData();
+    goTo('detail', { poId: s.id });
+  } catch(e) {
+    console.error('[submitCreate]', e);
+    toast('❌ สร้าง PO ไม่สำเร็จ: ' + e.message, 4000);
+  }
+  showLoading(false);
+}
+
+// Helper: wire [data-goto] links inside a container to goTo(...)
+function wireGotoLinks(root) {
+  root.querySelectorAll('[data-goto]').forEach(el => {
+    el.onclick = (e) => {
+      e.preventDefault();
+      const target = el.dataset.goto;
+      const poId = el.dataset.po;
+      goTo(target, poId ? { poId } : {});
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  PLACEHOLDER PAGES (Round 3)
 // ═══════════════════════════════════════════════════
 function renderPlaceholder(name) {
   return () => {
