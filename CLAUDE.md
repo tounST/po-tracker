@@ -267,6 +267,21 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - [ ] Photo upload จริง — ใช้ Supabase Storage (รับของ + QC)
 - [ ] Customer portal — ลูกค้า login มาดู status PO ของตัวเองได้
 
+#### **🌏 ลำดับ 5: Optional — i18n TH/EN → MY/EN** (ยังไม่ตัดสินใจว่าทำ)
+เพิ่ม toggle ภาษาให้ส่วนที่เป็นภาษาไทย → เปลี่ยนเป็นภาษาพม่าได้ (ส่วนที่เป็น English คงเดิม, user-entered data ไม่แปล)
+- [ ] ระบบ i18n (แนะนำ: hybrid — `data-i18n` attribute สำหรับ static label + `t(key)` function สำหรับ template literal)
+- [ ] Burmese font loading (Noto Sans Myanmar จาก Google Fonts สำหรับ iOS/old Windows)
+- [ ] Language switcher UI (ตำแหน่งยังไม่ตกลง)
+- [ ] Map display labels ของ item status จาก Thai ใน DB → Burmese ตอน render (ไม่แก้ schema)
+
+**คำถามค้างที่ต้องถาม toun ก่อนเริ่ม** — อย่าเริ่ม code จนกว่าจะได้ทุกคำตอบ:
+1. **ลูกน้องที่จะใช้ Burmese**: มีแล้วกี่คน? ใช้ role ไหน (staff/supervisor)?
+2. **แหล่ง translation**: toun ให้รายการ TH→MY เอง (แม่นยำ 100%) หรือให้ฉันลองแปลก่อนแล้ว review?
+3. **Scope เฟส 1**: เริ่มจาก Login + Dashboard + Update tab + PIN pad ก่อน (ส่วนที่ staff เห็นบ่อย) ค่อย expand — ok ไหม?
+4. **Language switcher ตรงไหน**: (A) Topbar chip ข้างปุ่ม logout — แนะนำ; (B) หน้า login; (C) หน้า "จัดการ"; (D) auto ตาม `preferred_language` ใน `users` table (เพิ่ม column)?
+
+**Decision log**: DB statuses (`'รับของแล้ว'`, `'กำลังผลิต'`, ...) เก็บเป็น Thai **data** — แปลง label ตอน render เท่านั้น. ไม่ migrate เป็น enum code เพราะจะกระทบทุก query ที่ `.eq('status', 'กำลังผลิต')` ใน codebase
+
 ---
 
 ### สรุปจำนวนขั้นตอนที่เหลือ
@@ -276,7 +291,8 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 | **2. Phase 3 ฟีเจอร์ธุรกิจ** | 6 ฟีเจอร์ | 2-4 สัปดาห์ |
 | **3. Hardening + Backup** | 5 งาน | 3-5 วัน |
 | **4. Phase 4 Scale Up** | 4 งาน | ~1-2 เดือน |
-| **รวม** | **~23 งาน** | **~2-3 เดือน** |
+| **5. Optional — i18n Burmese** | 4 งาน | 1-2 สัปดาห์ (ถ้าทำ) |
+| **รวม (ไม่รวม optional)** | **~23 งาน** | **~2-3 เดือน** |
 
 ## Architecture & Decision Log
 - **ทำไมใช้ JSONP → fetch + credentials:omit**: Chrome ส่ง Google session cookie กับ JSONP → GAS redirect loop
