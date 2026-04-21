@@ -1021,7 +1021,9 @@ button { font-family: inherit; }
   font-size: 13px; font-weight: 600;
   box-shadow: 0 8px 24px rgba(42,37,32,0.12);
   animation: slideDown 0.3s ease-out;
-  max-width: 420px;
+  max-width: 520px;
+  white-space: pre-line;       /* render \n as line breaks for error messages */
+  line-height: 1.5;
 }
 @keyframes slideDown {
   from { transform: translateY(-20px); opacity: 0; }
@@ -2370,13 +2372,21 @@ async function saveDetailUpdate() {
   const effectiveStatus = (isQC && s.qcDecision === 'fail') ? 'กำลังผลิต' : s.targetStatus;
 
   showLoading(true);
-  const ids = [...s.selection];
+  const ids = [...s.selection].filter(Boolean);  // drop any empty-string ids just in case
+  if (ids.length === 0) {
+    showLoading(false);
+    toast('⚠️ ไม่พบ _sbId ของชิ้นงานที่เลือก — ลอง refresh แล้วเลือกใหม่', 4000);
+    return;
+  }
   let okCount = 0;
-  const errors = [];
+  const errors = [];  // { part, msg }
 
   for (const sbId of ids) {
     const item = db.items.find(i => i._sbId === sbId);
-    if (!item) continue;
+    if (!item) {
+      errors.push({ part: `(id:${String(sbId).slice(0,8)})`, msg: 'ไม่พบชิ้นงานใน db — อาจถูกลบหรือ refresh แล้วหาย' });
+      continue;
+    }
 
     const payload = {
       status: effectiveStatus,
@@ -2389,23 +2399,26 @@ async function saveDetailUpdate() {
         payload.qc_passed        = true;
         payload.qc_defect_reason = null;
         payload.qc_checked_at    = new Date().toISOString();
-        payload.qc_checked_by    = currentUser.username;
+        payload.qc_checked_by    = currentUser?.username || 'desktop';
       } else if (s.qcDecision === 'fail') {
         payload.qc_passed        = false;
         payload.qc_defect_reason = s.qcReason;
         payload.qc_checked_at    = new Date().toISOString();
-        payload.qc_checked_by    = currentUser.username;
+        payload.qc_checked_by    = currentUser?.username || 'desktop';
       } else {
         // pending — move to QC queue, clear any prior decision
         payload.qc_passed        = null;
         payload.qc_defect_reason = null;
-        // Don't set qc_checked_at/by — item is not inspected yet
       }
     }
 
     try {
-      const { error } = await sb.from('po_items').update(payload).eq('id', sbId);
+      const { data, error } = await sb.from('po_items').update(payload).eq('id', sbId).select();
       if (error) throw error;
+      if (!data || data.length === 0) {
+        // No rows matched — likely RLS blocked the update or id is wrong
+        throw new Error('0 rows matched (RLS policy or stale id)');
+      }
       const actionKind = isQC
         ? (s.qcDecision === 'pass' ? 'qc_pass' : s.qcDecision === 'fail' ? 'qc_fail' : 'qc_pending')
         : 'update_status';
@@ -2417,8 +2430,12 @@ async function saveDetailUpdate() {
       });
       okCount++;
     } catch(e) {
-      console.error('[saveDetailUpdate]', item, e);
-      errors.push(item.part);
+      // Bubble full diagnostics to console for DevTools inspection
+      console.error('[saveDetailUpdate] FAILED', {
+        part: item.part, sbId, payload, error: e, message: e?.message, code: e?.code, details: e?.details, hint: e?.hint
+      });
+      const msg = e?.message || e?.code || 'unknown error';
+      errors.push({ part: item.part, msg });
     }
   }
 
@@ -2433,7 +2450,10 @@ async function saveDetailUpdate() {
     }
     toast(`✅ อัพเดท ${okCount} ชิ้น → ${effectiveStatus}${suffix}`, 2800);
   } else {
-    toast(`⚠️ สำเร็จ ${okCount}, ล้มเหลว ${errors.length}: ${errors.join(', ')}`, 4000);
+    // Show the first error's message so user sees what Supabase complained about
+    const e0 = errors[0];
+    const moreHint = errors.length > 1 ? ` (+${errors.length - 1} อื่น ๆ ดู console)` : '';
+    toast(`⚠️ สำเร็จ ${okCount}, ล้มเหลว ${errors.length}\n${e0.part}: ${e0.msg}${moreHint}`, 7000);
   }
 
   resetDetailState();
