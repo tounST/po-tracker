@@ -566,117 +566,155 @@ button { font-family: inherit; }
   display: flex; align-items: center; justify-content: center;
 }
 
-/* Sticky action bar at bottom of detail page */
+/* ─── Bulk action bar (design v2) ──────────
+   Light surface + segmented status picker + optional QC sub-row.
+   Sticks at bottom of Detail content when items are selected. */
 .detail-action-bar {
   position: sticky; bottom: 20px;
-  background: var(--ink); color: var(--bg);
-  padding: 16px 20px;
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(42,37,32,0.18);
   margin-top: 20px;
   display: none;
-  flex-direction: column; gap: 14px;
+  flex-direction: column; gap: 10px;
   z-index: 10;
 }
 .detail-action-bar.show { display: flex; }
-.detail-action-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.detail-action-count {
-  font-size: 14px; font-weight: 800;
+
+.detail-action-row {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px -12px rgba(42,37,32,0.22), 0 2px 8px rgba(42,37,32,0.05);
+  padding: 10px 12px 10px 10px;
+  display: flex; align-items: center; gap: 12px;
+}
+
+/* Left — count block */
+.detail-count-block { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.detail-count-chip {
+  width: 32px; height: 32px; border-radius: 10px;
   background: var(--accent); color: #fff;
-  padding: 5px 12px; border-radius: 99px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
-.detail-action-label {
-  font-size: 12.5px; font-weight: 700; opacity: 0.6;
-  text-transform: uppercase; letter-spacing: 1.5px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+.detail-count-label { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.1; }
+.detail-count-sub {
+  font-size: 10.5px; color: var(--ink-3); margin-top: 2px;
+  text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
 }
-.detail-status-picker {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-  flex: 1;
-}
-.detail-status-btn {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; padding: 10px 8px;
+
+/* Middle — segmented status picker */
+.detail-status-seg {
+  flex: 1; min-width: 0;
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: rgba(246,241,234,0.08);
-  border: 1.5px solid rgba(246,241,234,0.12);
-  color: rgba(246,241,234,0.78);
-  font-family: inherit; font-size: 12px; font-weight: 700;
-  cursor: pointer; transition: all 0.15s;
+  padding: 3px;
 }
-.detail-status-btn:hover:not(.active) { background: rgba(246,241,234,0.12); color: #fff; }
-.detail-status-btn.active {
-  background: var(--accent); color: #fff; border-color: var(--accent);
+.detail-seg-btn {
+  flex: 1; min-width: 0;
+  padding: 8px 6px;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background .12s, color .12s;
 }
-.detail-status-btn .dot {
-  width: 8px; height: 8px; border-radius: 99px; margin-bottom: 2px;
+.detail-seg-btn:hover:not(.active) { color: var(--ink); }
+.detail-seg-btn.active {
+  background: var(--surface);
+  font-weight: 800;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(42,37,32,0.1), 0 1px 1px rgba(42,37,32,0.05);
 }
+
+/* Right — rework + cancel + save */
+.detail-action-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 
 .detail-rework-toggle {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px;
-  border-radius: 99px;
-  background: rgba(246,241,234,0.08);
-  color: rgba(246,241,234,0.78);
-  font-size: 12px; font-weight: 700;
-  cursor: pointer; transition: all 0.15s;
-}
-.detail-rework-toggle.on { background: var(--danger-bg); color: var(--danger); }
-
-.detail-qc-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px;
-  background: rgba(246,241,234,0.05);
-  border-radius: 10px;
-}
-.detail-qc-picker {
-  display: flex; gap: 8px;
-}
-.detail-qc-btn {
-  padding: 10px 18px; border-radius: 10px;
-  border: 1.5px solid; background: rgba(246,241,234,0.05);
-  font-size: 13px; font-weight: 700; cursor: pointer;
-  font-family: inherit;
   display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink-2);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: inherit;
 }
-.detail-qc-btn.pass {
-  border-color: var(--success); color: var(--success);
+.detail-rework-toggle.on { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+
+.detail-action-cancel {
+  height: 34px; padding: 0 12px;
+  background: transparent; border: none;
+  color: var(--ink-2); font-size: 12.5px; font-weight: 700;
+  cursor: pointer; font-family: inherit; border-radius: 9px;
 }
-.detail-qc-btn.pass.active { background: var(--success); color: #fff; }
-.detail-qc-btn.fail {
-  border-color: var(--danger); color: var(--danger);
-}
-.detail-qc-btn.fail.active { background: var(--danger); color: #fff; }
-.detail-qc-reason {
-  flex: 1;
-  height: 40px; padding: 0 12px;
-  border-radius: 9px; border: 1px solid rgba(246,241,234,0.2);
-  background: rgba(246,241,234,0.05); color: #fff;
-  font-size: 13px; font-family: inherit;
-  outline: none;
-}
+.detail-action-cancel:hover { background: var(--bg); color: var(--ink); }
 
 .detail-action-save {
-  margin-left: auto;
-  padding: 0 22px; height: 42px;
+  height: 34px; padding: 0 16px;
   background: var(--accent); color: #fff;
-  border: none; border-radius: 10px;
-  font-size: 14px; font-weight: 800; cursor: pointer;
-  font-family: inherit;
-  display: inline-flex; align-items: center; gap: 8px;
-  transition: filter 0.15s;
+  border: none; font-size: 12.5px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 9px;
+  box-shadow: 0 2px 6px -1px rgba(42,37,32,0.22);
+  transition: filter 0.15s, opacity 0.15s;
 }
-.detail-action-save:hover:not(:disabled) { filter: brightness(1.1); }
-.detail-action-save:disabled { opacity: 0.4; cursor: not-allowed; }
-.detail-action-cancel {
-  padding: 0 16px; height: 42px;
-  background: transparent; color: rgba(246,241,234,0.6);
-  border: 1px solid rgba(246,241,234,0.15);
-  border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
-  font-family: inherit;
+.detail-action-save:hover:not(:disabled) { filter: brightness(1.08); }
+.detail-action-save:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* QC sub-row — only visible when target = QC */
+.detail-qc-subrow {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px -12px rgba(42,37,32,0.22), 0 2px 8px rgba(42,37,32,0.05);
+  padding: 10px 14px;
+  display: none;
+  align-items: center; gap: 14px;
+  flex-wrap: wrap;
 }
-.detail-action-cancel:hover { color: #fff; border-color: rgba(246,241,234,0.3); }
+.detail-qc-subrow.show { display: flex; }
+.detail-qc-label {
+  font-size: 11px; color: var(--ink-3); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  flex-shrink: 0;
+}
+.detail-qc-picker { display: flex; gap: 6px; }
+.detail-qc-btn {
+  height: 34px; padding: 0 14px;
+  border-radius: 9px;
+  border: 1.5px solid; background: var(--surface);
+  font-size: 12.5px; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.12s;
+}
+.detail-qc-btn.pass { border-color: var(--success); color: var(--success); }
+.detail-qc-btn.pass:hover:not(.active) { background: var(--success-bg); }
+.detail-qc-btn.pass.active { background: var(--success); color: #fff; }
+.detail-qc-btn.fail { border-color: var(--danger); color: var(--danger); }
+.detail-qc-btn.fail:hover:not(.active) { background: var(--danger-bg); }
+.detail-qc-btn.fail.active { background: var(--danger); color: #fff; }
+.detail-qc-btn.pending { border-color: var(--info); color: var(--info); }
+.detail-qc-btn.pending:hover:not(.active) { background: var(--info-bg); }
+.detail-qc-btn.pending.active { background: var(--info); color: #fff; }
+
+.detail-qc-reason {
+  flex: 1; min-width: 200px;
+  height: 34px; padding: 0 10px;
+  border-radius: 9px; border: 1px solid var(--line-deep);
+  background: var(--bg); color: var(--ink);
+  font-size: 12.5px; font-family: inherit;
+  outline: none;
+}
+.detail-qc-reason:focus { border-color: var(--accent); }
+.detail-qc-reason.hidden-slot { visibility: hidden; }
 
 /* ═══ ROUND 2: CREATE PO ═══ */
 .form-group {
@@ -1899,6 +1937,7 @@ const ACTION_LABELS = {
   update_status: 'อัพเดทสถานะชิ้นงาน',
   qc_pass: 'ผ่าน QC',
   qc_fail: 'ไม่ผ่าน QC',
+  qc_pending: 'ส่งเข้าคิว QC',
   archive: 'Archive PO',
   unarchive: 'เอา PO กลับ',
   delete_archived_po: 'ลบ PO ถาวร',
@@ -2148,47 +2187,65 @@ async function renderDetail(params) {
 }
 
 function renderDetailActionBar() {
+  const statuses = [
+    { key: 'รับของแล้ว',    th: 'รับของ' },
+    { key: 'กำลังผลิต',     th: 'กำลังผลิต' },
+    { key: 'QC/เตรียมส่ง',  th: 'QC' },
+    { key: 'ส่งแล้ว',         th: 'ส่งแล้ว' },
+  ];
+
   return `
     <div class="detail-action-bar" id="detail-action-bar">
-      <div class="detail-action-row">
-        <span class="detail-action-count" id="detail-action-count">0</span>
-        <span class="detail-action-label">ชิ้นที่เลือก · เปลี่ยนเป็น</span>
-        <div class="detail-status-picker">
-          <button class="detail-status-btn" data-status="รับของแล้ว">
-            <span class="dot" style="background: var(--info);"></span>
-            รับของ
-          </button>
-          <button class="detail-status-btn" data-status="กำลังผลิต">
-            <span class="dot" style="background: var(--warning);"></span>
-            กำลังผลิต
-          </button>
-          <button class="detail-status-btn" data-status="QC/เตรียมส่ง">
-            <span class="dot" style="background: var(--status-qc-fg);"></span>
-            QC / เตรียมส่ง
-          </button>
-          <button class="detail-status-btn" data-status="ส่งแล้ว">
-            <span class="dot" style="background: var(--success);"></span>
-            ส่งแล้ว
-          </button>
-        </div>
-      </div>
-      <div class="detail-action-row">
-        <button class="detail-rework-toggle" id="detail-rework-btn">🔁 ทำเครื่องหมาย rework</button>
-        <button class="detail-action-cancel" id="detail-cancel-btn">ยกเลิก</button>
-        <button class="detail-action-save" id="detail-save-btn" disabled>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
-          บันทึก
-        </button>
-      </div>
-      <div id="detail-qc-row" style="display: none;" class="detail-qc-row">
+      <!-- QC sub-row renders ABOVE main row so it floats on top when visible -->
+      <div class="detail-qc-subrow" id="detail-qc-subrow">
+        <span class="detail-qc-label">ตัดสินใจ QC</span>
         <div class="detail-qc-picker">
-          <button class="detail-qc-btn pass" data-qc="pass">✓ ผ่าน QC</button>
-          <button class="detail-qc-btn fail" data-qc="fail">✕ ไม่ผ่าน</button>
+          <button class="detail-qc-btn pass" data-qc="pass">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+            ผ่าน
+          </button>
+          <button class="detail-qc-btn fail" data-qc="fail">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            ไม่ผ่าน
+          </button>
+          <button class="detail-qc-btn pending" data-qc="pending">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            รอตรวจสอบ
+          </button>
         </div>
-        <select class="detail-qc-reason" id="detail-qc-reason-select" style="display: none;">
+        <select class="detail-qc-reason hidden-slot" id="detail-qc-reason-select">
           <option value="">— เลือกสาเหตุ defect —</option>
           ${(db.masters?.defects || []).map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('')}
         </select>
+      </div>
+
+      <!-- Main row -->
+      <div class="detail-action-row">
+        <div class="detail-count-block">
+          <div class="detail-count-chip" id="detail-count-chip">0</div>
+          <div>
+            <div class="detail-count-label"><span id="detail-count-num">0</span> ชิ้นที่เลือก</div>
+            <div class="detail-count-sub">เปลี่ยนสถานะ</div>
+          </div>
+        </div>
+
+        <div class="detail-status-seg">
+          ${statuses.map(s => `
+            <button class="detail-seg-btn" data-status="${escapeHtml(s.key)}">${escapeHtml(s.th)}</button>
+          `).join('')}
+        </div>
+
+        <div class="detail-action-right">
+          <button class="detail-rework-toggle" id="detail-rework-btn" title="ตั้งเป็น rework">
+            <span style="font-size: 13px;">🔁</span>
+            <span>Rework</span>
+          </button>
+          <button class="detail-action-cancel" id="detail-cancel-btn">ยกเลิก</button>
+          <button class="detail-action-save" id="detail-save-btn" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+            <span>บันทึก</span>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -2196,11 +2253,11 @@ function renderDetailActionBar() {
 
 function wireDetailInteraction() {
   const el = document.getElementById('page-detail');
+  const poIdForBack = detailState.poId;
 
-  // Item row click — toggle selection (but not when clicking inner links/buttons)
+  // Item row click — toggle selection (ignore clicks on links/buttons inside)
   el.querySelectorAll('.item-row-desk[data-sbid]').forEach(row => {
     row.onclick = (e) => {
-      // Don't toggle if click was on a link or a button within the row
       if (e.target.closest('a, button')) return;
       const sbid = row.dataset.sbid;
       if (detailState.selection.has(sbid)) detailState.selection.delete(sbid);
@@ -2210,13 +2267,16 @@ function wireDetailInteraction() {
     };
   });
 
-  // Status picker
-  el.querySelectorAll('.detail-status-btn[data-status]').forEach(btn => {
+  // Segmented status picker
+  el.querySelectorAll('.detail-seg-btn[data-status]').forEach(btn => {
     btn.onclick = () => {
       detailState.targetStatus = btn.dataset.status;
-      detailState.qcDecision = null;
-      detailState.qcReason = '';
-      el.querySelectorAll('.detail-status-btn').forEach(b => b.classList.toggle('active', b === btn));
+      // Reset QC decision when user changes status — they'll re-pick if needed
+      if (detailState.targetStatus !== 'QC/เตรียมส่ง') {
+        detailState.qcDecision = null;
+        detailState.qcReason = '';
+      }
+      el.querySelectorAll('.detail-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
       updateDetailActionBar();
     };
   });
@@ -2230,15 +2290,16 @@ function wireDetailInteraction() {
     };
   }
 
-  // QC decision buttons
+  // QC decision buttons (pass / fail / pending)
   el.querySelectorAll('.detail-qc-btn[data-qc]').forEach(btn => {
     btn.onclick = () => {
       detailState.qcDecision = btn.dataset.qc;
-      detailState.qcReason = '';
+      detailState.qcReason = '';  // reset reason on re-pick
       el.querySelectorAll('.detail-qc-btn').forEach(b => b.classList.toggle('active', b === btn));
       const reasonSel = el.querySelector('#detail-qc-reason-select');
       if (reasonSel) {
-        reasonSel.style.display = detailState.qcDecision === 'fail' ? '' : 'none';
+        // Only Fail needs a reason; keep the element in flex layout via hidden-slot visibility
+        reasonSel.classList.toggle('hidden-slot', detailState.qcDecision !== 'fail');
         reasonSel.value = '';
       }
       updateDetailActionBar();
@@ -2257,7 +2318,7 @@ function wireDetailInteraction() {
   // Cancel + Save
   el.querySelector('#detail-cancel-btn')?.addEventListener('click', () => {
     resetDetailState();
-    detailState.poId = detailState.poId; // keep PO, clear selection only
+    detailState.poId = poIdForBack; // keep PO, just clear selection + picks
     renderDetail({ poId: detailState.poId });
   });
   el.querySelector('#detail-save-btn')?.addEventListener('click', saveDetailUpdate);
@@ -2269,23 +2330,24 @@ function updateDetailActionBar() {
   const bar = document.getElementById('detail-action-bar');
   if (!bar) return;
   const count = detailState.selection.size;
-  const cntEl = document.getElementById('detail-action-count');
-  if (cntEl) cntEl.textContent = count;
+  document.getElementById('detail-count-chip').textContent = count;
+  document.getElementById('detail-count-num').textContent = count;
 
-  // Show/hide the QC sub-row when target is QC
-  const qcRow = document.getElementById('detail-qc-row');
-  if (qcRow) qcRow.style.display = (detailState.targetStatus === 'QC/เตรียมส่ง') ? '' : 'none';
+  // Show/hide QC sub-row when target = QC
+  const qcRow = document.getElementById('detail-qc-subrow');
+  if (qcRow) qcRow.classList.toggle('show', detailState.targetStatus === 'QC/เตรียมส่ง');
 
   // Enable Save only when ready
   let ready = count > 0 && !!detailState.targetStatus;
   if (ready && detailState.targetStatus === 'QC/เตรียมส่ง') {
+    // For QC, a decision MUST be picked (pass/fail/pending)
     if (!detailState.qcDecision) ready = false;
+    // For Fail, a defect reason is also required
     else if (detailState.qcDecision === 'fail' && !detailState.qcReason) ready = false;
   }
   const saveBtn = document.getElementById('detail-save-btn');
   if (saveBtn) saveBtn.disabled = !ready;
 
-  // Show/hide bar based on selection
   bar.classList.toggle('show', count > 0);
 }
 
@@ -2295,12 +2357,16 @@ async function saveDetailUpdate() {
 
   const isQC = s.targetStatus === 'QC/เตรียมส่ง';
   if (isQC) {
-    if (!s.qcDecision) { toast('⚠️ กรุณาเลือก ผ่าน / ไม่ผ่าน'); return; }
+    if (!s.qcDecision) { toast('⚠️ กรุณาเลือก ผ่าน / ไม่ผ่าน / รอตรวจสอบ'); return; }
     if (s.qcDecision === 'fail' && !s.qcReason) { toast('⚠️ กรุณาเลือกสาเหตุ defect'); return; }
   }
 
-  // If QC + fail → actual DB status becomes 'กำลังผลิต' (rework back to production).
-  // QC + pass → status stays 'QC/เตรียมส่ง' but qc_passed=true (mobile uses this to show green chip).
+  // QC status routing:
+  //   pass    → status stays 'QC/เตรียมส่ง', qc_passed = true
+  //             (mobile shows "ผ่าน QC · เตรียมส่ง" green chip)
+  //   fail    → status OVERRIDE to 'กำลังผลิต', qc_passed = false + reason + rework
+  //   pending → status = 'QC/เตรียมส่ง', qc_passed = null (clear prior decision)
+  //             Appears in QC page queue (filter: status=QC && !qc_passed)
   const effectiveStatus = (isQC && s.qcDecision === 'fail') ? 'กำลังผลิต' : s.targetStatus;
 
   showLoading(true);
@@ -2309,7 +2375,6 @@ async function saveDetailUpdate() {
   const errors = [];
 
   for (const sbId of ids) {
-    // Find the actual item — we need po + part for logging
     const item = db.items.find(i => i._sbId === sbId);
     if (!item) continue;
 
@@ -2318,26 +2383,38 @@ async function saveDetailUpdate() {
       rework: s.targetRework || (isQC && s.qcDecision === 'fail'),
     };
     if (effectiveStatus === 'ส่งแล้ว') payload.sent_date = todayISO();
+
     if (isQC) {
-      payload.qc_passed        = s.qcDecision === 'pass';
-      payload.qc_defect_reason = s.qcDecision === 'fail' ? s.qcReason : null;
-      payload.qc_checked_at    = new Date().toISOString();
-      payload.qc_checked_by    = currentUser.username;
+      if (s.qcDecision === 'pass') {
+        payload.qc_passed        = true;
+        payload.qc_defect_reason = null;
+        payload.qc_checked_at    = new Date().toISOString();
+        payload.qc_checked_by    = currentUser.username;
+      } else if (s.qcDecision === 'fail') {
+        payload.qc_passed        = false;
+        payload.qc_defect_reason = s.qcReason;
+        payload.qc_checked_at    = new Date().toISOString();
+        payload.qc_checked_by    = currentUser.username;
+      } else {
+        // pending — move to QC queue, clear any prior decision
+        payload.qc_passed        = null;
+        payload.qc_defect_reason = null;
+        // Don't set qc_checked_at/by — item is not inspected yet
+      }
     }
 
     try {
       const { error } = await sb.from('po_items').update(payload).eq('id', sbId);
       if (error) throw error;
-      await logActivity(
-        isQC ? (s.qcDecision === 'pass' ? 'qc_pass' : 'qc_fail') : 'update_status',
-        'item',
-        {
-          po_number: item.po, part_name: item.part,
-          status: effectiveStatus,
-          rework: payload.rework,
-          reason: s.qcDecision === 'fail' ? s.qcReason : null
-        }
-      );
+      const actionKind = isQC
+        ? (s.qcDecision === 'pass' ? 'qc_pass' : s.qcDecision === 'fail' ? 'qc_fail' : 'qc_pending')
+        : 'update_status';
+      await logActivity(actionKind, 'item', {
+        po_number: item.po, part_name: item.part,
+        status: effectiveStatus,
+        rework: payload.rework,
+        reason: s.qcDecision === 'fail' ? s.qcReason : null
+      });
       okCount++;
     } catch(e) {
       console.error('[saveDetailUpdate]', item, e);
@@ -2346,7 +2423,15 @@ async function saveDetailUpdate() {
   }
 
   if (errors.length === 0) {
-    toast(`✅ อัพเดท ${okCount} ชิ้น → ${s.targetStatus}${s.qcDecision === 'fail' ? ' (rework)' : ''}`, 2800);
+    let suffix = '';
+    if (isQC) {
+      if (s.qcDecision === 'pass')    suffix = ' (ผ่าน QC)';
+      else if (s.qcDecision === 'fail') suffix = ' (ตีกลับ — rework)';
+      else                             suffix = ' (เข้าคิว QC)';
+    } else if (s.targetRework) {
+      suffix = ' (rework)';
+    }
+    toast(`✅ อัพเดท ${okCount} ชิ้น → ${effectiveStatus}${suffix}`, 2800);
   } else {
     toast(`⚠️ สำเร็จ ${okCount}, ล้มเหลว ${errors.length}: ${errors.join(', ')}`, 4000);
   }
