@@ -165,7 +165,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - **DB migration** `fix_po_items_status_check_allow_qc_prefix` (2026-04-21) — แก้ schema drift ที่ constraint ไม่มี 'QC/เตรียมส่ง' → mobile's QC Pass flow ที่เคย silent fail ตอนนี้ทำงานแล้วด้วย
   - **QC tri-state ใหม่** (ไม่อยู่ใน design handoff — extension): เพิ่ม "รอตรวจสอบ" button ข้าง Pass/Fail → ย้าย item ไปคิว QC โดยไม่ตัดสินเอง (match real factory workflow ที่แยกคนย้ายกับคนตรวจ)
   - **Isolation philosophy**: mobile + desktop share Supabase backend + identical data writes, แต่ code ไม่ share (copy logic แทน `<script src>` เพื่อให้แก้ mobile ไม่กระทบ desktop และกลับกัน)
-  - **Bugs แก้ไปเพิ่ม (BUG15-18)**: missing DOM container, auto-refresh wipes state, CHECK constraint drift, silent save errors
+  - **Bugs แก้ไขเพิ่ม (BUG15-18)**: missing DOM container, auto-refresh wipes state, CHECK constraint drift, silent save errors
+- ✅ **Granular Permission Expansion — ลำดับ 1.5 complete** (2026-04-22) — แยก `manage` flag เป็น 4 sub-flags + เพิ่ม role ใหม่ `office`
+  - **Role matrix (5 roles)**: admin (ครบ) · supervisor (ครบ ยกเว้น reassign role/station) · office (master data CRUD ครบ, ไม่เห็น Users tab) · manager (master data add/edit, ลบไม่ได้, ไม่เห็น Users tab) · staff (ไม่เข้า Manage)
+  - **Permission flags ใหม่**: `manageUsers` (เห็น Users tab), `manageUserRoles` (เปลี่ยน role+station ของ user), `manageDataAdd` (เพิ่ม/แก้ master data), `manageDataDelete` (ลบ master data) — orthogonal จาก existing flags
+  - **UI gating class ใหม่**: `.manage-users-only`, `.manage-data-add-only`, `.perm-delete-only`, `.role-admin-only` — ซ่อนปุ่มแทน disable เพื่อหลีก "click → permission denied" UX
+  - **User modal**: role dropdown + station checkboxes จะ **disabled + opacity 0.55** + hint "(Admin เท่านั้นที่แก้ได้)" เมื่อ supervisor เข้ามาแก้ user
+  - **Desktop Users sub-tab**: filter ออกจาก visible tabs ถ้า `!manageUsers`, auto-fallback ไป tab แรกที่เหลือ
+  - **ไม่ต้อง migrate DB** — role field เป็น text, แค่เพิ่มค่า `'office'` ได้เลย
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
@@ -239,7 +246,7 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 ---
 
 ### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-22)
-**ไม่มี** — PC Version (ลำดับ 1) + User CRUD เสร็จแล้ว ทั้ง 2 clients ครอบคลุมฟีเจอร์เท่ากัน. next up = **ลำดับ 1.5 Granular permission expansion** (toun ขอ)
+**ไม่มี** — PC Version (ลำดับ 1) + User CRUD + Granular Permissions (ลำดับ 1.5) เสร็จแล้ว. next up = **ลำดับ 2 Phase 3 ฟีเจอร์ธุรกิจ** (หรือ ลำดับ 3 Hardening ถ้ามี user เยอะขึ้น)
 
 ---
 
@@ -247,37 +254,12 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 
 #### **✅ ลำดับ 1: PC Version** — **เสร็จ 2026-04-22** (ดูรายละเอียดใน Phase 2D หรือ "สิ่งที่ทำเสร็จแล้ว" ด้านบน)
 
-#### **🎯 ลำดับ 1.5: Granular Permission Expansion** (งานถัดไป — toun ขอ 2026-04-22)
-> "เพิ่มสิทธิผู้ใช้ อีกนิด เพราะอยากให้ admin มีอำนาจเยอะกว่านี้ แยกในแต่ละหมวด"
+#### **✅ ลำดับ 1.5: Granular Permission Expansion** — **เสร็จ 2026-04-22** (ดูรายละเอียดใน "สิ่งที่ทำเสร็จแล้ว" ด้านบน)
+**สรุปผลลัพธ์**: 5 roles (admin / supervisor / **office** ใหม่ / manager / staff) + 4 permission flag ใหม่ (`manageUsers`, `manageUserRoles`, `manageDataAdd`, `manageDataDelete`) + UI-hide classes 4 ตัว
 
-**ปัจจุบัน** — PERMISSIONS matrix เป็น role-based แบบ coarse-grained:
-```
-admin:      viewAll + createPO + editAll + delete + manage + archive
-supervisor: viewAll + createPO + editAll + delete + archive
-manager:    viewAll + createPO + editAll
-staff:      (station-based, editAll=false)
-```
-
-**toun อยากได้อะไร** (ต้องถามเคลียร์ก่อนเริ่ม code):
-- admin "แยกในแต่ละหมวด" = อะไร?
-  1. **Admin override per-feature** — admin เปิด/ปิดสิทธิ์ของ role ต่าง ๆ ได้เอง (UI ที่ Manage → Permissions tab)
-  2. **Per-user custom permissions** — กำหนด permission แต่ละ user แยก (ไม่ใช่เฉพาะ role)
-  3. **Per-category restrict** — จำกัด access ตามประเภทข้อมูล (เช่น supervisor ดูเฉพาะ PO ของบริษัทที่ตัวเองดูแล)
-  4. **Fine-grained view permission** — แยกสิทธิ์เห็น vs แก้ (ปัจจุบัน = บันเดิล)
-- Admin เพิ่มอำนาจอะไร ที่ยังทำไม่ได้?
-  - ตอนนี้ admin มีทุกอย่างแล้ว (ใน PERMISSIONS matrix) — toun ต้องการ **อำนาจ "ใหม่"** อะไร? เช่น impersonate user / force logout ทุกคน / audit log detailed view / etc.
-
-**แนวทางเทคนิคเบื้องต้น** (ถ้าตัดสินใจว่าไปทางไหนแล้ว):
+**ถ้าอนาคต toun ต้องการเพิ่มเติม** (เช่น per-user override, per-record restriction):
 - เพิ่ม column `permissions JSONB` ใน `users` table → override default role permissions per user
-- หรือเพิ่ม table `permissions` แยก กับ role + permission_key + value
-- UI: Manage → เพิ่ม tab "Permissions" → table 2D (role × permission) — admin tick เปิด/ปิด
-- **ไม่ควรทำก่อนรู้คำตอบ** — ถามก่อน
-
-**คำถามที่ต้องถาม toun ก่อนเริ่ม**:
-1. **Use case**: ลองยกตัวอย่าง 1-2 scenarios ที่ permission ปัจจุบันไม่รองรับ — เช่น "อยากให้ supervisor A สร้าง PO ได้ แต่ supervisor B สร้างไม่ได้" หรือ "อยากให้ manager ลบ PO ได้" อะไรแบบนี้
-2. **Granularity**: ต้องการแยกระดับไหน? (per-role / per-user / per-feature / per-record)
-3. **UI เพิ่มที่ไหน**: Manage → tab ใหม่ "Permissions" หรือ extend User modal?
-4. **Who can change**: แค่ admin เปลี่ยนสิทธิ์คนอื่นได้, หรือให้ supervisor เปลี่ยนสิทธิ์ staff ได้ด้วย?
+- หรือใช้ Supabase RLS (Row Level Security) สำหรับ per-record filtering — แนะนำรวมกับลำดับ 3 Hardening
 
 #### **⭐ ลำดับ 2: Phase 3 — ฟีเจอร์ธุรกิจ** (6 ฟีเจอร์)
 - [ ] โหมดจุดงาน UI จริง — หลัง login แต่ละ station เห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
@@ -329,12 +311,12 @@ staff:      (station-based, editAll=false)
 | ระดับ | จำนวนงาน | เวลาประเมิน | สถานะ |
 |---|---|---|---|
 | **1. PC Version** | 8 หน้าจอ + CRUD | 2-3 วัน | ✅ **เสร็จ 2026-04-22** |
-| **1.5. Granular Permissions** | 1 feature พร้อม UI | 1-2 วัน | 🎯 **งานถัดไป — toun ขอ** |
+| **1.5. Granular Permissions** | 1 feature พร้อม UI | 1-2 วัน | ✅ **เสร็จ 2026-04-22** |
 | **2. Phase 3 ฟีเจอร์ธุรกิจ** | 6 ฟีเจอร์ | 2-4 สัปดาห์ | ⏳ pending |
 | **3. Hardening + Backup** | 5 งาน | 3-5 วัน | ⚠️ ควรทำก่อน user > 5 คน |
 | **4. Phase 4 Scale Up** | 4 งาน | ~1-2 เดือน | 🔮 เมื่อธุรกิจโตจริง |
 | **5. Optional — i18n Burmese** | 4 งาน | 1-2 สัปดาห์ | 🌏 optional, parked |
-| **รวมที่เหลือ (ไม่รวม optional)** | **~16 งาน** | **~1.5-2.5 เดือน** | |
+| **รวมที่เหลือ (ไม่รวม optional)** | **~15 งาน** | **~1.5-2.5 เดือน** | |
 
 ## Architecture & Decision Log
 - **ทำไมใช้ JSONP → fetch + credentials:omit**: Chrome ส่ง Google session cookie กับ JSONP → GAS redirect loop
