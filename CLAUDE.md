@@ -109,6 +109,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG16 (PC): Auto-refresh ทุก 30 วิ ทำให้ Detail เปลี่ยนเป็น "ไม่พบ PO" mid-edit | ✅ Fixed (2026-04-21) → pass currentRouteParams เข้า render + skip re-render ถ้ามี active edit state |
 | BUG17 (PC+Mobile): CHECK constraint `po_items_status_check` ไม่มี 'QC/เตรียมส่ง' → QC Pass save fail | ✅ Fixed (2026-04-21) DB migration `fix_po_items_status_check_allow_qc_prefix` — รองรับทั้ง mobile + desktop ที่เคย silent fail |
 | BUG18 (PC): Save error แสดงแค่ชื่อชิ้นงาน ไม่บอกสาเหตุ | ✅ Fixed (2026-04-21) → surface error.message + code + details + hint ใน toast + console |
+| BUG19 (PC+Mobile): CHECK constraint `users_role_check` ไม่รู้จัก 'office' → save user เป็น Office role fail | ✅ Fixed (2026-04-22) DB migration `allow_office_role_in_users_check` — เพิ่ม 'office' ใน allowed values. บทเรียนซ้ำ BUG17: เพิ่มค่า enum-like ใน code ต้อง sync กับ DB CHECK constraint ทุกครั้ง |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
