@@ -554,6 +554,7 @@
     display: block; width: 100%; padding: 14px;
     border: none; border-radius: 10px;
     font-size: 16px; font-weight: 700; cursor: pointer;
+    touch-action: manipulation;
     transition: opacity .15s, transform .1s, background .15s;
   }
   .btn:active { transform: scale(.97); opacity: .9; }
@@ -4207,7 +4208,19 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
   });
 }
 
-function initAddPOTab() {
+async function initAddPOTab() {
+  // Refresh from Supabase first so autoNextPO sees POs created on
+  // other devices/clients (BUG23.1: opening Add PO on a 2nd phone
+  // was using a stale local db.pos → collided with existing PO
+  // numbers → Supabase rejected the insert → user saw "save not
+  // working"). Silent-fall-back to cached db if offline.
+  try {
+    const fresh = await loadFromSupabase();
+    if (fresh) { db = fresh; saveData(db); }
+  } catch(e) {
+    console.warn('[initAddPOTab] refresh skipped, using cached db:', e);
+  }
+
   // Searchable dropdown — บริษัท
   initSearchableDropdown('add-company-input', 'add-company', 'sd-company-list',
     () => db.masterCompanies.slice().sort());
@@ -4360,8 +4373,28 @@ async function savePO() {
   if (!poNo || !company || !recv || !due) {
     toast('⚠️ กรุณากรอกข้อมูลให้ครบ (PO, บริษัท, วันที่)'); return;
   }
+
+  // BUG23 defense — re-fetch right before INSERT to catch a race
+  // where another device pushed the same PO number in the gap between
+  // opening Add PO and pressing save. Without this, a stale local
+  // db.pos lets a collision slip through to Supabase, whose UNIQUE
+  // constraint rejects it with an opaque error → user saw "save
+  // ไม่ติด" on the 2nd device.
+  showLoading(true);
+  try {
+    const fresh = await loadFromSupabase();
+    if (fresh) { db = fresh; saveData(db); }
+  } catch(e) {
+    console.warn('[savePO] pre-check refresh skipped:', e);
+  }
+  showLoading(false);
+
   if (db.pos.find(p => p.id === poNo)) {
-    toast('⚠️ เลขที่ PO นี้มีอยู่แล้ว'); return;
+    // Suggest the next available number so user can retry with one tap
+    const suggested = autoNextPO();
+    document.getElementById('add-pono').value = suggested;
+    toast('⚠️ PO "' + poNo + '" ถูกใช้ไปแล้วในอีกเครื่อง — เปลี่ยนเป็น "' + suggested + '" ให้แล้ว กดบันทึกอีกครั้งได้เลย', 5000);
+    return;
   }
 
   const newItems = [];
