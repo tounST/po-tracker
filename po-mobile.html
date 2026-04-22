@@ -55,6 +55,7 @@
     /* Role colors */
     --role-admin:      #A33B2E;
     --role-supervisor: #B8832A;
+    --role-office:     #2C6E70;
     --role-manager:    #3F5AA6;
     --role-staff:      #4A7F3F;
 
@@ -1574,6 +1575,7 @@
   }
   .role-badge-admin { background: #FFEBEE; color: #C62828; }
   .role-badge-supervisor { background: #FFF3E0; color: #E65100; }
+  .role-badge-office { background: #E0F2F1; color: #00695C; }
   .role-badge-manager { background: #E8F0FE; color: var(--blue); }
   .role-badge-staff { background: #E8F5E9; color: #2E7D32; }
   .admin-only { /* ซ่อนเมื่อ staff */ }
@@ -2192,7 +2194,7 @@
       <button class="archive-back-btn" onclick="backToArchiveHome()" style="margin-bottom:0;">← กลับ</button>
       <div style="display:flex;gap:8px;">
         <button onclick="exportArchiveMonth()" style="background:#1565C0;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">📥 Export</button>
-        <button class="admin-only" onclick="deleteArchiveMonth()" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">🗑️ ลบเดือน</button>
+        <button class="role-admin-only" onclick="deleteArchiveMonth()" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">🗑️ ลบเดือน</button>
       </div>
     </div>
     <div id="archive-detail-title" style="font-size:16px;font-weight:700;color:var(--purple);margin-bottom:10px;"></div>
@@ -2220,7 +2222,7 @@
   <div class="card master-section">
     <div class="master-section-title">🏢 บริษัท / ลูกค้า</div>
     <div class="master-tag-wrap" id="master-company-tags"></div>
-    <div class="master-add-row">
+    <div class="master-add-row manage-data-add-only">
       <input type="text" id="master-company-input" placeholder="ชื่อบริษัทใหม่..." onkeypress="masterInputEnter('company',event)">
       <button class="master-add-btn" onclick="addMasterItem('company')">➕ เพิ่ม</button>
     </div>
@@ -2230,7 +2232,7 @@
   <div class="card master-section">
     <div class="master-section-title">🚗 รุ่นรถ</div>
     <div class="master-tag-wrap" id="master-model-tags"></div>
-    <div class="master-add-row">
+    <div class="master-add-row manage-data-add-only">
       <input type="text" id="master-model-input" placeholder="รุ่นรถใหม่ เช่น TRITON 2025..." onkeypress="masterInputEnter('model',event)">
       <button class="master-add-btn" onclick="addMasterItem('model')">➕ เพิ่ม</button>
     </div>
@@ -2240,7 +2242,7 @@
   <div class="card master-section">
     <div class="master-section-title">ชิ้นงาน</div>
     <div class="master-tag-wrap" id="master-part-tags"></div>
-    <div class="master-add-row">
+    <div class="master-add-row manage-data-add-only">
       <input type="text" id="master-part-input" placeholder="ชิ้นงานใหม่ เช่น คิ้วล้อ..." onkeypress="masterInputEnter('part',event)">
       <button class="master-add-btn" onclick="addMasterItem('part')">➕ เพิ่ม</button>
     </div>
@@ -2250,7 +2252,7 @@
   <div class="card master-section">
     <div class="master-section-title">❌ สาเหตุ Defect</div>
     <div class="master-tag-wrap" id="master-defect-tags"></div>
-    <div class="master-add-row">
+    <div class="master-add-row manage-data-add-only">
       <input type="text" id="master-defect-input" placeholder="สาเหตุใหม่ เช่น สีย่น, รอยบุบ..." onkeypress="masterInputEnter('defect',event)">
       <button class="master-add-btn" onclick="addMasterItem('defect')">➕ เพิ่ม</button>
     </div>
@@ -2274,8 +2276,8 @@
     <div id="export-status" style="text-align:center;font-size:13px;min-height:20px;margin-top:8px;color:var(--muted);"></div>
   </div>
 
-  <!-- ผู้ใช้งานระบบ (Admin เท่านั้น) -->
-  <div class="card admin-only" style="padding:14px;margin-top:12px;">
+  <!-- ผู้ใช้งานระบบ (Admin + Supervisor) -->
+  <div class="card manage-users-only" style="padding:14px;margin-top:12px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div class="card-title" style="margin-bottom:0;">👥 ผู้ใช้งานระบบ</div>
       <div style="display:flex;gap:6px;">
@@ -2300,7 +2302,7 @@
     <button class="btn btn-primary" onclick="goUpdateFromModal()" style="margin-top:14px;">
       ✏️ อัพเดทสถานะชิ้นงาน
     </button>
-    <button class="btn admin-only" onclick="deletePO(modalPoId)"
+    <button class="btn perm-delete-only" onclick="deletePO(modalPoId)"
       style="background:var(--danger);color:#fff;margin-top:8px;">
       🗑️ ลบ PO นี้
     </button>
@@ -2356,11 +2358,19 @@ function resetSessionTimer() {
 });
 
 // Permission matrix: role -> permissions
+// Flags:
+//   viewAll/createPO/editAll/delete/archive — PO-level ops
+//   manage            — enter Manage tab at all
+//   manageUsers       — see + CRUD the Users section (admin/supervisor)
+//   manageUserRoles   — modify a user's role + station (admin only; supervisor can edit name/PIN only)
+//   manageDataAdd     — add/edit master data rows (company/model/part/defect)
+//   manageDataDelete  — delete master data rows (manager CANNOT — prevents accidental destruction)
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: true,  archive: true  },
-  supervisor: { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: false, archive: true  },
-  manager:    { viewAll: true,  createPO: true, editAll: true,  delete: false, manage: false, archive: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, manage: false, archive: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true  },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false }
 };
 
 // Station-based status permissions for staff
@@ -2557,6 +2567,7 @@ function applyPermissions() {
   const roleLabels = {
     admin: '👑 Admin',
     supervisor: '⭐ Supervisor',
+    office: '🗂️ Office',
     manager: '📋 Manager',
     staff: '👷 Staff'
   };
@@ -2593,9 +2604,23 @@ function applyPermissions() {
   });
   if (canAddPO) tabs[2].style.order = String(leftCount + 1);
 
-  // Hide admin-only buttons throughout the app
+  // Permission-gated UI groups. Each class below is hidden when the
+  // corresponding capability is missing — prevents showing buttons the
+  // current user can't execute (avoids "click → permission denied" UX).
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = hasPermission('manage') ? '' : 'none';
+  });
+  document.querySelectorAll('.manage-users-only').forEach(el => {
+    el.style.display = hasPermission('manageUsers') ? '' : 'none';
+  });
+  document.querySelectorAll('.manage-data-add-only').forEach(el => {
+    el.style.display = hasPermission('manageDataAdd') ? '' : 'none';
+  });
+  document.querySelectorAll('.perm-delete-only').forEach(el => {
+    el.style.display = hasPermission('delete') ? '' : 'none';
+  });
+  document.querySelectorAll('.role-admin-only').forEach(el => {
+    el.style.display = (currentUser.role === 'admin') ? '' : 'none';
   });
 }
 
@@ -4483,7 +4508,7 @@ function renderMasterTab() {
   renderMasterSection('model',   db.masterModels,    'tag-model');
   renderMasterSection('part',    db.masterParts,     'tag-part');
   renderMasterSection('defect',  db.masterDefects || [], 'tag-defect');
-  if (currentUser && currentUser.role === 'admin') loadUserList();
+  if (hasPermission('manageUsers')) loadUserList();
 }
 
 function renderMasterSection(type, list, tagClass) {
@@ -4493,13 +4518,14 @@ function renderMasterSection(type, list, tagClass) {
     wrap.innerHTML = `<span style="color:var(--muted);font-size:13px;">ยังไม่มีรายการ</span>`;
     return;
   }
+  const canDelete = hasPermission('manageDataDelete');
   list.forEach((item, i) => {
     const tag = document.createElement('div');
     tag.className = `master-tag ${tagClass}`;
-    tag.innerHTML = `
-      <span>${item}</span>
-      <button class="master-tag-del" onclick="removeMasterItem('${type}',${i})" title="ลบ">×</button>
-    `;
+    const delBtn = canDelete
+      ? `<button class="master-tag-del" onclick="removeMasterItem('${type}',${i})" title="ลบ">×</button>`
+      : '';
+    tag.innerHTML = `<span>${item}</span>${delBtn}`;
     wrap.appendChild(tag);
   });
 }
@@ -4507,8 +4533,8 @@ function renderMasterSection(type, list, tagClass) {
 // ═══════════════════════════════════════════════════
 //  USER LIST + CRUD (Admin only)
 // ═══════════════════════════════════════════════════
-const USER_ROLE_COLORS = { admin: '#C62828', supervisor: '#E65100', manager: '#1A73E8', staff: '#546E7A' };
-const USER_ROLE_LABELS = { admin: '👑 Admin', supervisor: '⭐ หัวหน้า', manager: '📋 ผู้จัดการ', staff: '👷 พนักงาน' };
+const USER_ROLE_COLORS = { admin: '#C62828', supervisor: '#E65100', office: '#00695C', manager: '#1A73E8', staff: '#546E7A' };
+const USER_ROLE_LABELS = { admin: '👑 Admin', supervisor: '⭐ หัวหน้า', office: '🗂️ Office', manager: '📋 ผู้จัดการ', staff: '👷 พนักงาน' };
 const USER_STATION_LABELS = { all: 'ทั้งหมด', receiving: '📥 รับของ', production: '🔄 ผลิต', qc: '🔍 QC', shipping: '📦 ส่งของ' };
 const USER_STATION_KEYS = ['all','receiving','production','qc','shipping'];
 
@@ -4565,13 +4591,14 @@ function togglePinVis(uid) {
   el.textContent = el.textContent === '••••' ? pin : '••••';
 }
 
-function buildStationCheckboxes(prefix, selectedStr) {
+function buildStationCheckboxes(prefix, selectedStr, disabled) {
   const selected = (selectedStr || 'all').split(',').map(s => s.trim());
-  return `<div class="user-form-station-group" id="${prefix}-stations">` +
+  const dAttr = disabled ? 'disabled' : '';
+  return `<div class="user-form-station-group" id="${prefix}-stations"${disabled ? ' style="opacity:0.55;pointer-events:none;"' : ''}>` +
     USER_STATION_KEYS.map(k => {
       const checked = selected.includes(k) ? 'checked' : '';
       const label = USER_STATION_LABELS[k];
-      return `<label><input type="checkbox" value="${k}" ${checked} onchange="handleStationCheck('${prefix}','${k}',this)"> ${label}</label>`;
+      return `<label><input type="checkbox" value="${k}" ${checked} ${dAttr} onchange="handleStationCheck('${prefix}','${k}',this)"> ${label}</label>`;
     }).join('') + '</div>';
 }
 
@@ -4595,6 +4622,11 @@ function getStationValue(prefix) {
 
 function buildUserForm(prefix, data) {
   const d = data || {};
+  // Supervisor (manageUsers=true, manageUserRoles=false) can CRUD users
+  // but cannot reassign role/station. Lock those fields visibly.
+  const lockRoles = !hasPermission('manageUserRoles');
+  const defaultRole = d.role || 'staff';
+  const lockHint = lockRoles ? ' <span style="font-size:11px;color:var(--muted);font-weight:400;">(Admin เท่านั้นที่แก้ได้)</span>' : '';
   return `<div class="user-form-card" id="${prefix}-form">
     <label>ชื่อที่แสดง *</label>
     <input type="text" id="${prefix}-dname" value="${d.display_name || ''}" placeholder="ชื่อที่แสดง เช่น สมชาย">
@@ -4602,15 +4634,16 @@ function buildUserForm(prefix, data) {
     <input type="text" id="${prefix}-uname" value="${d.username || ''}" placeholder="เช่น somchai" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
     <label>PIN * (ตัวเลข 4 หลัก)</label>
     <input type="text" id="${prefix}-pin" value="${d.pin || ''}" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="เช่น 1234" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-    <label>Role</label>
-    <select id="${prefix}-role">
-      <option value="admin" ${d.role==='admin'?'selected':''}>👑 Admin</option>
-      <option value="supervisor" ${d.role==='supervisor'?'selected':''}>⭐ หัวหน้า</option>
-      <option value="manager" ${d.role==='manager'?'selected':''}>📋 ผู้จัดการ</option>
-      <option value="staff" ${(!d.role||d.role==='staff')?'selected':''}>👷 พนักงาน</option>
+    <label>Role${lockHint}</label>
+    <select id="${prefix}-role" ${lockRoles ? 'disabled' : ''} ${lockRoles ? 'style="opacity:0.55;"' : ''}>
+      <option value="admin" ${defaultRole==='admin'?'selected':''}>👑 Admin</option>
+      <option value="supervisor" ${defaultRole==='supervisor'?'selected':''}>⭐ หัวหน้า</option>
+      <option value="office" ${defaultRole==='office'?'selected':''}>🗂️ Office</option>
+      <option value="manager" ${defaultRole==='manager'?'selected':''}>📋 ผู้จัดการ</option>
+      <option value="staff" ${defaultRole==='staff'?'selected':''}>👷 พนักงาน</option>
     </select>
-    <label>Station (จุดงาน)</label>
-    ${buildStationCheckboxes(prefix, d.station)}
+    <label>Station (จุดงาน)${lockHint}</label>
+    ${buildStationCheckboxes(prefix, d.station, lockRoles)}
     <div class="user-form-btns">
       <button style="background:var(--blue);color:#fff;" onclick="${prefix === 'uadd' ? 'submitAddUser()' : `submitEditUser('${d.id}')`}">✅ บันทึก</button>
       <button style="background:#ECEFF1;color:var(--grey);" onclick="${prefix === 'uadd' ? 'hideAddUserForm()' : `cancelEditUser('${d.id}')`}">❌ ยกเลิก</button>

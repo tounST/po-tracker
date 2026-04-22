@@ -1449,16 +1449,17 @@ button { font-family: inherit; }
         <input type="text" id="um-pin" class="pin-input" maxlength="4" inputmode="numeric" placeholder="••••">
       </div>
       <div class="modal-field">
-        <label>Role</label>
+        <label id="um-role-label">Role</label>
         <select id="um-role">
           <option value="admin">👑 Admin</option>
           <option value="supervisor">⭐ หัวหน้า</option>
+          <option value="office">🗂️ Office</option>
           <option value="manager">📋 ผู้จัดการ</option>
           <option value="staff" selected>👷 พนักงาน</option>
         </select>
       </div>
       <div class="modal-field">
-        <label>Station (จุดงานที่อัพเดทสถานะได้)</label>
+        <label id="um-station-label">Station (จุดงานที่อัพเดทสถานะได้)</label>
         <div class="station-checks" id="um-stations"></div>
       </div>
     </div>
@@ -1502,16 +1503,18 @@ let detailState = {
 };
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 
-// Permissions — mirrored from po-mobile.html so both clients enforce the same rules
+// Permissions — mirrored from po-mobile.html so both clients enforce the same rules.
+// See po-mobile.html for flag definitions.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: true,  archive: true  },
-  supervisor: { viewAll: true,  createPO: true, editAll: true,  delete: true,  manage: false, archive: true  },
-  manager:    { viewAll: true,  createPO: true, editAll: true,  delete: false, manage: false, archive: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, manage: false, archive: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true  },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false }
 };
-const ROLE_LABELS = { admin: 'Admin', supervisor: 'Supervisor', manager: 'Manager', staff: 'Staff' };
-const ROLE_COLORS = { admin: '#A33B2E', supervisor: '#B8832A', manager: '#3F5AA6', staff: '#4A7F3F' };
-const ROLE_TH = { admin: '👑 Admin', supervisor: '⭐ หัวหน้า', manager: '📋 ผู้จัดการ', staff: '👷 พนักงาน' };
+const ROLE_LABELS = { admin: 'Admin', supervisor: 'Supervisor', office: 'Office', manager: 'Manager', staff: 'Staff' };
+const ROLE_COLORS = { admin: '#A33B2E', supervisor: '#B8832A', office: '#2C6E70', manager: '#3F5AA6', staff: '#4A7F3F' };
+const ROLE_TH = { admin: '👑 Admin', supervisor: '⭐ หัวหน้า', office: '🗂️ Office', manager: '📋 ผู้จัดการ', staff: '👷 พนักงาน' };
 const USER_STATION_KEYS   = ['all','receiving','production','qc','shipping'];
 const USER_STATION_LABELS = { all: 'ทั้งหมด', receiving: '📥 รับของ', production: '🔄 ผลิต', qc: '🔍 QC', shipping: '📦 ส่งของ' };
 
@@ -2253,7 +2256,16 @@ function openUserModal(data) {
   document.getElementById('um-uname').value = data?.username || '';
   document.getElementById('um-pin').value   = data?.pin || '';
   document.getElementById('um-role').value  = data?.role || 'staff';
-  renderStationChecks(data?.station || 'all');
+  // Supervisor has manageUsers=true but manageUserRoles=false — can CRUD user
+  // but cannot change their role/station (only admin can reassign).
+  const lockRoles = !hasPermission('manageUserRoles');
+  const roleSel = document.getElementById('um-role');
+  roleSel.disabled = lockRoles;
+  roleSel.style.opacity = lockRoles ? '0.55' : '';
+  const hint = lockRoles ? ' <span style="font-size:11px;color:var(--ink-3);font-weight:400;">(Admin เท่านั้นที่แก้ได้)</span>' : '';
+  document.getElementById('um-role-label').innerHTML = 'Role' + hint;
+  document.getElementById('um-station-label').innerHTML = 'Station (จุดงานที่อัพเดทสถานะได้)' + hint;
+  renderStationChecks(data?.station || 'all', lockRoles);
   document.getElementById('user-modal').classList.add('show');
   setTimeout(() => document.getElementById('um-dname').focus(), 50);
 }
@@ -2262,13 +2274,15 @@ function closeUserModal() {
   userModalEditId = null;
 }
 
-function renderStationChecks(selectedStr) {
+function renderStationChecks(selectedStr, disabled) {
   const selected = (selectedStr || 'all').split(',').map(s => s.trim());
   const host = document.getElementById('um-stations');
+  host.style.opacity = disabled ? '0.55' : '';
+  host.style.pointerEvents = disabled ? 'none' : '';
   host.innerHTML = USER_STATION_KEYS.map(k => {
     const checked = selected.includes(k);
     return `<label class="station-check ${checked ? 'on' : ''}" data-station="${k}">
-      <input type="checkbox" value="${k}" ${checked ? 'checked' : ''}>
+      <input type="checkbox" value="${k}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
       ${USER_STATION_LABELS[k]}
     </label>`;
   }).join('');
@@ -3934,25 +3948,31 @@ document.addEventListener('click', (e) => {
 //  RENDER: MANAGE (Round 3)
 // ═══════════════════════════════════════════════════
 const MANAGE_TABS = [
-  { key: 'users',     label: 'ผู้ใช้ / Users' },
-  { key: 'company',   label: 'บริษัท / Companies' },
-  { key: 'car_model', label: 'รุ่นรถ / Models' },
-  { key: 'part_name', label: 'ชิ้นงาน / Parts' },
+  { key: 'users',         label: 'ผู้ใช้ / Users', perm: 'manageUsers' },
+  { key: 'company',       label: 'บริษัท / Companies' },
+  { key: 'car_model',     label: 'รุ่นรถ / Models' },
+  { key: 'part_name',     label: 'ชิ้นงาน / Parts' },
   { key: 'defect_reason', label: 'สาเหตุ defect' },
 ];
 
 function renderManage() {
   if (!hasPermission('manage')) {
     document.getElementById('page-manage').innerHTML = `
-      <div class="empty-state"><span class="emoji">🔒</span><p>เฉพาะ Admin เท่านั้น</p></div>
+      <div class="empty-state"><span class="emoji">🔒</span><p>ไม่มีสิทธิ์เข้าหน้านี้</p></div>
     `;
     return;
+  }
+
+  // Filter tabs by per-tab perm. If user's current tab is now hidden, fall back.
+  const visibleTabs = MANAGE_TABS.filter(t => !t.perm || hasPermission(t.perm));
+  if (!visibleTabs.some(t => t.key === manageState.tab)) {
+    manageState.tab = visibleTabs[0]?.key || 'company';
   }
 
   const el = document.getElementById('page-manage');
   el.innerHTML = `
     <div class="manage-tabs" id="manage-tabs">
-      ${MANAGE_TABS.map(t => `
+      ${visibleTabs.map(t => `
         <button class="manage-tab ${manageState.tab === t.key ? 'active' : ''}" data-tab="${t.key}">${escapeHtml(t.label)}</button>
       `).join('')}
     </div>
@@ -3981,7 +4001,7 @@ async function renderManageUsers() {
   }
 
   // Count by role
-  const counts = { admin: 0, supervisor: 0, manager: 0, staff: 0 };
+  const counts = { admin: 0, supervisor: 0, office: 0, manager: 0, staff: 0 };
   users.forEach(u => { if (counts[u.role] !== undefined) counts[u.role]++; });
 
   body.innerHTML = `
@@ -4088,33 +4108,36 @@ async function renderManageMaster(configType) {
     defect_reason: 'สาเหตุ defect',
   };
   const label = labelMap[configType] || configType;
+  const canAdd = hasPermission('manageDataAdd');
+  const canDelete = hasPermission('manageDataDelete');
 
   body.innerHTML = `
     <div class="master-editor">
+      ${canAdd ? `
       <div class="master-add-row">
         <input id="master-new-val" placeholder="เพิ่ม${escapeHtml(label)}ใหม่..." />
         <button class="btn btn-primary" id="master-add-btn">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           เพิ่ม
         </button>
-      </div>
+      </div>` : ''}
       ${rows.length === 0
-        ? `<div style="padding: 40px; text-align: center; color: var(--ink-3); font-size: 13px;">ยังไม่มีรายการ — เพิ่มเลย</div>`
+        ? `<div style="padding: 40px; text-align: center; color: var(--ink-3); font-size: 13px;">ยังไม่มีรายการ${canAdd ? ' — เพิ่มเลย' : ''}</div>`
         : rows.map(r => `
             <div class="master-list-row">
               <span class="val">${escapeHtml(r.config_value)}</span>
               <span class="meta">id:${String(r.id).slice(0, 6)}</span>
-              <button class="icon-btn-delete" data-del="${r.id}" data-val="${escapeHtml(r.config_value)}" title="ลบ">
+              ${canDelete ? `<button class="icon-btn-delete" data-del="${r.id}" data-val="${escapeHtml(r.config_value)}" title="ลบ">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
-              </button>
+              </button>` : ''}
             </div>
           `).join('')
       }
     </div>
   `;
 
-  const input = document.getElementById('master-new-val');
-  const addBtn = document.getElementById('master-add-btn');
+  const input = canAdd ? document.getElementById('master-new-val') : null;
+  const addBtn = canAdd ? document.getElementById('master-add-btn') : null;
   const doAdd = async () => {
     const val = (input.value || '').trim();
     if (!val) { toast('⚠️ กรอกค่าก่อน'); return; }
@@ -4132,8 +4155,8 @@ async function renderManageMaster(configType) {
     }
     showLoading(false);
   };
-  addBtn.onclick = doAdd;
-  input.onkeydown = (e) => { if (e.key === 'Enter') doAdd(); };
+  if (addBtn) addBtn.onclick = doAdd;
+  if (input)  input.onkeydown = (e) => { if (e.key === 'Enter') doAdd(); };
 
   body.querySelectorAll('[data-del]').forEach(btn => {
     btn.onclick = async () => {
