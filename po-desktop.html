@@ -3742,6 +3742,42 @@ async function exportArchiveMonth(ym, label) {
   }
 }
 
+// Archive every Complete PO that isn't already archived. Drives the
+// "Archive ตอนนี้" button on the Archive home screen. Relies on
+// db.pos[n].status being fresh (computePoStatusFromItems inside
+// loadFromSupabase keeps it consistent with the items).
+async function archiveNow() {
+  if (!hasPermission('archive')) { toast('❌ ไม่มีสิทธิ์ archive'); return; }
+
+  const toArchive = db.pos.filter(p => p.status === 'Complete');
+  if (toArchive.length === 0) { toast('ℹ️ ไม่มี PO ที่ Complete รอ Archive'); return; }
+
+  if (!confirm(`Archive ${toArchive.length} PO ที่เสร็จแล้ว?\n\nPO จะถูกย้ายไปยังเดือนที่เกี่ยวข้อง — ยังดูรายละเอียดได้ตลอด และกลับมาเอากลับได้ถ้าต้องการ`)) return;
+
+  showLoading(true);
+  try {
+    const ids = toArchive.map(p => p._sbId).filter(Boolean);
+    const { error } = await sb
+      .from('po_list')
+      .update({ is_archived: true, updated_at: new Date().toISOString() })
+      .in('id', ids);
+    if (error) throw error;
+
+    await logActivity('archive', 'po', {
+      po_count: toArchive.length,
+      po_numbers: toArchive.map(p => p.id)
+    });
+
+    toast(`✅ Archive สำเร็จ ${toArchive.length} PO`, 3000);
+    await refreshData();
+    renderArchive();
+  } catch(e) {
+    console.error('[archiveNow]', e);
+    toast('❌ Archive ไม่สำเร็จ: ' + (e.message || e), 4000);
+  }
+  showLoading(false);
+}
+
 async function renderArchive() {
   const el = document.getElementById('page-archive');
   el.innerHTML = `
@@ -3771,6 +3807,12 @@ async function renderArchive() {
     (byYear[y] = byYear[y] || []).push(m);
   });
 
+  // Count POs eligible for archive (in-memory status is kept fresh by
+  // computePoStatusFromItems inside loadFromSupabase — so this catches
+  // any PO that was fully shipped even if DB po_status drifted stale).
+  const completeCount = db.pos.filter(p => p.status === 'Complete').length;
+  const canArchive = hasPermission('archive');
+
   let html = `
     <div class="section-header">
       <div class="section-title-wrap">
@@ -3779,6 +3821,23 @@ async function renderArchive() {
       </div>
       <span class="status-chip status-chip-sm" style="background: var(--info-bg); color: var(--info);">${months.length} เดือน</span>
     </div>
+    ${canArchive ? `
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 260px;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px;">📦 จัดการ Archive</div>
+          <div style="font-size: 12.5px; color: var(--ink-3); line-height: 1.55;">
+            ย้าย PO ที่เสร็จแล้ว (ส่งครบทุกชิ้น) ไปยังเดือนที่เกี่ยวข้อง
+            ${completeCount > 0
+              ? `<span style="color: var(--accent); font-weight: 700;"> · มี ${completeCount} PO รอ archive</span>`
+              : `<span style="color: var(--ink-3);"> · ไม่มี PO รอ archive</span>`}
+          </div>
+        </div>
+        <button class="btn ${completeCount > 0 ? 'btn-primary' : 'btn-ghost'}" id="archive-now-btn" ${completeCount === 0 ? 'disabled style="opacity:0.55;cursor:not-allowed;"' : ''}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+          Archive ตอนนี้
+        </button>
+      </div>
+    ` : ''}
   `;
 
   if (months.length === 0) {
@@ -3814,6 +3873,11 @@ async function renderArchive() {
       renderArchive();
     };
   });
+
+  const archiveBtn = el.querySelector('#archive-now-btn');
+  if (archiveBtn && !archiveBtn.disabled) {
+    archiveBtn.onclick = archiveNow;
+  }
 }
 
 async function renderArchiveMonthDetail(ym) {

@@ -5354,37 +5354,38 @@ async function manualArchive() {
   resultEl.textContent = '⏳ กำลัง Archive PO ที่ Complete...';
 
   try {
-    // หา PO ที่ Complete แต่ยัง is_archived=false
-    const { data: completePOs, error: e1 } = await sb
-      .from('po_list')
-      .select('id, po_number')
-      .eq('po_status', 'Complete')
-      .eq('is_archived', false);
+    // Derive Complete POs from in-memory db (statuses are computed fresh
+    // via syncPOStatuses whenever dashboard renders). Using the DB's
+    // stored po_status column would miss rows where it drifted stale —
+    // which happened when earlier desktop saves didn't re-sync it.
+    // Also push any drift so DB po_status stays consistent for anyone
+    // else querying it directly.
+    syncPOStatuses(true);
+    const toArchive = db.pos.filter(p => p.status === 'Complete' && !p.deleted);
 
-    if (e1) throw new Error(e1.message);
-
-    if (!completePOs || completePOs.length === 0) {
+    if (toArchive.length === 0) {
       resultEl.style.color = 'var(--muted)';
       resultEl.textContent = 'ℹ️ ไม่มี PO ที่ Complete รอ Archive';
       return;
     }
 
-    // set is_archived = true
-    const ids = completePOs.map(p => p.id);
-    const { error: e2 } = await sb
+    const ids = toArchive.map(p => p._sbId).filter(Boolean);
+    const { error } = await sb
       .from('po_list')
       .update({ is_archived: true, updated_at: new Date().toISOString() })
       .in('id', ids);
 
-    if (e2) throw new Error(e2.message);
+    if (error) throw new Error(error.message);
 
     resultEl.style.color = 'var(--green)';
-    resultEl.textContent = `✅ Archive สำเร็จ ${completePOs.length} PO`;
+    resultEl.textContent = `✅ Archive สำเร็จ ${toArchive.length} PO`;
 
-    // Log archive activity
-    await logActivity('archive', 'po', { po_count: completePOs.length, po_numbers: completePOs.map(p => p.po_number) });
+    await logActivity('archive', 'po', {
+      po_count: toArchive.length,
+      po_numbers: toArchive.map(p => p.id)
+    });
 
-    // รีโหลด db + รีเฟรช Archive list + Dashboard + Update PO list
+    // Reload db + refresh Archive list + Dashboard + Update PO list
     const data = await loadFromSupabase();
     if (data) { db = data; saveData(db); }
     await loadArchiveList();
