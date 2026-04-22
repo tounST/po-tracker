@@ -734,6 +734,19 @@
   }
 
   /* ── PO Card (design spec) ── */
+  .po-card-del-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--danger, #B85C3C);
+    width: 30px; height: 30px; border-radius: 8px;
+    font-size: 15px; line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-left: 6px;
+    transition: background .12s, border-color .12s;
+  }
+  .po-card-del-btn:active { background: #FCE7E1; border-color: var(--danger, #B85C3C); }
   .po-card {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -3368,6 +3381,7 @@ function renderDashboard() {
             ${po.model ? `<div class="po-card-model">${po.model}</div>` : ''}
           </div>
           ${poBadge(po.status)}
+          <button class="po-card-del-btn role-admin-only" onclick="event.stopPropagation();deletePO('${po.id}')" title="ลบ PO (Admin)">🗑️</button>
         </div>
         <div class="po-card-progress-row">
           ${segmentedProgress(its)}
@@ -3378,6 +3392,10 @@ function renderDashboard() {
       </div>
     `;
   }).join('');
+  // Re-apply the admin-only visibility gate for the freshly rendered
+  // delete buttons (applyPermissions only runs at login, so new cards
+  // drawn after a refresh need a second pass).
+  applyPermissions();
 }
 
 // ═══════════════════════════════════════════════════
@@ -3648,6 +3666,7 @@ function renderUpdatePoList() {
             ${po.model ? `<div class="po-card-model">${po.model}</div>` : ''}
           </div>
           ${poBadge(po.status)}
+          <button class="po-card-del-btn role-admin-only" onclick="event.stopPropagation();deletePO('${po.id}')" title="ลบ PO (Admin)">🗑️</button>
         </div>
         <div class="po-card-progress-row">
           ${segmentedProgress(its)}
@@ -3657,6 +3676,7 @@ function renderUpdatePoList() {
       </div>
     `;
   }).join('');
+  applyPermissions();  // gate new delete buttons to admin only
 }
 
 function setUpdateFilter(val) {
@@ -4158,6 +4178,12 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
   input.value  = '';
   hidden.value = '';
 
+  function commitPick(val) {
+    input.value  = val;
+    hidden.value = val;
+    list.classList.remove('open');
+  }
+
   function renderList(filter) {
     const opts = getOptions();
     const q = (filter || '').toLowerCase();
@@ -4169,21 +4195,40 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
         `<div class="sdropdown-item" data-val="${o}">${o}</div>`
       ).join('');
     }
-    // bind click — touchstart prevents blur-before-click on Android
-    list.querySelectorAll('.sdropdown-item').forEach(el => {
-      el.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        input.value  = el.dataset.val;
-        hidden.value = el.dataset.val;
-        list.classList.remove('open');
-      }, {passive: false});
-      el.addEventListener('click', () => {
-        input.value  = el.dataset.val;
-        hidden.value = el.dataset.val;
-        list.classList.remove('open');
-      });
-    });
   }
+
+  // Event delegation on the list — one handler for all items, survives
+  // re-renders. Movement threshold distinguishes tap from scroll: if the
+  // finger moved > 8px or the touch lasted > 500ms, treat it as a scroll
+  // gesture and DON'T commit a selection (previous version committed on
+  // any touchstart, which made scrolling the list impossible).
+  let touchStart = null;
+  list.addEventListener('touchstart', (e) => {
+    const item = e.target.closest('.sdropdown-item');
+    if (!item) return;
+    const t = e.touches[0];
+    touchStart = { y: t.clientY, x: t.clientX, time: Date.now(), item };
+  }, { passive: true });
+
+  list.addEventListener('touchend', (e) => {
+    if (!touchStart) return;
+    const t = e.changedTouches[0];
+    const dy = Math.abs(t.clientY - touchStart.y);
+    const dx = Math.abs(t.clientX - touchStart.x);
+    const dt = Date.now() - touchStart.time;
+    const item = touchStart.item;
+    touchStart = null;
+    if (dy > 8 || dx > 8 || dt > 500) return;  // scroll / long-press, not a tap
+    e.preventDefault();                         // cancel synthetic click
+    commitPick(item.dataset.val);
+  }, { passive: false });
+
+  // Desktop / any non-touch click path
+  list.addEventListener('click', (e) => {
+    const item = e.target.closest('.sdropdown-item');
+    if (!item) return;
+    commitPick(item.dataset.val);
+  });
 
   input.addEventListener('focus', () => {
     renderList(input.value);
@@ -4206,6 +4251,16 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
       else { hidden.value = input.value; }
     }, 150);
   });
+
+  // Close the list immediately on a tap outside — fixes a UX bug where
+  // the 150ms blur-timeout kept the dropdown overlapping the save button
+  // so the first tap "landed" on a dropdown item instead of the button
+  // (user experienced it as "save ปุ่มเหมือน drift ไป").
+  document.addEventListener('pointerdown', (e) => {
+    if (!list.classList.contains('open')) return;
+    if (input.contains(e.target) || list.contains(e.target)) return;
+    list.classList.remove('open');
+  }, true);
 }
 
 async function initAddPOTab() {
