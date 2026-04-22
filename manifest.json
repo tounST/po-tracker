@@ -1,18 +1,25 @@
 {
-  "name": "PO Tracker — ร้านพ่นสี",
+  "name": "PO Tracker — โรงงานพ่นสี",
   "short_name": "PO Tracker",
-  "description": "ระบบติดตาม PO โรงงานพ่นสี",
+  "description": "ระบบติดตาม Purchase Order โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์",
   "start_url": "/po-tracker/po-mobile.html",
   "scope": "/po-tracker/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1A73E8",
-  "theme_color": "#1A73E8",
+  "background_color": "#F6F1EA",
+  "theme_color": "#B85C3C",
   "lang": "th",
+  "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='24' fill='%231A73E8'/><text y='130' x='30' font-size='120'>🔩</text></svg>",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23B85C3C'/%3E%3Ctext x='96' y='128' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='86' fill='white' letter-spacing='-4'%3EPO%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23B85C3C'/%3E%3Ctext x='256' y='342' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='230' fill='white' letter-spacing='-10'%3EPO%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
