@@ -14,6 +14,9 @@
 - ไม่สมมติว่ารู้แล้ว เช่น ถ้าบอกให้ "deploy" ต้องอธิบายทุก step
 - ถ้าทำได้เองเลย → ทำให้เลย ไม่ต้องรออธิบาย
 
+### Shortcut phrases (toun's shorthand)
+- **"เขียนบันทึก"** / **"บันทึกเลย"** / **"จดลง"** / **"จดไว้"** → update ทั้ง `CLAUDE.md` + memory files ใน `~/.claude/projects/.../memory/`. ไม่ต้องถามว่าเขียนเรื่องอะไร — ดู context บทสนทนาที่ผ่านมา (เพิ่ง fix อะไร / เจอกฎใหม่อะไร / ได้ milestone อะไร) แล้วเขียนสิ่งนั้น. ดูรายละเอียดใน `memory/feedback_shortcut_writenote.md`
+
 ## ⚠️ กฎสำคัญ — ห้ามทำโดยเด็ดขาด
 
 ### 🗄️ Database / Backend
