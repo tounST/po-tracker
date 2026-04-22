@@ -1733,6 +1733,19 @@ function logout(expired = false) {
 // ═══════════════════════════════════════════════════
 //  DATA LAYER — Supabase queries
 // ═══════════════════════════════════════════════════
+
+// Derive the 4-state PO status from its items. Mirrors po-mobile.html's
+// poStatusAuto so both clients agree on what Order / In progress /
+// Partial Send / Complete mean. Called by loadFromSupabase to correct
+// any stored po_status that has drifted out of sync with items.
+function computePoStatusFromItems(items) {
+  if (!items || items.length === 0) return 'Order';
+  if (items.every(i => i.status === 'ส่งแล้ว')) return 'Complete';
+  if (items.some(i => i.status === 'ส่งแล้ว'))  return 'Partial Send';
+  if (items.some(i => ['กำลังผลิต','QC/เตรียมส่ง','กลับมาแก้ไข'].includes(i.status))) return 'In progress';
+  return 'Order';
+}
+
 async function loadFromSupabase() {
   setSyncDot('syncing');
   try {
@@ -1750,18 +1763,6 @@ async function loadFromSupabase() {
       itemRows = iRows || [];
     }
 
-    const pos = (poRows || []).map(p => ({
-      _sbId: p.id,
-      id: p.po_number,
-      company: p.company || '',
-      model: p.car_model || '',
-      recv: fixDateStr(p.order_date || ''),
-      due: fixDateStr(p.due_date || ''),
-      urgent: p.urgent || false,
-      status: p.po_status || 'Order',
-      remark: p.remark || ''
-    })).filter(p => p.id);
-
     const items = (itemRows || []).map(i => ({
       _sbId: i.id,
       po: i.po_number,
@@ -1777,6 +1778,42 @@ async function loadFromSupabase() {
       qcDefectReason: i.qc_defect_reason || '',
       qcCheckedBy: i.qc_checked_by || ''
     })).filter(i => i.po && i.part);
+
+    // Compute PO status fresh from items — DB's po_status can drift stale
+    // (e.g. if an earlier client updated items without syncing the PO row).
+    // Any mismatch is pushed back to DB fire-and-forget so external queries
+    // (archive `po_status='Complete'`) stay consistent.
+    const itemsByPo = {};
+    for (const it of items) {
+      (itemsByPo[it.po] ||= []).push(it);
+    }
+    const statusToPush = [];
+
+    const pos = (poRows || []).map(p => {
+      const poItems = itemsByPo[p.po_number] || [];
+      const freshStatus = computePoStatusFromItems(poItems);
+      const storedStatus = p.po_status || 'Order';
+      if (freshStatus !== storedStatus) {
+        statusToPush.push({ id: p.id, status: freshStatus });
+      }
+      return {
+        _sbId: p.id,
+        id: p.po_number,
+        company: p.company || '',
+        model: p.car_model || '',
+        recv: fixDateStr(p.order_date || ''),
+        due: fixDateStr(p.due_date || ''),
+        urgent: p.urgent || false,
+        status: freshStatus,
+        remark: p.remark || ''
+      };
+    }).filter(p => p.id);
+
+    if (statusToPush.length > 0) {
+      Promise.all(statusToPush.map(({ id, status }) =>
+        sb.from('po_list').update({ po_status: status }).eq('id', id)
+      )).catch(e => console.warn('[desktop] po_status drift sync:', e));
+    }
 
     // Master data from config table (type: company / car_model / part_name / defect_reason)
     const masters = {

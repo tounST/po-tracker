@@ -110,6 +110,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG17 (PC+Mobile): CHECK constraint `po_items_status_check` ไม่มี 'QC/เตรียมส่ง' → QC Pass save fail | ✅ Fixed (2026-04-21) DB migration `fix_po_items_status_check_allow_qc_prefix` — รองรับทั้ง mobile + desktop ที่เคย silent fail |
 | BUG18 (PC): Save error แสดงแค่ชื่อชิ้นงาน ไม่บอกสาเหตุ | ✅ Fixed (2026-04-21) → surface error.message + code + details + hint ใน toast + console |
 | BUG19 (PC+Mobile): CHECK constraint `users_role_check` ไม่รู้จัก 'office' → save user เป็น Office role fail | ✅ Fixed (2026-04-22) DB migration `allow_office_role_in_users_check` — เพิ่ม 'office' ใน allowed values. บทเรียนซ้ำ BUG17: เพิ่มค่า enum-like ใน code ต้อง sync กับ DB CHECK constraint ทุกครั้ง |
+| BUG20 (PC): po_status ไม่ sync กับ items → PO ที่ส่งครบแล้วยังขึ้น "ส่งบางส่วน" และไม่ย้ายไป tab "เสร็จแล้ว" | ✅ Fixed (2026-04-22) → desktop's `saveDetailUpdate` + `qcCommit` เขียน `po_items` อย่างเดียว ไม่เคย recompute `po_list.po_status` (mobile มี `syncPOStatuses` แต่ desktop ไม่มี). แก้โดยเพิ่ม `computePoStatusFromItems()` ใน `loadFromSupabase` → ทุก load/refresh จะคำนวณ status สดจาก items + push drift กลับ DB fire-and-forget. Self-healing — DB ที่ stale จากการ save ของ desktop version เก่าจะได้รับ update เมื่อ client โหลดใหม่ |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
