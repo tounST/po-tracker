@@ -112,6 +112,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG19 (PC+Mobile): CHECK constraint `users_role_check` ไม่รู้จัก 'office' → save user เป็น Office role fail | ✅ Fixed (2026-04-22) DB migration `allow_office_role_in_users_check` — เพิ่ม 'office' ใน allowed values. บทเรียนซ้ำ BUG17: เพิ่มค่า enum-like ใน code ต้อง sync กับ DB CHECK constraint ทุกครั้ง |
 | BUG20 (PC): po_status ไม่ sync กับ items → PO ที่ส่งครบแล้วยังขึ้น "ส่งบางส่วน" และไม่ย้ายไป tab "เสร็จแล้ว" | ✅ Fixed (2026-04-22) → desktop's `saveDetailUpdate` + `qcCommit` เขียน `po_items` อย่างเดียว ไม่เคย recompute `po_list.po_status` (mobile มี `syncPOStatuses` แต่ desktop ไม่มี). แก้โดยเพิ่ม `computePoStatusFromItems()` ใน `loadFromSupabase` → ทุก load/refresh จะคำนวณ status สดจาก items + push drift กลับ DB fire-and-forget. Self-healing — DB ที่ stale จากการ save ของ desktop version เก่าจะได้รับ update เมื่อ client โหลดใหม่ |
 | BUG21 (PC+Mobile): Archive ไม่ทำงาน — desktop ไม่มีปุ่ม, mobile ปุ่มมีแต่ miss PO ที่ po_status drift | ✅ Fixed (2026-04-22) → (1) desktop: เพิ่ม `archiveNow()` handler + action card ที่หัว renderArchive แสดงจำนวน PO รอ archive + ปุ่ม "Archive ตอนนี้" (hide สำหรับ role ไม่มี `archive` perm, disabled ถ้าไม่มี pending). (2) mobile: `manualArchive` เดิม query `WHERE po_status='Complete'` → miss PO ที่ drift → เปลี่ยนเป็น filter `db.pos` in-memory (fresh หลัง syncPOStatuses) + ใช้ `_sbId` เป็น key สำหรับ UPDATE |
+| BUG22 (Mobile/Android): Save ไม่ติด + Add PO ไม่ได้บน Android Chrome | ✅ Fixed (2026-04-22) → (1) status-opt divs: `onclick` ยิงไม่ตรงบน Android → เพิ่ม `ontouchstart="event.preventDefault();selectStatus(...)"` + `touch-action: manipulation` ใน CSS. (2) searchable dropdown (company/car/part): `mousedown` ยิงหลัง input's `blur` บน mobile → hidden.value ว่าง → form validation ล้ม → เปลี่ยนเป็น `touchstart` (preventDefault กัน blur) + `click` (desktop fallback). (3) `saveUpdate()` catch block ไม่มี `return` → error แล้ว toast แล้ว reset form ต่อ ทำให้ user นึกว่า save สำเร็จ → เพิ่ม `return` หลัง toast |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
@@ -184,6 +185,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - Filter Complete POs จาก `db.pos` (in-memory fresh ผ่าน BUG20 fix) แล้วใช้ `_sbId` เป็น key สำหรับ UPDATE `is_archived=true`
   - Hide ปุ่มสำหรับ role ที่ `!hasPermission('archive')` (office, manager, staff)
   - Disabled state ถ้าไม่มี PO รอ archive
+- ✅ **Mobile Android touch fix** (2026-04-22) — BUG22: แก้ status-opt ปุ่ม + searchable dropdown + saveUpdate error-reset บน Android Chrome (commit `7e9f97c` บน `Dev`)
+  - Status picker: `ontouchstart="event.preventDefault();selectStatus(...)"` + CSS `touch-action: manipulation` → ตัด 300ms tap delay + กัน onclick-on-div ยิงไม่ตรง
+  - Dropdown (Add PO): `mousedown` → `touchstart` (preventDefault กัน blur ปิด list) + `click` fallback สำหรับ desktop
+  - `saveUpdate()`: เพิ่ม `return` ใน catch → error แล้วหยุด ไม่ล้างฟอร์ม (เดิม toast error แล้ว reset ฟอร์มต่อ user นึกว่า save สำเร็จ)
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
@@ -257,7 +262,7 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 ---
 
 ### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-22)
-**ไม่มี** — PC Version (ลำดับ 1) + User CRUD + Granular Permissions (ลำดับ 1.5) เสร็จแล้ว. next up = **ลำดับ 2 Phase 3 ฟีเจอร์ธุรกิจ** (หรือ ลำดับ 3 Hardening ถ้ามี user เยอะขึ้น)
+**ไม่มี** — PC Version (ลำดับ 1) + User CRUD + Granular Permissions (ลำดับ 1.5) + BUG22 Android touch fix เสร็จแล้ว. next up = **ลำดับ 2 Phase 3 ฟีเจอร์ธุรกิจ** (หรือ ลำดับ 3 Hardening ถ้ามี user เยอะขึ้น)
 
 ---
 
@@ -351,6 +356,9 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - **ทำไมใช้ permission flags orthogonal แทน role string check**: เดิมบางที่ hardcode `currentUser.role === 'admin'` ทำให้เพิ่ม role ใหม่ต้อง grep หาแก้ทุกที่. การ split เป็น flags (`manageUsers`, `manageDataDelete`, etc.) + attach ไปใน PERMISSIONS matrix = เพิ่ม role ใหม่ = เพิ่ม 1 row ใน matrix พอ. UI gating ใช้ class `.manage-users-only` (hide display:none) แทน `disabled` — เพราะปุ่มที่ disable ส่งข้อความผิดว่า "unlock ได้" กดลองแล้วเจอ error
 - **ทำไม archive query ใช้ in-memory db.pos แทน DB query**: `SELECT WHERE po_status='Complete'` ขึ้นกับ column ที่อาจ drift stale (เรื่อง BUG20). ส่วน `db.pos[n].status` คำนวณสดจาก items ทุก load (ทั้ง mobile's syncPOStatuses และ desktop's computePoStatusFromItems). **Trust the derived value, use DB only for side effects** — filter in-memory แล้วส่ง ID list ไป UPDATE. บทเรียน: external queries (archive, dashboard) ควรอ่านจาก source of truth ล่าสุด ไม่ใช่ cached column
 - **ทำไม filter chip queries ต้อง scope ด้วย `#container-id`**: mobile มี `.filter-chip` ใน 2 ที่ (Dashboard + Update tab). Query กว้าง `.filter-chip` toggle ทั้งสอง tab พร้อมกัน → UI race. Scope ด้วย `#dashboard-filter-chips .filter-chip` vs `#update-filter-chips .filter-chip` = state อิสระ. ใช้กับทุก class ที่อาจ repeat ใน multiple views ของ single-file HTML
+- **ทำไม onclick บน `<div>` ต้องคู่กับ ontouchstart บน Android**: Android Chrome treats tap → touchstart → touchend → mousedown → mouseup → click (300ms delay + ghost risk). `onclick` บน `<div>` (ไม่ใช่ `<button>`) บางที synthetic click ไม่ยิงถ้าใน tap เคลื่อนนิดหน่อย. Pattern: `ontouchstart="event.preventDefault();handler(...)" onclick="handler(...)"` — touchstart ยิงบน mobile (preventDefault ตัด click ที่จะตามมา กัน double-fire), onclick fallback สำหรับ mouse/desktop. คู่กับ CSS `touch-action: manipulation` (disables double-tap zoom + 300ms delay). ใช้กับ status-opt และ sdropdown-item
+- **ทำไม searchable dropdown ใช้ touchstart ไม่ใช่ mousedown**: เดิม `mousedown` กัน input's `blur` ยิงก่อน (desktop ok เพราะ mousedown ยิงก่อน blur). บน Android touch sequence = touchstart → touchend → mousedown → click, ระหว่างนั้น input อาจ blur ไปแล้ว → `list.classList.remove('open')` ใน blur handler ซ่อน list → mousedown ไม่ยิงบน item ที่ซ่อนแล้ว → hidden.value ไม่เซ็ต → form validation reject. แก้: `touchstart` (ยิงก่อนสุดในชีวิต touch) + `preventDefault()` (กัน synthetic blur+click) + `click` (fallback desktop)
+- **ทำไม saveUpdate catch ต้อง return**: เดิม catch log + toast แล้วปล่อย control flow ลงต่อ → reset form + ปิด save bar + openPoItems(refresh). User เห็นสถานะกลับเป็น "ไม่ได้เลือกอะไร" นึกว่า save สำเร็จทั้งที่ Supabase throw. บทเรียน: error path ใน async flow ต้องมี explicit `return` (หรือ `throw` ต่อ) — อย่าปล่อย fallthrough เพราะ post-success cleanup จะหลอก user
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
