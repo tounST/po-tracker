@@ -23,8 +23,13 @@
 - **ห้ามสร้าง Supabase project ใหม่** — ใช้ `rkdxbxtakvisroxelrvq` เดิมเท่านั้น
 - **ห้ามเพิ่มค่า enum-like ใน code โดยไม่ migrate DB CHECK constraint** — BUG17 (`po_items_status_check`) และ BUG19 (`users_role_check`) เกิดจากเรื่องนี้ ถ้าเพิ่ม status/role ใหม่ ต้อง apply migration ขยาย constraint ก่อน ไม่งั้น silent fail
 
-### 🌿 Git / Branch Management — **สำคัญมาก** (เรียนรู้จาก BUG22 incident 2026-04-22)
+### 🌿 Git / Branch Management — **สำคัญมาก** (เรียนรู้จาก BUG22 + BUG23 incidents 2026-04-22)
 - **Branch main = production** — ห้ามแก้ main โดยตรง ต้องผ่าน Dev / Dev-PC branch เสมอ
+- **⚠️ เริ่มงานที่ branch ไหนต้องตรง platform**:
+  - **Mobile fix/feature** (แก้ `po-mobile.html`) → commit ที่ **`Dev`** ก่อน
+  - **PC/Desktop fix/feature** (แก้ `po-desktop.html`) → commit ที่ **`Dev-PC`** ก่อน
+  - **Shared files** (CLAUDE.md, sw.js, manifest.json, index.html) → branch ไหนก็ได้ ตาม context ของงาน
+  - หลัง commit ในต้น branch ที่ถูกต้องแล้ว → ตามด้วย merge ไป main + branch ที่เหลือ
 - **⚠️ ห้าม push fix ไปแค่ branch เดียวแล้วจบ** — หลัง commit ต้อง merge ครบทั้ง 3 branches:
   ```
   main   = production (GitHub Pages serves จากตรงนี้)
@@ -32,7 +37,7 @@
   Dev-PC = desktop active development
   ```
   Fix ที่อยู่แค่ branch เดียว = user ยังเจอบัคใน production (BUG22 Android fix ติดอยู่ใน Dev 2 ชั่วโมงก่อนจะได้ไป main)
-- **หลัง merge ทุก branch ต้องอยู่ที่ commit เดียวกัน** — verify ด้วย `git log main Dev Dev-PC --oneline -1` ทั้ง 3 ต้องเท่ากัน
+- **หลัง merge ทุก branch ต้องอยู่ที่ commit เดียวกัน** — verify ด้วย `git rev-parse main Dev Dev-PC origin/main origin/Dev origin/Dev-PC` ทั้ง 6 ต้องเท่ากัน
 - **ห้ามสร้าง branch ใหม่โดยไม่จำเป็น** — ถ้าแก้ bug/feature ใช้ branch ที่มีอยู่แล้ว
 - **ห้าม force push หรือ rewrite history บน main/Dev/Dev-PC** — ใช้ merge commit ปกติเท่านั้น
 
@@ -144,7 +149,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG20 (PC): po_status ไม่ sync กับ items → PO ที่ส่งครบแล้วยังขึ้น "ส่งบางส่วน" และไม่ย้ายไป tab "เสร็จแล้ว" | ✅ Fixed (2026-04-22) → desktop's `saveDetailUpdate` + `qcCommit` เขียน `po_items` อย่างเดียว ไม่เคย recompute `po_list.po_status` (mobile มี `syncPOStatuses` แต่ desktop ไม่มี). แก้โดยเพิ่ม `computePoStatusFromItems()` ใน `loadFromSupabase` → ทุก load/refresh จะคำนวณ status สดจาก items + push drift กลับ DB fire-and-forget. Self-healing — DB ที่ stale จากการ save ของ desktop version เก่าจะได้รับ update เมื่อ client โหลดใหม่ |
 | BUG21 (PC+Mobile): Archive ไม่ทำงาน — desktop ไม่มีปุ่ม, mobile ปุ่มมีแต่ miss PO ที่ po_status drift | ✅ Fixed (2026-04-22) → (1) desktop: เพิ่ม `archiveNow()` handler + action card ที่หัว renderArchive แสดงจำนวน PO รอ archive + ปุ่ม "Archive ตอนนี้" (hide สำหรับ role ไม่มี `archive` perm, disabled ถ้าไม่มี pending). (2) mobile: `manualArchive` เดิม query `WHERE po_status='Complete'` → miss PO ที่ drift → เปลี่ยนเป็น filter `db.pos` in-memory (fresh หลัง syncPOStatuses) + ใช้ `_sbId` เป็น key สำหรับ UPDATE |
 | BUG22 (Mobile/Android): Save ไม่ติด + Add PO ไม่ได้บน Android Chrome | ✅ Fixed (2026-04-22) → (1) status-opt divs: `onclick` ยิงไม่ตรงบน Android → เพิ่ม `ontouchstart="event.preventDefault();selectStatus(...)"` + `touch-action: manipulation` ใน CSS. (2) searchable dropdown (company/car/part): `mousedown` ยิงหลัง input's `blur` บน mobile → hidden.value ว่าง → form validation ล้ม → เปลี่ยนเป็น `touchstart` (preventDefault กัน blur) + `click` (desktop fallback). (3) `saveUpdate()` catch block ไม่มี `return` → error แล้ว toast แล้ว reset form ต่อ ทำให้ user นึกว่า save สำเร็จ → เพิ่ม `return` หลัง toast |
-| BUG23 (Mobile cross-device): เปิด Add PO บนอีกเครื่อง เลข auto PO เป็น `PO-YYMMDD-01` ซ้ำกับที่เครื่องอื่นสร้างไปแล้ว + ปุ่ม "บันทึก PO ใหม่" เหมือนกดไม่ติด | ✅ Fixed (2026-04-22) → root cause เดียว: `autoNextPO()` filter จาก `db.pos` in-memory ที่ load ตอน login/refresh-30s → stale เมื่อเครื่องอื่น push PO ใหม่ระหว่างนั้น. แก้โดย (1) `initAddPOTab()` กลายเป็น async + `await loadFromSupabase()` ก่อน compute autoNextPO → เห็น PO ของเครื่องอื่นทุกครั้งที่เปิด tab. (2) `savePO()` เพิ่ม fresh refresh ก่อน INSERT เพื่อจับ race ระหว่างกรอกฟอร์ม → ถ้าซ้ำ auto-regen เลขใหม่ใส่ให้ + toast แจ้ง user กดอีกครั้ง. (3) เพิ่ม `touch-action: manipulation` ใน `.btn` CSS (defense against 300ms tap delay — BUG22 pattern) |
+| BUG23 (Mobile + PC cross-device): เปิด Add PO / Create PO บนอีกเครื่อง เลข auto PO เป็น `PO-YYMMDD-01` ซ้ำกับที่เครื่องอื่นสร้างไปแล้ว + ปุ่ม save เหมือนกดไม่ติด | ✅ Fixed (2026-04-22) → root cause เดียว: mobile's `autoNextPO()` + desktop's `nextPONumber()` filter จาก `db.pos` in-memory ที่ load ตอน login/refresh-30s → stale เมื่อเครื่องอื่น push PO ใหม่ระหว่างนั้น. **Mobile** (`po-mobile.html`): (1) `initAddPOTab()` กลายเป็น async + `await loadFromSupabase()` ก่อน compute autoNextPO. (2) `savePO()` เพิ่ม fresh refresh ก่อน INSERT เพื่อจับ race → ถ้าซ้ำ auto-regen เลขใหม่ + toast. (3) `touch-action: manipulation` ใน `.btn` CSS. **Desktop** (`po-desktop.html` — parity fix): (1) `renderCreate()` เป็น async + refresh DB ก่อน `initCreateState()` (เฉพาะตอน `!createState` เพื่อไม่ wipe ฟอร์มที่กำลังกรอก). (2) `submitCreate()` pre-INSERT refresh + auto-regen id ใน `createState` ถ้าซ้ำ + re-render |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)

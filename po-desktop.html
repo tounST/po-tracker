@@ -3099,7 +3099,7 @@ function initCreateState() {
   };
 }
 
-function renderCreate() {
+async function renderCreate() {
   if (!hasPermission('createPO')) {
     document.getElementById('page-create').innerHTML = `
       <div class="empty-state"><span class="emoji">🔒</span><p>คุณไม่มีสิทธิ์สร้าง PO</p></div>
@@ -3107,7 +3107,19 @@ function renderCreate() {
     return;
   }
 
-  if (!createState) initCreateState();
+  // BUG23 parity: refresh from Supabase on first entry so nextPONumber()
+  // sees PO numbers created by mobile or by another desktop session.
+  // Only refresh when starting fresh (no createState yet) so we don't
+  // wipe the user's in-progress form on a route bounce.
+  if (!createState) {
+    try {
+      const fresh = await loadFromSupabase();
+      if (fresh) db = { ...db, ...fresh };
+    } catch(e) {
+      console.warn('[renderCreate] refresh skipped, using cached db:', e);
+    }
+    initCreateState();
+  }
   const s = createState;
   const masters = db.masters || { companies: [], models: [], parts: [] };
 
@@ -3301,11 +3313,33 @@ async function submitCreate() {
 
   // Validation
   if (!s.id || !/^PO-[\w-]+$/i.test(s.id)) { toast('⚠️ PO Number ต้องขึ้นต้นด้วย PO-'); return; }
-  if (db.pos.some(p => p.id === s.id)) { toast('⚠️ PO Number นี้มีอยู่แล้ว'); return; }
   if (!s.company) { toast('⚠️ กรุณาเลือกบริษัท'); return; }
   if (!s.recv || !s.due) { toast('⚠️ กรุณากรอกวันที่'); return; }
   const validItems = s.items.filter(i => i.part && i.part.trim() && (i.qty >= 1));
   if (validItems.length === 0) { toast('⚠️ ต้องมีชิ้นงานอย่างน้อย 1 รายการ'); return; }
+
+  // BUG23 parity — refresh right before INSERT to catch a race where
+  // another client pushed the same PO number while the user was
+  // filling this form. Without this, the Supabase UNIQUE constraint
+  // rejects the insert with a cryptic error and the user retries in
+  // vain with the same stale suggestion.
+  showLoading(true);
+  try {
+    const fresh = await loadFromSupabase();
+    if (fresh) db = { ...db, ...fresh };
+  } catch(e) {
+    console.warn('[submitCreate] pre-check refresh skipped:', e);
+  }
+  showLoading(false);
+
+  if (db.pos.some(p => p.id === s.id)) {
+    const originalId = s.id;
+    const suggested = nextPONumber();
+    s.id = suggested;
+    renderCreate();  // re-render with the new id shown in the field
+    toast(`⚠️ PO "${originalId}" ถูกใช้ไปแล้วในอีกเครื่อง — เปลี่ยนเป็น "${suggested}" ให้แล้ว กด "สร้าง PO" อีกครั้ง`, 5500);
+    return;
+  }
 
   // Expand each item by qty into individual rows (mobile's convention — 1 row per piece)
   const expandedItems = [];
