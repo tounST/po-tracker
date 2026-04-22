@@ -443,7 +443,15 @@ button { font-family: inherit; }
 .td-prog-track { flex: 1; height: 5px; border-radius: 99px; background: var(--bg-deep); overflow: hidden; }
 .td-prog-fill { height: 100%; background: var(--accent); }
 .td-prog-pct { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: var(--ink-2); }
-.td-action { color: var(--ink-3); display: flex; justify-content: flex-end; }
+.td-action { color: var(--ink-3); display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+.td-chev { color: var(--ink-3); }
+.td-del-btn {
+  background: transparent; border: 1px solid transparent; border-radius: 6px;
+  color: var(--danger, #B85C3C); cursor: pointer; padding: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .12s, border-color .12s;
+}
+.td-del-btn:hover { background: #FCE7E1; border-color: var(--danger, #B85C3C); }
 
 /* Empty states */
 .empty-state {
@@ -2517,9 +2525,67 @@ function renderList() {
   el.querySelectorAll('.data-row[data-po]').forEach(row => {
     row.onclick = () => goTo('detail', { poId: row.dataset.po });
   });
+  // Admin-only row-level delete. stopPropagation so the row's goTo
+  // detail handler doesn't fire as we open the confirm dialog.
+  el.querySelectorAll('[data-del-sbid]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      deletePoFromList(
+        btn.dataset.delSbid,
+        btn.dataset.delPono,
+        btn.dataset.delCompany,
+        parseInt(btn.dataset.delCount, 10) || 0
+      );
+    };
+  });
+}
+
+async function deletePoFromList(sbId, poNumber, company, itemCount) {
+  if (!currentUser || currentUser.role !== 'admin') {
+    toast('❌ เฉพาะ Admin เท่านั้น'); return;
+  }
+  if (!confirm(
+    `ลบ ${poNumber} ถาวร?\n` +
+    `บริษัท: ${company}\n` +
+    `ชิ้นงาน: ${itemCount} ชิ้น\n\n` +
+    `ข้อมูลจะหายและกู้คืนไม่ได้`
+  )) return;
+
+  showLoading(true);
+  try {
+    // Delete children first (po_items has FK to po_list.id via po_number)
+    const { error: e1 } = await sb.from('po_items').delete().eq('po_number', poNumber);
+    if (e1) throw e1;
+    const { error: e2 } = await sb.from('po_list').delete().eq('id', sbId);
+    if (e2) throw e2;
+    await logActivity('delete_po', 'po', { po_number: poNumber, company, item_count: itemCount });
+    toast(`🗑️ ลบ ${poNumber} แล้ว`, 2800);
+    await refreshData();
+    renderList();
+  } catch(e) {
+    console.error('[deletePoFromList]', e);
+    toast('❌ ลบไม่สำเร็จ: ' + (e.message || e), 4000);
+  }
+  showLoading(false);
 }
 
 function renderListRow(po) {
+  // Strict admin-only gate — supervisor still uses the detail-modal
+  // delete path (via hasPermission('delete')). This row-level button
+  // is a separate, more destructive shortcut toun asked for, scoped
+  // to admin only to avoid supervisors accidentally wiping a PO from
+  // the main list.
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  const delBtn = isAdmin
+    ? `<button class="td-del-btn"
+         data-del-sbid="${escapeHtml(po._sbId)}"
+         data-del-pono="${escapeHtml(po.id)}"
+         data-del-company="${escapeHtml(po.company || '')}"
+         data-del-count="${po.total}"
+         title="ลบ PO (Admin)">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+       </button>`
+    : '';
   return `
     <div class="data-row" data-po="${po.id}">
       <div class="td-po">
@@ -2539,7 +2605,7 @@ function renderListRow(po) {
         <span class="td-prog-pct">${po.progress}%</span>
       </div>
       <div>${poStatusChip(po.status)}</div>
-      <div class="td-action">›</div>
+      <div class="td-action">${delBtn}<span class="td-chev">›</span></div>
     </div>
   `;
 }
