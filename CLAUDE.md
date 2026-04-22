@@ -111,6 +111,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG18 (PC): Save error แสดงแค่ชื่อชิ้นงาน ไม่บอกสาเหตุ | ✅ Fixed (2026-04-21) → surface error.message + code + details + hint ใน toast + console |
 | BUG19 (PC+Mobile): CHECK constraint `users_role_check` ไม่รู้จัก 'office' → save user เป็น Office role fail | ✅ Fixed (2026-04-22) DB migration `allow_office_role_in_users_check` — เพิ่ม 'office' ใน allowed values. บทเรียนซ้ำ BUG17: เพิ่มค่า enum-like ใน code ต้อง sync กับ DB CHECK constraint ทุกครั้ง |
 | BUG20 (PC): po_status ไม่ sync กับ items → PO ที่ส่งครบแล้วยังขึ้น "ส่งบางส่วน" และไม่ย้ายไป tab "เสร็จแล้ว" | ✅ Fixed (2026-04-22) → desktop's `saveDetailUpdate` + `qcCommit` เขียน `po_items` อย่างเดียว ไม่เคย recompute `po_list.po_status` (mobile มี `syncPOStatuses` แต่ desktop ไม่มี). แก้โดยเพิ่ม `computePoStatusFromItems()` ใน `loadFromSupabase` → ทุก load/refresh จะคำนวณ status สดจาก items + push drift กลับ DB fire-and-forget. Self-healing — DB ที่ stale จากการ save ของ desktop version เก่าจะได้รับ update เมื่อ client โหลดใหม่ |
+| BUG21 (PC+Mobile): Archive ไม่ทำงาน — desktop ไม่มีปุ่ม, mobile ปุ่มมีแต่ miss PO ที่ po_status drift | ✅ Fixed (2026-04-22) → (1) desktop: เพิ่ม `archiveNow()` handler + action card ที่หัว renderArchive แสดงจำนวน PO รอ archive + ปุ่ม "Archive ตอนนี้" (hide สำหรับ role ไม่มี `archive` perm, disabled ถ้าไม่มี pending). (2) mobile: `manualArchive` เดิม query `WHERE po_status='Complete'` → miss PO ที่ drift → เปลี่ยนเป็น filter `db.pos` in-memory (fresh หลัง syncPOStatuses) + ใช้ `_sbId` เป็น key สำหรับ UPDATE |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
@@ -175,6 +176,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - **User modal**: role dropdown + station checkboxes จะ **disabled + opacity 0.55** + hint "(Admin เท่านั้นที่แก้ได้)" เมื่อ supervisor เข้ามาแก้ user
   - **Desktop Users sub-tab**: filter ออกจาก visible tabs ถ้า `!manageUsers`, auto-fallback ไป tab แรกที่เหลือ
   - **ไม่ต้อง migrate DB** — role field เป็น text, แค่เพิ่มค่า `'office'` ได้เลย
+- ✅ **Mobile Update tab — filter chips** (2026-04-22) — เพิ่มแถว chips 5 อัน (กำลังทำ / 🔥 ด่วน / บางส่วน / เสร็จแล้ว / ทั้งหมด) ที่หน้า "👆 แตะ PO ที่ต้องการอัพเดท" parity กับ dashboard
+  - Refactor `backToPoList` → แยก list render เป็น `renderUpdatePoList()` ที่ filter ตาม `updateListFilter` state + refresh chip counts
+  - Scope dashboard's `setListFilter` ให้ query เฉพาะ `#dashboard-filter-chips` (เดิม query `.filter-chip` ทั้ง DOM = toggle ข้าม tab)
+  - Auto-refresh 30 วิก็ re-render update tab ถ้าผู้ใช้นั่งอยู่ (counts live)
+- ✅ **Desktop Archive — ปุ่ม "Archive ตอนนี้"** (2026-04-22) — เดิมไม่มี UI trigger, ต้องใช้ mobile. เพิ่ม action card + `archiveNow()` handler
+  - Filter Complete POs จาก `db.pos` (in-memory fresh ผ่าน BUG20 fix) แล้วใช้ `_sbId` เป็น key สำหรับ UPDATE `is_archived=true`
+  - Hide ปุ่มสำหรับ role ที่ `!hasPermission('archive')` (office, manager, staff)
+  - Disabled state ถ้าไม่มี PO รอ archive
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
@@ -338,7 +347,10 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - **ทำไม PC/Mobile เป็น 2 ไฟล์ HTML แยก (ไม่ share script)**: mobile = locked stable, desktop = active dev. ถ้า share `shared.js` แล้วแก้ function สำหรับ desktop อาจ break mobile โดยไม่ได้ตั้งใจ. ยอมเสีย DRY (~100 บรรทัด duplicate) เพื่อ isolation. DB (Supabase) เดียวเป็น sync point, ไม่ต้อง share code
 - **ทำไม QC tri-state (pass/fail/pending) ไม่ใช่ binary**: real factory workflow แยก 2 **บทบาท** — worker ย้ายของไปคิว (ไม่ต้องตรวจ) + QC inspector ตัดสิน (pass/fail). Binary บังคับ worker ตัดสินแทน inspector = ผิด domain model. Pending = `qc_passed IS NULL` ใน DB (nullable boolean รองรับอยู่แล้ว ไม่ต้อง migrate)
 - **ทำไม viewport router ใช้ `wide && !isTouch`**: iPad (wide + touch) ควรได้ mobile UI (44px tap target) ไม่ใช่ desktop UI (32px click target). การใช้ touch detection ร่วมกับ width = ครอบคลุม iPad, 2-in-1 laptops ที่มี touchscreen. Override ผ่าน `?v=mobile` หรือ `?v=desktop` สำหรับ edge cases
-- **ทำไม DB CHECK constraint ต้อง sync กับ code value**: เรื่อง `po_items_status_check` drift — constraint ของ DB กำหนดค่าที่อนุญาตไม่ตรงกับ code (DB มี 'เตรียมส่ง', code เขียน 'QC/เตรียมส่ง'). ทำให้ QC Pass silent fail. บทเรียน: ถ้า schema rule อยู่ทั้ง DB และ code ต้อง review กันเป็นคู่เสมอ ไม่งั้นจะ drift
+- **ทำไม DB CHECK constraint ต้อง sync กับ code value**: เรื่อง `po_items_status_check` drift — constraint ของ DB กำหนดค่าที่อนุญาตไม่ตรงกับ code (DB มี 'เตรียมส่ง', code เขียน 'QC/เตรียมส่ง'). ทำให้ QC Pass silent fail. บทเรียน: ถ้า schema rule อยู่ทั้ง DB และ code ต้อง review กันเป็นคู่เสมอ ไม่งั้นจะ drift (เกิดซ้ำใน BUG19: `users_role_check` ไม่มี 'office' → ห้ามเพิ่ม enum-like value ใน code โดยไม่ migrate DB)
+- **ทำไมใช้ permission flags orthogonal แทน role string check**: เดิมบางที่ hardcode `currentUser.role === 'admin'` ทำให้เพิ่ม role ใหม่ต้อง grep หาแก้ทุกที่. การ split เป็น flags (`manageUsers`, `manageDataDelete`, etc.) + attach ไปใน PERMISSIONS matrix = เพิ่ม role ใหม่ = เพิ่ม 1 row ใน matrix พอ. UI gating ใช้ class `.manage-users-only` (hide display:none) แทน `disabled` — เพราะปุ่มที่ disable ส่งข้อความผิดว่า "unlock ได้" กดลองแล้วเจอ error
+- **ทำไม archive query ใช้ in-memory db.pos แทน DB query**: `SELECT WHERE po_status='Complete'` ขึ้นกับ column ที่อาจ drift stale (เรื่อง BUG20). ส่วน `db.pos[n].status` คำนวณสดจาก items ทุก load (ทั้ง mobile's syncPOStatuses และ desktop's computePoStatusFromItems). **Trust the derived value, use DB only for side effects** — filter in-memory แล้วส่ง ID list ไป UPDATE. บทเรียน: external queries (archive, dashboard) ควรอ่านจาก source of truth ล่าสุด ไม่ใช่ cached column
+- **ทำไม filter chip queries ต้อง scope ด้วย `#container-id`**: mobile มี `.filter-chip` ใน 2 ที่ (Dashboard + Update tab). Query กว้าง `.filter-chip` toggle ทั้งสอง tab พร้อมกัน → UI race. Scope ด้วย `#dashboard-filter-chips .filter-chip` vs `#update-filter-chips .filter-chip` = state อิสระ. ใช้กับทุก class ที่อาจ repeat ใน multiple views ของ single-file HTML
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
