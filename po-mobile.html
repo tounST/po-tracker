@@ -1199,6 +1199,7 @@
     background: var(--surface);
     text-align: center;
     cursor: pointer;
+    touch-action: manipulation;
     transition: border-color .15s, background .15s, transform .08s;
     display: flex; flex-direction: column; align-items: center; gap: 6px;
   }
@@ -1471,6 +1472,7 @@
   .sdropdown-list.open { display: block; }
   .sdropdown-item {
     padding: 11px 14px; font-size: 14px; cursor: pointer;
+    touch-action: manipulation;
     border-bottom: 1px solid var(--line);
     color: var(--ink);
   }
@@ -2006,19 +2008,19 @@
         <div class="slp-en">Change status to</div>
       </div>
       <div class="status-grid">
-        <div class="status-opt" data-status="รับของแล้ว" data-sel="sel-recv" onclick="selectStatus('รับของแล้ว','sel-recv',this)">
+        <div class="status-opt" data-status="รับของแล้ว" data-sel="sel-recv" ontouchstart="event.preventDefault();selectStatus('รับของแล้ว','sel-recv',this)" onclick="selectStatus('รับของแล้ว','sel-recv',this)">
           <div class="status-opt-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 9l6 6 6-6M4 20h16"/></svg></div>
           <div class="status-opt-label">รับของแล้ว</div>
         </div>
-        <div class="status-opt" data-status="กำลังผลิต" data-sel="sel-prod" onclick="selectStatus('กำลังผลิต','sel-prod',this)">
+        <div class="status-opt" data-status="กำลังผลิต" data-sel="sel-prod" ontouchstart="event.preventDefault();selectStatus('กำลังผลิต','sel-prod',this)" onclick="selectStatus('กำลังผลิต','sel-prod',this)">
           <div class="status-opt-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0110 10M12 2v10l8-5"/><circle cx="12" cy="12" r="10"/></svg></div>
           <div class="status-opt-label">กำลังผลิต</div>
         </div>
-        <div class="status-opt" data-status="QC/เตรียมส่ง" data-sel="sel-ready" onclick="selectStatus('QC/เตรียมส่ง','sel-ready',this)">
+        <div class="status-opt" data-status="QC/เตรียมส่ง" data-sel="sel-ready" ontouchstart="event.preventDefault();selectStatus('QC/เตรียมส่ง','sel-ready',this)" onclick="selectStatus('QC/เตรียมส่ง','sel-ready',this)">
           <div class="status-opt-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M8 11l2 2 4-4"/></svg></div>
           <div class="status-opt-label">QC / เตรียมส่ง</div>
         </div>
-        <div class="status-opt" data-status="ส่งแล้ว" data-sel="sel-sent" onclick="selectStatus('ส่งแล้ว','sel-sent',this)">
+        <div class="status-opt" data-status="ส่งแล้ว" data-sel="sel-sent" ontouchstart="event.preventDefault();selectStatus('ส่งแล้ว','sel-sent',this)" onclick="selectStatus('ส่งแล้ว','sel-sent',this)">
           <div class="status-opt-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>
           <div class="status-opt-label">ส่งแล้ว</div>
         </div>
@@ -4111,7 +4113,8 @@ async function saveUpdate() {
       }
     } catch(e) {
       console.error('[Supabase] updateItem error:', e);
-      toast('⚠️ บางรายการ sync ไม่สำเร็จ', 3000);
+      toast('⚠️ บันทึกไม่สำเร็จ กรุณาลองใหม่', 4000);
+      return;
     }
   }
 
@@ -4165,10 +4168,15 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
         `<div class="sdropdown-item" data-val="${o}">${o}</div>`
       ).join('');
     }
-    // bind click
+    // bind click — touchstart prevents blur-before-click on Android
     list.querySelectorAll('.sdropdown-item').forEach(el => {
-      el.addEventListener('mousedown', (e) => {
+      el.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        input.value  = el.dataset.val;
+        hidden.value = el.dataset.val;
+        list.classList.remove('open');
+      }, {passive: false});
+      el.addEventListener('click', () => {
         input.value  = el.dataset.val;
         hidden.value = el.dataset.val;
         list.classList.remove('open');
