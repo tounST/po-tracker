@@ -15,11 +15,42 @@
 - ถ้าทำได้เองเลย → ทำให้เลย ไม่ต้องรออธิบาย
 
 ## ⚠️ กฎสำคัญ — ห้ามทำโดยเด็ดขาด
+
+### 🗄️ Database / Backend
 - **ห้ามสร้าง Google Apps Script ใหม่** — มี GAS อยู่แล้ว ให้แก้ไขใน project เดิมเท่านั้น
 - **ห้ามสร้าง Google Sheet ใหม่** — มี Sheet อยู่แล้ว ชื่อ sheet คงที่ตามที่กำหนดใน GAS
 - **ห้าม overwrite ข้อมูลใน Sheet** — ถ้าต้องแก้ GAS ให้วาง code ทับใน project เดิม แล้ว New Deployment เท่านั้น
+- **ห้ามสร้าง Supabase project ใหม่** — ใช้ `rkdxbxtakvisroxelrvq` เดิมเท่านั้น
+- **ห้ามเพิ่มค่า enum-like ใน code โดยไม่ migrate DB CHECK constraint** — BUG17 (`po_items_status_check`) และ BUG19 (`users_role_check`) เกิดจากเรื่องนี้ ถ้าเพิ่ม status/role ใหม่ ต้อง apply migration ขยาย constraint ก่อน ไม่งั้น silent fail
+
+### 🌿 Git / Branch Management — **สำคัญมาก** (เรียนรู้จาก BUG22 incident 2026-04-22)
+- **Branch main = production** — ห้ามแก้ main โดยตรง ต้องผ่าน Dev / Dev-PC branch เสมอ
+- **⚠️ ห้าม push fix ไปแค่ branch เดียวแล้วจบ** — หลัง commit ต้อง merge ครบทั้ง 3 branches:
+  ```
+  main   = production (GitHub Pages serves จากตรงนี้)
+  Dev    = mobile bug fixes + stable feature work
+  Dev-PC = desktop active development
+  ```
+  Fix ที่อยู่แค่ branch เดียว = user ยังเจอบัคใน production (BUG22 Android fix ติดอยู่ใน Dev 2 ชั่วโมงก่อนจะได้ไป main)
+- **หลัง merge ทุก branch ต้องอยู่ที่ commit เดียวกัน** — verify ด้วย `git log main Dev Dev-PC --oneline -1` ทั้ง 3 ต้องเท่ากัน
+- **ห้ามสร้าง branch ใหม่โดยไม่จำเป็น** — ถ้าแก้ bug/feature ใช้ branch ที่มีอยู่แล้ว
+- **ห้าม force push หรือ rewrite history บน main/Dev/Dev-PC** — ใช้ merge commit ปกติเท่านั้น
+
+### 📦 PWA / Cache Management
+- **ห้าม commit code ที่แก้ `po-mobile.html` / `po-desktop.html` / `manifest.json` โดยไม่ bump `sw.js` CACHE_NAME** — ถ้าไม่ bump → installed PWA จะเสิร์ฟ cached version เก่า → user ไม่ได้รับ fix เลย. BUG22 CLI fix ติดปัญหานี้จนต้องตาม bump เอง (v11→v12)
+- **Cache version ปัจจุบัน**: `po-tracker-v12` — bump ทุกครั้งที่ modify cached files
+
+### 🛠️ Development Discipline
 - **ถ้าไม่แน่ใจ → ถามก่อนเสมอ อย่าสร้างอะไรใหม่เอง**
-- **Branch main = production** — ห้ามแก้ main โดยตรง ถ้ากำลัง dev feature ใหม่ ให้ทำใน branch dev เท่านั้น
+- **ห้าม hardcode role string check** (เช่น `user.role === 'admin'`) ถ้าไม่จำเป็น — ใช้ `hasPermission('...')` + PERMISSIONS matrix. เพิ่ม role ใหม่จะได้แก้ที่เดียว
+- **ห้าม query derived state จาก cached column** (เช่น `WHERE po_status='Complete'`) — ใช้ in-memory `db.pos.filter(p => p.status === 'Complete')` เพราะ DB column อาจ drift stale (BUG20/21)
+- **ห้ามใช้ `toISOString()` กับวันที่** — ต้องใช้ `localISO()` (UTC+7 timezone bug — BUG6)
+- **ห้ามใช้ array index เป็น key สำหรับ selection state** — ต้องใช้ Supabase `_sbId` UUID (auto-refresh 30s แทนที่ array → index drift — BUG8)
+- **ห้ามปล่อย catch block ให้ fallthrough** — error path ต้อง `return` หรือ `throw` explicit ไม่งั้น post-success cleanup รันต่อหลอก user (BUG22.3 silent data-loss)
+
+### 📝 Documentation
+- **ทุก bug fix ต้อง log ใน CLAUDE.md bug table** + เพิ่ม decision-log entry ถ้ามีเหตุผลเชิง architecture
+- **memory files (~/.claude/projects/.../memory/) = cross-session context** — update `project_status_YYYY-MM-DD.md` เมื่อเสร็จ milestone สำคัญ
 
 ## โปรเจคปัจจุบัน — PO Tracker
 | | |
@@ -261,8 +292,38 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 
 ---
 
-### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-22)
-**ไม่มี** — PC Version (ลำดับ 1) + User CRUD + Granular Permissions (ลำดับ 1.5) + BUG22 Android touch fix เสร็จแล้ว. next up = **ลำดับ 2 Phase 3 ฟีเจอร์ธุรกิจ** (หรือ ลำดับ 3 Hardening ถ้ามี user เยอะขึ้น)
+### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-22, ตอนเย็น)
+
+**ไม่มีงาน active** — ปิดทุก milestone เสร็จแล้ว
+
+**Deploy state (ทุก branch = commit `f340fc9`)**:
+- ✅ PC Version (ลำดับ 1)
+- ✅ Granular Permissions + Office role (ลำดับ 1.5)
+- ✅ BUG19 users_role_check migration
+- ✅ BUG20 po_status drift self-heal
+- ✅ BUG21 archive flow (desktop button + mobile drift tolerance)
+- ✅ Mobile Update tab filter chips
+- ✅ BUG22 Android touch fixes (status-opt + dropdown + save error return)
+- ✅ Cache v12
+
+**Active branches** (ต้อง sync กันเสมอ ตามกฎ Git Management):
+```
+main = Dev = Dev-PC = f340fc9
+```
+
+**Next candidates** (ยังไม่เริ่ม toun ต้องสั่ง):
+- ลำดับ 2 — Phase 3 ฟีเจอร์ธุรกิจ (6 features, ~2-4 สัปดาห์)
+- ลำดับ 3 — Hardening + Backup (RLS, Realtime, auto-backup) — ควรทำก่อน user > 5 คน
+- ลำดับ 5 — i18n Burmese (optional, parked)
+
+### ⚠️ Incident log (เพื่อ learn from mistakes)
+
+**2026-04-22 14:57 — BUG22 cross-session branch drift**
+- toun เปิด Claude Code (claude.ai/code web) แก้ BUG22 (Android touch fixes — 3 bugs including silent data-loss in saveUpdate)
+- Claude Code commit + push **ไปแค่ `Dev` branch** (สะกด branch flow แบบ mobile-only dev)
+- main + Dev-PC ติดอยู่ที่ commit เก่ากว่า → production (GitHub Pages serve จาก main) **ไม่ได้รับ fix เลย** ประมาณ 2 ชม.
+- VSCode session ที่เปิดอยู่คู่กัน detect ว่า remote Dev ขยับ → ตาม sync ครบ 3 branch + bump cache v11→v12 เพื่อให้ PWA installs pickup fix
+- **Lesson**: Fix ของ mobile ต้อง merge ไป `main` ทันทีเพื่อ production → ตามด้วย `Dev-PC` เพื่อไม่ regression ใน active dev. ดูกฎใหม่ใน "⚠️ กฎสำคัญ" ส่วน Git Management
 
 ---
 
