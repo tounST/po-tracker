@@ -1927,7 +1927,7 @@
   </select>
 
   <!-- Filter chips -->
-  <div class="filter-chips">
+  <div class="filter-chips" id="dashboard-filter-chips">
     <button class="filter-chip active" data-filter="active" onclick="setListFilter('active')">
       กำลังทำ <span class="filter-chip-count" id="cnt-active">0</span>
     </button>
@@ -1953,6 +1953,21 @@
 
   <!-- ถ้ายังไม่ได้เลือก PO แสดงลิสต์ให้แตะเลือก -->
   <div id="update-select-section">
+    <div class="filter-chips" id="update-filter-chips">
+      <button class="filter-chip active" data-filter="active" onclick="setUpdateFilter('active')">
+        กำลังทำ <span class="filter-chip-count" id="ufcnt-active">0</span>
+      </button>
+      <button class="filter-chip" data-filter="urgent" onclick="setUpdateFilter('urgent')">
+        🔥 ด่วน <span class="filter-chip-count" id="ufcnt-urgent">0</span>
+      </button>
+      <button class="filter-chip" data-filter="Partial Send" onclick="setUpdateFilter('Partial Send')">
+        บางส่วน <span class="filter-chip-count" id="ufcnt-partial">0</span>
+      </button>
+      <button class="filter-chip" data-filter="Complete" onclick="setUpdateFilter('Complete')">
+        เสร็จแล้ว <span class="filter-chip-count" id="ufcnt-complete">0</span>
+      </button>
+      <button class="filter-chip" data-filter="" onclick="setUpdateFilter('')">ทั้งหมด</button>
+    </div>
     <span class="hint-chip">👆 แตะ PO ที่ต้องการอัพเดท</span>
     <div id="update-po-list"></div>
   </div>
@@ -3544,6 +3559,11 @@ function initUpdateTab() {
   backToPoList();
 }
 
+// Persistent filter for the Update tab's PO list. Mirrors dashboard's
+// setListFilter semantics but scoped to this tab so the two toolbars
+// don't fight each other when switching tabs.
+let updateListFilter = 'active';
+
 function backToPoList() {
   currentPoId = '';
   selectedItems.clear();
@@ -3565,19 +3585,47 @@ function backToPoList() {
   if (qcFailDetail) qcFailDetail.style.display = 'none';
   if (qcReasonEl)   qcReasonEl.value = '';
 
+  renderUpdatePoList();
+}
+
+function renderUpdatePoList() {
   const list = document.getElementById('update-po-list');
-  if (!db.pos.length) {
+  if (!list) return;
+
+  // Base list = non-deleted, then refresh chip counts against this base
+  const basePos = db.pos.filter(po => !po.deleted);
+  const setUCnt = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+  setUCnt('ufcnt-active',   basePos.filter(p => p.status !== 'Complete').length);
+  setUCnt('ufcnt-urgent',   basePos.filter(p => p.urgent && p.status !== 'Complete').length);
+  setUCnt('ufcnt-partial',  basePos.filter(p => p.status === 'Partial Send').length);
+  setUCnt('ufcnt-complete', basePos.filter(p => p.status === 'Complete').length);
+
+  if (!basePos.length) {
     list.innerHTML = '<div class="empty-state"><span class="emoji">📋</span><p>ยังไม่มี PO</p></div>';
     return;
   }
-  const updateFiltered = db.pos.filter(po => !po.deleted);
-  updateFiltered.sort((a, b) => {
+
+  // Apply chip filter (value '' = show all)
+  const f = updateListFilter;
+  let filtered = basePos;
+  if      (f === 'active')        filtered = basePos.filter(p => p.status !== 'Complete');
+  else if (f === 'urgent')        filtered = basePos.filter(p => p.urgent && p.status !== 'Complete');
+  else if (f === 'Partial Send')  filtered = basePos.filter(p => p.status === 'Partial Send');
+  else if (f === 'Complete')      filtered = basePos.filter(p => p.status === 'Complete');
+
+  filtered = [...filtered].sort((a, b) => {
     if (!a.due && !b.due) return 0;
     if (!a.due) return 1;
     if (!b.due) return -1;
     return a.due.localeCompare(b.due);
   });
-  list.innerHTML = updateFiltered.map(po => {
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:28px 16px;"><span class="emoji">🔍</span><p>ไม่มี PO ในหมวดที่เลือก</p></div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(po => {
     const its     = itemsOfPO(po.id);
     const sentCount = its.filter(i => i.status === 'ส่งแล้ว').length;
     const total   = its.length;
@@ -3606,6 +3654,14 @@ function backToPoList() {
       </div>
     `;
   }).join('');
+}
+
+function setUpdateFilter(val) {
+  updateListFilter = val;
+  document.querySelectorAll('#update-filter-chips .filter-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.filter === val);
+  });
+  renderUpdatePoList();
 }
 
 function applyStatusFilters() {
@@ -3849,11 +3905,13 @@ function updateSelectionBanner() {
   }
 }
 
-// Set PO-list filter (used by chips on dashboard)
+// Set PO-list filter (used by chips on dashboard).
+// Scoped to #dashboard-filter-chips so it doesn't clobber the
+// Update tab's own chip row (#update-filter-chips).
 function setListFilter(val) {
   const sel = document.getElementById('filter-status');
   if (sel) sel.value = val;
-  document.querySelectorAll('.filter-chip').forEach(el => {
+  document.querySelectorAll('#dashboard-filter-chips .filter-chip').forEach(el => {
     el.classList.toggle('active', el.dataset.filter === val);
   });
   renderDashboard();
@@ -4886,6 +4944,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           db = data;
           localStorage.setItem(STORE_KEY, JSON.stringify(db));
           renderDashboard();
+          // Also refresh the Update tab list if the user is sitting on it
+          // and hasn't drilled into a specific PO — keeps chip counts live
+          const updateTab = document.getElementById('tab-update');
+          const updSelect = document.getElementById('update-select-section');
+          if (updateTab?.classList.contains('active') && updSelect?.style.display !== 'none') {
+            renderUpdatePoList();
+          }
         }
       } catch(e) {
         console.warn('[Auto-refresh] Failed:', e);
