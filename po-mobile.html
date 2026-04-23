@@ -798,6 +798,20 @@
     margin-top: 2px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  /* Thin rule between the item name and its metadata — keeps the
+     hierarchy "heading → supporting info" visually distinct. Uses
+     the same --line token as card borders so it feels native. */
+  .item-row .item-divider {
+    height: 1px; background: var(--line);
+    margin: 6px 0 4px;
+  }
+  /* Per-item car model — primary metadata, own line, thin weight
+     so the part name stays the clear anchor. */
+  .item-row .item-model {
+    font-size: 12px; color: var(--ink-2); font-weight: 500;
+    letter-spacing: 0.1px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .item-row .item-meta-qc {
     font-size: 11px; color: var(--danger); font-weight: 600; margin-top: 2px;
   }
@@ -4042,8 +4056,10 @@ function openDetailModal(poId) {
                   ${escapeHtml(it.part)}
                   ${it.rework ? '<span class="po-rework-badge">🔁 แก้</span>' : ''}
                 </div>
-                <div class="modal-item-color">${escapeHtml([it.carModel, it.color].filter(Boolean).join(' · '))}</div>
-                ${it.qcPassed === false && it.qcDefectReason ? `<div class="modal-item-meta"><span class="meta-danger">❌ QC: ${it.qcDefectReason}</span></div>` : ''}
+                ${(it.carModel || it.color) ? '<div class="item-divider"></div>' : ''}
+                ${it.carModel ? `<div class="item-model">${escapeHtml(it.carModel)}</div>` : ''}
+                ${it.color ? `<div class="modal-item-color">${escapeHtml(it.color)}</div>` : ''}
+                ${it.qcPassed === false && it.qcDefectReason ? `<div class="modal-item-meta"><span class="meta-danger">❌ QC: ${escapeHtml(it.qcDefectReason)}</span></div>` : ''}
               </div>
               ${statusBadge(it.status, it.rework, it.qcPassed)}
             </div>
@@ -4051,8 +4067,8 @@ function openDetailModal(poId) {
               <div class="modal-item-meta">
                 ${it.itemDue ? `<span class="meta-danger">⏰ กำหนด: ${thaiDate(it.itemDue)}</span>` : ''}
                 ${it.sentDate ? `<span class="meta-muted">📅 ส่ง: ${thaiDate(it.sentDate)}</span>` : ''}
-                ${it.bundlePO ? `<span class="meta-info">📦 ${it.bundlePO}</span>` : ''}
-                ${it.remark ? `<span class="meta-muted">${it.remark}</span>` : ''}
+                ${it.bundlePO ? `<span class="meta-info">📦 ${escapeHtml(it.bundlePO)}</span>` : ''}
+                ${it.remark ? `<span class="meta-muted">${escapeHtml(it.remark)}</span>` : ''}
               </div>
             ` : ''}
           </div>
@@ -4335,13 +4351,22 @@ function openPoItems(poId) {
     const qcPassedReady = it.status === 'QC/เตรียมส่ง' && it.qcPassed === true;
     const stCls   = qcPassedReady ? 'st-sent' : (STATUS_CLS_MAP[it.status] || 'st-recv');
     const stLabel = qcPassedReady ? 'ผ่าน QC · เตรียมส่ง' : (STATUS_SHORT_LABEL[it.status] || it.status);
-    const sub = [];
-    if (it.carModel) sub.push(it.carModel);  // show per-item model first — new data model
-    if (it.color) sub.push(it.color);
-    if (it.sentDate) sub.push(`ส่ง ${shortThaiDate(it.sentDate)}`);
-    if (it.bundlePO) sub.push(`รวม ${it.bundlePO}`);
+
+    // Metadata hierarchy (toun 2026-04-23):
+    //   part name       → bold, main anchor
+    //   divider line    → 1px separator using --line token
+    //   carModel        → own line, thin 12px --ink-2 (primary meta)
+    //   color + others  → joined with " · " on a 3rd line (secondary meta)
+    // This matches the rest of the app's "heading → supporting info"
+    // pattern — see .po-card-no + .po-card-company / .po-card-model.
+    const secondary = [];
+    if (it.color)    secondary.push(it.color);
+    if (it.sentDate) secondary.push(`ส่ง ${shortThaiDate(it.sentDate)}`);
+    if (it.bundlePO) secondary.push(`รวม ${it.bundlePO}`);
+
     const key = itemKey(it);
     const domId = itemKeyDomId(key);
+    const hasMeta = it.carModel || secondary.length > 0;
     return `
       <div class="item-row" id="item-row-${domId}" data-sbkey="${escAttr(key)}">
         <div class="item-check" id="item-check-${domId}">✓</div>
@@ -4349,12 +4374,14 @@ function openPoItems(poId) {
         <div class="item-main">
           <div class="item-name-row">
             ${it.urgent ? '<span class="po-flame" style="font-size:13px;">🔥</span>' : ''}
-            <span class="item-name">${it.part}</span>
+            <span class="item-name">${escapeHtml(it.part)}</span>
             <span class="item-status-chip ${stCls}">${stLabel}</span>
             ${it.rework ? '<span class="po-rework-badge">แก้</span>' : ''}
           </div>
-          <div class="item-sub">${sub.join(' · ')}</div>
-          ${it.qcPassed === false && it.qcDefectReason ? `<div class="item-meta-qc">QC: ${it.qcDefectReason}</div>` : ''}
+          ${hasMeta ? '<div class="item-divider"></div>' : ''}
+          ${it.carModel ? `<div class="item-model">${escapeHtml(it.carModel)}</div>` : ''}
+          ${secondary.length ? `<div class="item-sub">${escapeHtml(secondary.join(' · '))}</div>` : ''}
+          ${it.qcPassed === false && it.qcDefectReason ? `<div class="item-meta-qc">QC: ${escapeHtml(it.qcDefectReason)}</div>` : ''}
           ${it.itemDue ? `<div class="item-meta-due">ส่งภายใน ${thaiDate(it.itemDue)} · ${daysLeftLabel(it.itemDue, po.status)}</div>` : ''}
         </div>
       </div>
