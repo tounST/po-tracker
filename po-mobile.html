@@ -695,6 +695,21 @@
     transition: border-color .15s, background .15s;
   }
   .update-back-btn:hover { border-color: var(--line-deep); background: var(--bg-deep); }
+  /* Edit button mirrors .update-back-btn sizing/tokens so the header
+     row reads as a balanced "← [title] ✎" — same clean, modern vibe. */
+  .update-edit-btn {
+    width: 38px; height: 38px;
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    cursor: pointer; touch-action: manipulation;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; flex-shrink: 0;
+    transition: border-color .15s, background .15s;
+  }
+  .update-edit-btn:hover  { border-color: var(--accent); background: #FCE7E1; }
+  .update-edit-btn:active { transform: scale(.96); }
   .update-subheader-text { flex: 1; min-width: 0; }
   .update-subheader-kicker {
     font-size: 11px; font-weight: 800;
@@ -2203,7 +2218,7 @@
   <!-- หลังเลือก PO แล้ว แสดงรายการชิ้น -->
   <div id="update-items-section" style="display:none;">
 
-    <!-- Update subheader (back + PO no + screen title) -->
+    <!-- Update subheader (back + PO no + screen title + edit shortcut) -->
     <div class="update-subheader">
       <button class="update-back-btn" onclick="backToPoList()" aria-label="กลับ">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
@@ -2213,6 +2228,16 @@
         <div class="update-subheader-pono" id="update-po-badge"></div>
         <div class="update-subheader-title">อัพเดตชิ้นงาน</div>
       </div>
+      <!-- Edit this PO (admin/supervisor/manager — createPO permission).
+           Hidden on the detail list by .perm-create-only / applyPermissions. -->
+      <button class="update-edit-btn perm-create-only"
+              onclick="if(currentPoId) startEditPO(currentPoId);"
+              title="แก้ไข PO นี้" aria-label="แก้ไข PO">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.1 2.1 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+      </button>
     </div>
 
     <!-- PO Hero (urgent chip + company + model + stats + remark + progress) -->
