@@ -88,6 +88,7 @@
 | `config` | Master lists dropdown (config_type: company/car_model/part_name) | ⚙️ CONFIG |
 | `users` | ผู้ใช้ + จุดงาน (role: admin/staff, station: all/receiving/production/shipping) | ใหม่ |
 | `activity_log` | บันทึกว่าใครทำอะไรเมื่อไหร่ (action, target_type, detail JSONB) | ใหม่ |
+| `role_permissions` | Editable permission matrix (role, permission_key, allowed, updated_at, updated_by) — PK (role, permission_key) — seeded 50 rows = 5 roles × 10 flags | ใหม่ 2026-04-23 |
 
 ### Supabase Connection Code (ใช้ใน po-mobile.html)
 ```javascript
@@ -232,6 +233,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - Status picker: `ontouchstart="event.preventDefault();selectStatus(...)"` + CSS `touch-action: manipulation` → ตัด 300ms tap delay + กัน onclick-on-div ยิงไม่ตรง
   - Dropdown (Add PO): `mousedown` → `touchstart` (preventDefault กัน blur ปิด list) + `click` fallback สำหรับ desktop
   - `saveUpdate()`: เพิ่ม `return` ใน catch → error แล้วหยุด ไม่ล้างฟอร์ม (เดิม toast error แล้ว reset ฟอร์มต่อ user นึกว่า save สำเร็จ)
+- ✅ **Admin-editable Permissions matrix** (2026-04-23) — toun ขอให้ admin แก้ permission ของ role ต่าง ๆ ผ่าน UI (ไม่ใช่แก้ code). commits `06842a6` (PC on Dev-PC) + `7205f87` (mobile on Dev). Cache v17
+  - **DB**: new table `role_permissions` (PK `role+permission_key`, seed 50 rows = 5 roles × 10 flags). Applied via Supabase dashboard SQL editor (plugin auth ขาดการเชื่อมต่อตอนนั้น)
+  - **PC**: sub-tab ที่ 6 ใน Manage ชื่อ "🔐 สิทธิ์ / Permissions" — filter ด้วย flag `roleAdmin: true` (ใหม่, เฉพาะ admin เห็น)
+  - **Mobile**: pill switch ที่หัว `#tab-master` (admin-only ผ่าน `.role-admin-only`) → `[📦 Master Data]` / `[🔐 สิทธิ์ผู้ใช้]`. View toggle ผ่าน `switchManageView('data' | 'perms')`
+  - **Toggle ทันที**: tap checkbox → UPSERT Supabase → mutate local `PERMISSIONS[role][key]` → `applyPermissions()` re-gate UI → activity_log + toast
+  - **Admin row ล็อก**: UI disable + `savePermissionToggle` refuse `role='admin'` + `loadRolePermissions` ignore DB rows ที่ role='admin' → **defense in depth** กัน lock-out แม้ DB จะถูก hack
+  - **Reset button**: re-upsert ครบ 50 rows ด้วยค่าจาก `PERMISSIONS_CODE_DEFAULTS_JSON` (snapshot ที่ freeze ตอน boot)
+  - **Cross-device sync**: `loadRolePermissions` ยิงทั้งใน login (ก่อน `applyPermissions` / `showApp`) + auto-refresh 30s → sessions อื่น catch-up permission change ภายใน ≤ 30 วิ
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
@@ -304,23 +313,22 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 
 ---
 
-### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-22, ตอนเย็น)
+### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-23)
 
 **ไม่มีงาน active** — ปิดทุก milestone เสร็จแล้ว
 
-**Deploy state (ทุก branch = commit `f340fc9`)**:
+**Deploy state (ทุก branch = commit `7205f87`)**:
 - ✅ PC Version (ลำดับ 1)
 - ✅ Granular Permissions + Office role (ลำดับ 1.5)
-- ✅ BUG19 users_role_check migration
-- ✅ BUG20 po_status drift self-heal
-- ✅ BUG21 archive flow (desktop button + mobile drift tolerance)
-- ✅ Mobile Update tab filter chips
-- ✅ BUG22 Android touch fixes (status-opt + dropdown + save error return)
-- ✅ Cache v12
+- ✅ BUG19–25 (constraint, po_status drift, archive flow, Android touch, cross-device PO#, dropdown scroll, save drift)
+- ✅ Mobile Update tab filter chips + admin delete on PO cards
+- ✅ Desktop Archive "Archive ตอนนี้" button + admin delete on PO list rows
+- ✅ **Admin-editable Permissions matrix** — DB-backed, instant toggle, reset-to-defaults, admin row code-locked (new 2026-04-23)
+- ✅ Cache v17
 
 **Active branches** (ต้อง sync กันเสมอ ตามกฎ Git Management):
 ```
-main = Dev = Dev-PC = f340fc9
+main = Dev = Dev-PC = 7205f87
 ```
 
 **Next candidates** (ยังไม่เริ่ม toun ต้องสั่ง):
@@ -432,6 +440,9 @@ main = Dev = Dev-PC = f340fc9
 - **ทำไม onclick บน `<div>` ต้องคู่กับ ontouchstart บน Android**: Android Chrome treats tap → touchstart → touchend → mousedown → mouseup → click (300ms delay + ghost risk). `onclick` บน `<div>` (ไม่ใช่ `<button>`) บางที synthetic click ไม่ยิงถ้าใน tap เคลื่อนนิดหน่อย. Pattern: `ontouchstart="event.preventDefault();handler(...)" onclick="handler(...)"` — touchstart ยิงบน mobile (preventDefault ตัด click ที่จะตามมา กัน double-fire), onclick fallback สำหรับ mouse/desktop. คู่กับ CSS `touch-action: manipulation` (disables double-tap zoom + 300ms delay). ใช้กับ status-opt และ sdropdown-item
 - **ทำไม searchable dropdown ใช้ touchstart ไม่ใช่ mousedown**: เดิม `mousedown` กัน input's `blur` ยิงก่อน (desktop ok เพราะ mousedown ยิงก่อน blur). บน Android touch sequence = touchstart → touchend → mousedown → click, ระหว่างนั้น input อาจ blur ไปแล้ว → `list.classList.remove('open')` ใน blur handler ซ่อน list → mousedown ไม่ยิงบน item ที่ซ่อนแล้ว → hidden.value ไม่เซ็ต → form validation reject. แก้: `touchstart` (ยิงก่อนสุดในชีวิต touch) + `preventDefault()` (กัน synthetic blur+click) + `click` (fallback desktop)
 - **ทำไม saveUpdate catch ต้อง return**: เดิม catch log + toast แล้วปล่อย control flow ลงต่อ → reset form + ปิด save bar + openPoItems(refresh). User เห็นสถานะกลับเป็น "ไม่ได้เลือกอะไร" นึกว่า save สำเร็จทั้งที่ Supabase throw. บทเรียน: error path ใน async flow ต้องมี explicit `return` (หรือ `throw` ต่อ) — อย่าปล่อย fallthrough เพราะ post-success cleanup จะหลอก user
+- **ทำไม admin row ใน Permissions matrix ต้อง code-locked**: UI + save + load ทั้ง 3 ชั้นบังคับให้ admin = code defaults เสมอ. ถ้า admin ปิด `manage` ของตัวเอง (เช่น toggle ผิด) → admin เข้า tab Manage ไม่ได้ → แก้ permission ไม่ได้เลย dead-end ต้องงัด DB ซ่อม. Defense in depth: (1) UI `disabled` + 🔒 note, (2) `savePermissionToggle` refuse `role='admin'`, (3) `loadRolePermissions` ignore DB rows `role='admin'` — แม้มีคน INSERT ใน Supabase dashboard โดยตรง admin ก็ยัง lock อยู่. บทเรียนทั่วไป: **ถ้า decision ใน UI อาจ brick ตัวเอง ต้องกันที่หลายชั้น ไม่ใช่แค่ warning dialog**
+- **ทำไมใช้ `JSON.stringify(PERMISSIONS)` snapshot ตอน boot แทน structuredClone ทุกครั้ง**: `const PERMISSIONS_CODE_DEFAULTS_JSON = JSON.stringify(PERMISSIONS)` ทำครั้งเดียวตอน script boot ก่อนมี chance mutate. String เป็น immutable by nature — snapshot ถูก freeze โดย JavaScript เอง ไม่ต้อง Object.freeze ที่อาจมี edge case. `JSON.parse(snapshot)` ได้ fresh object deep-copy ทุกครั้งที่ต้อง reset. Pattern นี้ = "functional immutability on mutable object" ด้วย zero-dependency
+- **ทำไมเก็บ permissions ใน DB table แทน localStorage หรือ config blob**: (1) Cross-device sync — admin แก้ใน PC แล้ว mobile user คนอื่น pickup ได้ใน 30 วิ. localStorage = single-device only. (2) Per-cell atomic update — UPSERT 1 row ต่อ toggle แก้ concurrent edit ได้ดีกว่า single JSON blob ที่มี write-wins conflict. (3) Queryable — audit ได้ว่า `admin` ปิดสิทธิ์ `office.manageDataDelete` เมื่อไหร่ ผ่าน `updated_at` + `updated_by`. (4) Schema validates — `CHECK (role = ANY (...))` กัน typo. Trade-off: 1 round-trip ต่อ toggle แต่ toast ทันทีไม่ต้องรอ optimistic UI
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
