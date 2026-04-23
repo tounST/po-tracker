@@ -1418,6 +1418,114 @@
 
   /* ── Master Data Management ── */
   .master-section { margin-bottom: 18px; }
+
+  /* Admin-only sub-view pills at top of Manage tab */
+  #manage-subtabs {
+    display: flex; gap: 8px;
+    padding: 4px 0 14px;
+    overflow-x: auto; white-space: nowrap;
+  }
+  #manage-subtabs::-webkit-scrollbar { display: none; }
+  .mgr-sub-pill {
+    padding: 9px 16px; border-radius: 99px;
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--ink-2); font-size: 13px; font-weight: 700;
+    cursor: pointer; flex-shrink: 0;
+    touch-action: manipulation;
+    font-family: inherit;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .mgr-sub-pill.active {
+    background: var(--ink); color: var(--bg); border-color: var(--ink);
+  }
+
+  /* Permissions matrix (mobile) */
+  .perm-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .perm-head-text {
+    font-size: 12px; color: var(--muted, var(--ink-3, #7A6F60));
+    line-height: 1.55; flex: 1; min-width: 180px;
+  }
+  .perm-reset-btn {
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--ink); font-size: 12px; font-weight: 700;
+    padding: 8px 12px; border-radius: 10px; cursor: pointer;
+    font-family: inherit; touch-action: manipulation;
+    display: inline-flex; align-items: center; gap: 5px;
+    white-space: nowrap;
+  }
+  .perm-reset-btn:active { background: var(--bg); }
+  .perm-matrix-wrap {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 2px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .perm-matrix {
+    width: 100%; border-collapse: collapse; font-size: 12.5px;
+    min-width: 540px;
+  }
+  .perm-matrix thead th {
+    text-align: left; font-size: 10px; font-weight: 800;
+    color: var(--muted, #7A6F60); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 12px 10px; border-bottom: 1.5px solid var(--line);
+    white-space: nowrap;
+  }
+  .perm-matrix thead th.role-col {
+    text-align: center; min-width: 72px;
+  }
+  .perm-col-head {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.3px;
+    text-transform: none;
+  }
+  .perm-lock-note {
+    font-size: 9px; color: var(--muted, #7A6F60);
+    margin-top: 2px; letter-spacing: 0.3px;
+  }
+  .perm-matrix tbody td {
+    padding: 11px 10px; border-bottom: 1px solid var(--line);
+  }
+  .perm-matrix tbody td.perm-label-cell {
+    color: var(--ink); font-weight: 600; font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .perm-matrix tbody td.role-cell { text-align: center; }
+  .perm-matrix tbody tr:last-child td { border-bottom: none; }
+  .perm-foot {
+    margin-top: 12px; font-size: 11px;
+    color: var(--muted, #7A6F60); line-height: 1.55;
+    padding: 0 2px;
+  }
+
+  /* Toggle switch */
+  .perm-switch {
+    position: relative; display: inline-block;
+    width: 40px; height: 22px; cursor: pointer;
+    vertical-align: middle;
+    touch-action: manipulation;
+  }
+  .perm-switch.locked { cursor: not-allowed; opacity: 0.4; }
+  .perm-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .perm-switch-slider {
+    position: absolute; inset: 0;
+    background: #D7CFC2; border-radius: 99px;
+    transition: background 0.15s;
+  }
+  .perm-switch-slider::before {
+    content: ''; position: absolute; left: 3px; top: 3px;
+    width: 16px; height: 16px; background: #fff;
+    border-radius: 50%;
+    transition: transform 0.18s cubic-bezier(.2,.8,.3,1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  }
+  .perm-switch input:checked + .perm-switch-slider {
+    background: #4A7F3F;
+  }
+  .perm-switch input:checked + .perm-switch-slider::before {
+    transform: translateX(18px);
+  }
   .master-section-title {
     font-size: 15px; font-weight: 800; color: var(--ink);
     margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
@@ -2249,6 +2357,20 @@
 <!-- ═══════════════ TAB: MASTER DATA ═══════════════ -->
 <div id="tab-master" class="page">
 
+  <!-- Admin-only sub-view switcher.
+       Hidden for non-admins via .role-admin-only — they see only the
+       Master Data cards below (which is their existing experience). -->
+  <div id="manage-subtabs" class="role-admin-only">
+    <button class="mgr-sub-pill active" data-mgr-view="data" onclick="switchManageView('data')">📦 Master Data</button>
+    <button class="mgr-sub-pill" data-mgr-view="perms" onclick="switchManageView('perms')">🔐 สิทธิ์ผู้ใช้</button>
+  </div>
+
+  <!-- Permissions editor — only rendered when admin switches to it -->
+  <div id="manage-view-perms" style="display:none;"></div>
+
+  <!-- Existing Master Data view wrapper (so we can toggle it as a unit) -->
+  <div id="manage-view-data">
+
   <!-- บริษัท / ลูกค้า -->
   <div class="card master-section">
     <div class="master-section-title">🏢 บริษัท / ลูกค้า</div>
@@ -2321,6 +2443,7 @@
       <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">กำลังโหลด...</div>
     </div>
   </div>
+  </div><!-- /manage-view-data -->
 </div>
 
 <!-- ═══ ITEM DETAIL MODAL ═══ -->
@@ -2411,6 +2534,53 @@ const STATION_STATUS = {
   'qc':         ['QC/เตรียมส่ง'],
   'shipping':   ['ส่งแล้ว']
 };
+
+// Metadata for the admin-only Permissions editor (mirrors po-desktop.html).
+// Table rows are rendered from this list × the PERMISSIONS matrix so the
+// UI stays in sync automatically when flags change.
+const PERMISSION_META = [
+  { key: 'viewAll',          label: 'ดู PO ทั้งหมด' },
+  { key: 'createPO',         label: 'สร้าง PO ใหม่' },
+  { key: 'editAll',          label: 'แก้สถานะ item ได้ทุกอัน' },
+  { key: 'delete',           label: 'ลบ PO' },
+  { key: 'archive',          label: 'Archive PO' },
+  { key: 'manage',           label: 'เข้าหน้าจัดการ' },
+  { key: 'manageUsers',      label: 'จัดการ Users (ดู/เพิ่ม/แก้)' },
+  { key: 'manageUserRoles',  label: 'เปลี่ยน Role/Station ของ user' },
+  { key: 'manageDataAdd',    label: 'เพิ่ม/แก้ Master Data' },
+  { key: 'manageDataDelete', label: 'ลบ Master Data' },
+];
+const ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
+
+// Frozen JSON snapshot of code defaults. Captured once at script boot
+// so PERMISSIONS can be safely mutated by DB overrides while reset
+// keeps a pristine target to restore to.
+const PERMISSIONS_CODE_DEFAULTS_JSON = JSON.stringify(PERMISSIONS);
+function codeDefaultsPermissions() { return JSON.parse(PERMISSIONS_CODE_DEFAULTS_JSON); }
+
+// Fetch role_permissions from Supabase and merge into PERMISSIONS.
+// Admin rows are IGNORED on read — the admin role stays locked to code
+// defaults so a DB mistake can't lock everyone out of Manage.
+async function loadRolePermissions() {
+  try {
+    const { data, error } = await sb.from('role_permissions').select('role, permission_key, allowed');
+    if (error) throw error;
+    const fresh = codeDefaultsPermissions();
+    for (const row of (data || [])) {
+      if (row.role === 'admin') continue;
+      if (fresh[row.role] && row.permission_key in fresh[row.role]) {
+        fresh[row.role][row.permission_key] = !!row.allowed;
+      }
+    }
+    for (const role of Object.keys(fresh)) {
+      for (const key of Object.keys(fresh[role])) {
+        PERMISSIONS[role][key] = fresh[role][key];
+      }
+    }
+  } catch(e) {
+    console.warn('[loadRolePermissions] keeping code defaults:', e?.message || e);
+  }
+}
 
 function hasPermission(permission) {
   if (!currentUser) return false;
@@ -2546,6 +2716,11 @@ async function submitPIN() {
 
     // Start auto-logout timer
     resetSessionTimer();
+
+    // Pull DB permission overrides BEFORE showApp so applyPermissions
+    // (which runs inside showApp via the rendering pipeline) sees the
+    // live matrix, not stale code defaults.
+    await loadRolePermissions();
 
     // Log login activity
     await logActivity('login', 'system', { username: currentUser.username });
@@ -4658,11 +4833,156 @@ async function syncNow() {
 //  MASTER DATA MANAGEMENT
 // ═══════════════════════════════════════════════════
 function renderMasterTab() {
+  // Admin-only: when entering the Manage tab, default to Master Data view.
+  // Non-admins never see the pill switch so this is a no-op for them.
+  if (currentUser?.role === 'admin') switchManageView(mgrSubView || 'data');
   renderMasterSection('company', db.masterCompanies, 'tag-company');
   renderMasterSection('model',   db.masterModels,    'tag-model');
   renderMasterSection('part',    db.masterParts,     'tag-part');
   renderMasterSection('defect',  db.masterDefects || [], 'tag-defect');
   if (hasPermission('manageUsers')) loadUserList();
+}
+
+// Admin-only Permissions editor — mirrors po-desktop.html's flow.
+// State + view toggle for the Manage tab's admin-only sub-views.
+let mgrSubView = 'data';  // 'data' | 'perms'
+
+function switchManageView(view) {
+  mgrSubView = view;
+  document.querySelectorAll('#manage-subtabs .mgr-sub-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.mgrView === view);
+  });
+  const dataEl  = document.getElementById('manage-view-data');
+  const permsEl = document.getElementById('manage-view-perms');
+  if (dataEl)  dataEl.style.display  = view === 'data'  ? '' : 'none';
+  if (permsEl) permsEl.style.display = view === 'perms' ? '' : 'none';
+  if (view === 'perms') renderManagePermissions();
+}
+
+async function savePermissionToggle(role, key, allowed) {
+  if (currentUser?.role !== 'admin') { toast('❌ เฉพาะ Admin เท่านั้น'); return; }
+  if (role === 'admin')               { toast('⚠️ Admin ถูกล็อก — แก้ผ่าน code เท่านั้น'); return; }
+
+  try {
+    const { error } = await sb.from('role_permissions').upsert({
+      role, permission_key: key, allowed,
+      updated_at: new Date().toISOString(),
+      updated_by: currentUser.username
+    }, { onConflict: 'role,permission_key' });
+    if (error) throw error;
+
+    if (PERMISSIONS[role]) PERMISSIONS[role][key] = allowed;
+    await logActivity('update_permission', 'role_permissions', { role, permission_key: key, allowed });
+    applyPermissions();
+    const label = (role === 'supervisor') ? 'หัวหน้า' :
+                  (role === 'office')     ? 'Office'  :
+                  (role === 'manager')    ? 'ผู้จัดการ' :
+                  (role === 'staff')      ? 'พนักงาน' : role;
+    toast(`✅ ${label} · ${key} = ${allowed ? 'เปิด' : 'ปิด'}`, 2000);
+  } catch(e) {
+    console.error('[savePermissionToggle]', e);
+    toast('❌ บันทึกไม่สำเร็จ: ' + (e.message || e), 3500);
+    renderManagePermissions();  // revert UI to in-memory truth
+  }
+}
+
+async function resetPermissionsToDefaults() {
+  if (currentUser?.role !== 'admin') { toast('❌ เฉพาะ Admin'); return; }
+  if (!confirm('รีเซ็ตสิทธิ์ทุก role กลับเป็นค่าเริ่มต้นจาก code?\n\nการเปลี่ยนแปลงที่ทำไว้ใน DB จะถูกทับด้วยค่าเริ่มต้น')) return;
+
+  showLoading(true);
+  try {
+    const defaults = codeDefaultsPermissions();
+    const rows = [];
+    const now = new Date().toISOString();
+    for (const role of Object.keys(defaults)) {
+      for (const [key, val] of Object.entries(defaults[role])) {
+        rows.push({ role, permission_key: key, allowed: val, updated_at: now, updated_by: currentUser.username });
+      }
+    }
+    const { error } = await sb.from('role_permissions').upsert(rows, { onConflict: 'role,permission_key' });
+    if (error) throw error;
+
+    await loadRolePermissions();
+    await logActivity('reset_permissions', 'role_permissions', { by: currentUser.username });
+    applyPermissions();
+    renderManagePermissions();
+    toast('✅ รีเซ็ตเป็นค่าเริ่มต้นแล้ว', 2800);
+  } catch(e) {
+    console.error('[resetPermissionsToDefaults]', e);
+    toast('❌ รีเซ็ตไม่สำเร็จ: ' + (e.message || e), 4000);
+  }
+  showLoading(false);
+}
+
+function renderManagePermissions() {
+  const host = document.getElementById('manage-view-perms');
+  if (!host) return;
+
+  // Role labels — use same spelling as USER_ROLE_LABELS but plain text for header
+  const roleDisplay = {
+    admin: 'Admin', supervisor: 'หัวหน้า',
+    office: 'Office', manager: 'ผู้จัดการ', staff: 'พนักงาน'
+  };
+  const roleColor = {
+    admin: '#A33B2E', supervisor: '#B8832A',
+    office: '#00695C', manager: '#1A73E8', staff: '#4A7F3F'
+  };
+
+  host.innerHTML = `
+    <div class="perm-head">
+      <div class="perm-head-text">
+        🔐 toggle ทันที (บันทึกอัตโนมัติ) · <strong style="color:var(--accent);">Admin ถูกล็อก</strong> เพื่อกันล็อกตัวเอง
+      </div>
+      <button class="perm-reset-btn" id="btn-reset-perms" type="button">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9 9 0 016.4 2.6L21 8M21 3v5h-5"/></svg>
+        รีเซ็ต
+      </button>
+    </div>
+
+    <div class="perm-matrix-wrap">
+      <table class="perm-matrix">
+        <thead>
+          <tr>
+            <th>อำนาจ</th>
+            ${ROLE_ORDER.map(r => `
+              <th class="role-col">
+                <div class="perm-col-head" style="color:${roleColor[r]};">${roleDisplay[r] || r}</div>
+                ${r === 'admin' ? '<div class="perm-lock-note">🔒 ล็อก</div>' : ''}
+              </th>
+            `).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${PERMISSION_META.map(p => `
+            <tr>
+              <td class="perm-label-cell">${p.label}</td>
+              ${ROLE_ORDER.map(r => {
+                const allowed = PERMISSIONS[r]?.[p.key] === true;
+                const locked = r === 'admin';
+                return `<td class="role-cell">
+                  <label class="perm-switch ${locked ? 'locked' : ''}">
+                    <input type="checkbox" ${allowed ? 'checked' : ''} ${locked ? 'disabled' : ''}
+                           data-role="${r}" data-key="${p.key}">
+                    <span class="perm-switch-slider"></span>
+                  </label>
+                </td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="perm-foot">
+      💡 user ที่ login อยู่ด้วย role ที่ถูกแก้ จะเห็น permission ใหม่ใน ≤ 30 วินาที (auto-refresh รอบถัดไป) หรือ logout + login ใหม่เพื่อเห็นผลทันที
+    </div>
+  `;
+
+  host.querySelectorAll('.perm-switch input[type="checkbox"]:not(:disabled)').forEach(cb => {
+    cb.onchange = () => savePermissionToggle(cb.dataset.role, cb.dataset.key, cb.checked);
+  });
+  document.getElementById('btn-reset-perms').onclick = resetPermissionsToDefaults;
 }
 
 function renderMasterSection(type, list, tagClass) {
@@ -5035,6 +5355,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   setInterval(async () => {
     if (!document.hidden && currentUser) {
       try {
+        // Pick up permission edits an admin made on another device
+        await loadRolePermissions();
+        applyPermissions();
         const data = await loadFromSupabase();
         if (data && data.items.length >= db.items.length) {
           db = data;
