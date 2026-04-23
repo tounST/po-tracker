@@ -796,14 +796,16 @@
   /* Inline car-model — sits RIGHT NEXT TO the part name with a 1px
      VERTICAL separator between them. Reads as "คาดเอว | Fortuner"
      on the same row per toun's layout request (2026-04-23). The
-     border-left is the divider; no extra element needed. */
+     border-left is the divider; no extra element needed. Kept at
+     12px (same as the original sub-line size) so it doesn't compete
+     with the 15px bold part name for visual weight. */
   .item-row .item-model-inline {
-    font-size: 13px; color: var(--ink-2); font-weight: 500;
+    font-size: 12px; color: var(--ink-3); font-weight: 500;
     letter-spacing: 0.1px;
-    padding-left: 10px;
+    padding-left: 8px;
     border-left: 1px solid var(--line);
     display: inline-flex; align-items: center;
-    min-height: 18px;
+    min-height: 16px;
   }
   .item-row .item-sub {
     font-size: 12px; color: var(--ink-3); font-weight: 500;
@@ -1057,14 +1059,15 @@
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   }
   /* Inline car-model with vertical divider — "part | model" layout
-     matches the Update-tab .item-row for consistency. */
+     matches the Update-tab .item-row for consistency. Kept at 12px
+     to avoid competing with the 14px bold part name for weight. */
   .modal-item-name .item-model-inline {
-    font-size: 12.5px; color: var(--ink-2); font-weight: 500;
+    font-size: 12px; color: var(--ink-3); font-weight: 500;
     letter-spacing: 0.1px;
-    padding-left: 9px;
+    padding-left: 8px;
     border-left: 1px solid var(--line);
     display: inline-flex; align-items: center;
-    min-height: 16px;
+    min-height: 14px;
   }
   .modal-item .item-model { display: none; } /* legacy — superseded by inline */
   .modal-item-color {
