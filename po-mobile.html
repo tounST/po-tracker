@@ -789,6 +789,17 @@
   .item-row .item-name-row {
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   }
+  /* When metadata (รุ่นรถ / color / sent date) follows below, turn the
+     name row's bottom into a full-width underline. A proper border-bottom
+     reads as a clean horizontal rule across every screen DPI — the
+     previous 1px <div> divider looked almost diagonal ("/"-like) on
+     some devices per toun's report. */
+  .item-row .item-name-row.with-meta {
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 7px;
+    width: 100%;
+  }
   .item-row .item-name {
     font-size: 15px; font-weight: 700; color: var(--ink);
     letter-spacing: -0.2px;
@@ -1052,6 +1063,17 @@
   .modal-item-name {
     font-size: 14px; font-weight: 700; color: var(--ink);
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  /* Same with-meta underline treatment as .item-row for consistency
+     between Update-tab item rows and Dashboard detail-modal items. */
+  .modal-item-name.with-meta {
+    padding-bottom: 6px; margin-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+    width: 100%;
+  }
+  .modal-item .item-model {
+    font-size: 12px; color: var(--ink-2); font-weight: 500;
+    letter-spacing: 0.1px;
   }
   .modal-item-color {
     font-size: 12px; color: var(--ink-3);
@@ -4047,16 +4069,17 @@ function openDetailModal(poId) {
           <div class="detail-group-th">${statusLabel}</div>
           <div class="detail-group-count">${cnt} ${cnt === 1 ? 'ITEM' : 'ITEMS'}</div>
         </div>
-        ${group.map(it => `
+        ${group.map(it => {
+          const modalHasMeta = !!(it.carModel || it.color);
+          return `
           <div class="modal-item">
             <div class="modal-item-head">
               <div class="modal-item-main">
-                <div class="modal-item-name">
+                <div class="modal-item-name${modalHasMeta ? ' with-meta' : ''}">
                   ${it.urgent ? '<span class="po-flame">🔥</span>' : ''}
                   ${escapeHtml(it.part)}
                   ${it.rework ? '<span class="po-rework-badge">🔁 แก้</span>' : ''}
                 </div>
-                ${(it.carModel || it.color) ? '<div class="item-divider"></div>' : ''}
                 ${it.carModel ? `<div class="item-model">${escapeHtml(it.carModel)}</div>` : ''}
                 ${it.color ? `<div class="modal-item-color">${escapeHtml(it.color)}</div>` : ''}
                 ${it.qcPassed === false && it.qcDefectReason ? `<div class="modal-item-meta"><span class="meta-danger">❌ QC: ${escapeHtml(it.qcDefectReason)}</span></div>` : ''}
@@ -4072,7 +4095,8 @@ function openDetailModal(poId) {
               </div>
             ` : ''}
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       `;
     }).join('')}
 
@@ -4372,13 +4396,12 @@ function openPoItems(poId) {
         <div class="item-check" id="item-check-${domId}">✓</div>
         <div class="item-status-dot ${stCls}"></div>
         <div class="item-main">
-          <div class="item-name-row">
+          <div class="item-name-row${hasMeta ? ' with-meta' : ''}">
             ${it.urgent ? '<span class="po-flame" style="font-size:13px;">🔥</span>' : ''}
             <span class="item-name">${escapeHtml(it.part)}</span>
             <span class="item-status-chip ${stCls}">${stLabel}</span>
             ${it.rework ? '<span class="po-rework-badge">แก้</span>' : ''}
           </div>
-          ${hasMeta ? '<div class="item-divider"></div>' : ''}
           ${it.carModel ? `<div class="item-model">${escapeHtml(it.carModel)}</div>` : ''}
           ${secondary.length ? `<div class="item-sub">${escapeHtml(secondary.join(' · '))}</div>` : ''}
           ${it.qcPassed === false && it.qcDefectReason ? `<div class="item-meta-qc">QC: ${escapeHtml(it.qcDefectReason)}</div>` : ''}
