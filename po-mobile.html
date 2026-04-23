@@ -394,6 +394,74 @@
     margin-top: 1px;
   }
 
+  /* ── Recent Activity (Dashboard) ── */
+  .activity-section {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px 16px 6px;
+    margin-top: 22px;
+  }
+  .activity-section-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 10px; margin-bottom: 8px;
+  }
+  .activity-role-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 99px;
+    background: var(--bg); border: 1px solid var(--line);
+    font-size: 9.5px; font-weight: 800;
+    color: var(--ink-2); letter-spacing: 1px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .activity-role-pill::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%;
+    background: currentColor;
+  }
+  .activity-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .activity-row:last-child { border-bottom: none; }
+  .activity-avatar {
+    flex-shrink: 0;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #D7CFC2; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800;
+    font-family: var(--font-sans);
+  }
+  .activity-main { flex: 1; min-width: 0; }
+  .activity-text {
+    font-size: 13px; color: var(--ink);
+    font-weight: 500; line-height: 1.4;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .activity-text b { font-weight: 800; color: var(--ink); }
+  .activity-meta {
+    font-size: 10.5px; color: var(--ink-3);
+    margin-top: 2px; font-family: var(--font-mono);
+    letter-spacing: 0.2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .activity-empty {
+    padding: 20px 4px; text-align: center;
+    color: var(--ink-3); font-size: 12.5px;
+  }
+  .activity-more-btn {
+    width: 100%; padding: 12px 0;
+    background: transparent; border: none;
+    color: var(--accent); font-family: inherit;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; touch-action: manipulation;
+  }
+  .activity-more-btn:active { opacity: 0.6; }
+  .activity-more-btn:disabled {
+    color: var(--ink-3); cursor: default;
+  }
+
   /* ── Urgent section (Dashboard) ── */
   .urgent-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -2070,6 +2138,19 @@
   <!-- PO Cards -->
   <div id="po-cards"></div>
 
+  <!-- Recent Activity (last N actions from activity_log) -->
+  <div class="activity-section" id="activity-section">
+    <div class="activity-section-head">
+      <div class="section-label-pair inline">
+        <div class="slp-th">กิจกรรมล่าสุด</div>
+        <div class="slp-en">Recent activity</div>
+      </div>
+      <span class="activity-role-pill" id="activity-role-pill"></span>
+    </div>
+    <div id="activity-list"></div>
+    <button type="button" class="activity-more-btn" id="activity-more-btn" onclick="toggleActivityExpand()">ดูทั้งหมด →</button>
+  </div>
+
 </div>
 
 <!-- ═══════════════ TAB: UPDATE STATUS ═══════════════ -->
@@ -3219,6 +3300,32 @@ function localISO(d) {
 }
 function todayISO() { return localISO(); }
 
+// Escape HTML special chars before interpolating into innerHTML — keeps
+// user-entered names/labels/PO numbers from accidentally rendering tags.
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Human-readable "x นาทีก่อน / x ชม. ก่อน / x วันก่อน" relative time.
+// Mirrors po-desktop.html's relTime so activity timestamps match across
+// both clients.
+function relTime(iso) {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return '';
+  const diffSec = Math.floor((Date.now() - t) / 1000);
+  if (diffSec < 30)          return 'เมื่อกี้นี้';
+  if (diffSec < 60)          return `${diffSec} วิก่อน`;
+  if (diffSec < 3600)        return `${Math.floor(diffSec/60)} นาทีก่อน`;
+  if (diffSec < 86400)       return `${Math.floor(diffSec/3600)} ชม. ก่อน`;
+  if (diffSec < 86400 * 7)   return `${Math.floor(diffSec/86400)} วันก่อน`;
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth()+1}/${String(d.getFullYear()+543).slice(-2)}`;
+}
+
 function daysLeft(dueStr) {
   if (!dueStr) return null;
   const fixed = fixDateStr(dueStr);
@@ -3382,8 +3489,171 @@ function switchTab(name) {
 // ═══════════════════════════════════════════════════
 //  DASHBOARD (รวม list แล้ว)
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  RECENT ACTIVITY (Dashboard) — pulled from activity_log table
+// ═══════════════════════════════════════════════════
+
+// Keep the label map parallel to po-desktop.html's ACTION_LABELS — both
+// clients write the same action strings so the dashboard reads the
+// same log regardless of who performed the action or from which device.
+const ACTION_LABELS = {
+  login:                'เข้าสู่ระบบ',
+  logout:               'ออกจากระบบ',
+  auto_logout:          'ออกจากระบบ (หมดเวลา)',
+  create_po:            'สร้าง PO ใหม่',
+  add_po:               'สร้าง PO ใหม่',
+  update_status:        'อัพเดทสถานะชิ้นงาน',
+  qc_pass:              'ผ่าน QC',
+  qc_fail:              'ไม่ผ่าน QC',
+  qc_pending:           'ส่งเข้าคิว QC',
+  archive:              'Archive PO',
+  unarchive:            'เอา PO กลับจาก Archive',
+  delete_po:            'ลบ PO',
+  delete_archived_po:   'ลบ PO ถาวร',
+  delete_archive_month: 'ลบ Archive ทั้งเดือน',
+  export_archive:       'Export Archive',
+  add_user:             'เพิ่มผู้ใช้',
+  edit_user:            'แก้ไขผู้ใช้',
+  delete_user:          'ลบผู้ใช้',
+  update_permission:    'แก้สิทธิ์',
+  reset_permissions:    'รีเซ็ตสิทธิ์ทั้งหมด',
+};
+
+// Two states toggled by the "ดูทั้งหมด" button: collapsed (8 rows) or
+// expanded (30 rows). Fetch count scales with state so we never pull
+// more than needed.
+let activityExpanded = false;
+const ACTIVITY_COLLAPSED_LIMIT = 8;
+const ACTIVITY_EXPANDED_LIMIT = 30;
+
+async function loadRecentActivity(limit = ACTIVITY_COLLAPSED_LIMIT) {
+  try {
+    const { data, error } = await sb
+      .from('activity_log')
+      .select('id, action, target_type, detail, created_at, user_id')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    const userIds = [...new Set((data || []).map(a => a.user_id).filter(Boolean))];
+    let userMap = {};
+    if (userIds.length > 0) {
+      const { data: users } = await sb.from('users')
+        .select('id, display_name, username, role')
+        .in('id', userIds);
+      userMap = Object.fromEntries((users || []).map(u => [u.id, u]));
+    }
+    return (data || []).map(a => ({ ...a, user: userMap[a.user_id] || null }));
+  } catch(e) {
+    console.warn('[loadRecentActivity]', e);
+    return [];
+  }
+}
+
+// Compose a 2-line activity row. Line 1 = actor + action (with inline
+// detail for actions that need it — QC reason, status change target,
+// permission flag, etc). Line 2 = PO number (or context) + relative
+// time. Keeping detail inline on line 1 matches the design mockup's
+// conversational feel ("สมชาย · ผ่าน QC กันชนหลัง").
+function activityLine1(a) {
+  const name = a.user?.display_name || a.user?.username || '—';
+  const action = ACTION_LABELS[a.action] || a.action;
+  const d = a.detail || {};
+  let suffix = '';
+  if (a.action === 'update_status' && d.status) {
+    suffix = d.part_name ? ` · ${d.part_name} → ${d.status}` : ` → ${d.status}`;
+  } else if (a.action === 'qc_pass' && d.part_name) {
+    suffix = ` · ${d.part_name}`;
+  } else if (a.action === 'qc_fail') {
+    // QC fail always shows the defect reason if recorded — that's the
+    // whole value of surfacing the log (who flunked what + why).
+    const parts = [];
+    if (d.part_name) parts.push(d.part_name);
+    if (d.reason)    parts.push(d.reason);
+    suffix = parts.length ? ` · ${parts.join(' · ')}` : '';
+  } else if (a.action === 'create_po' && d.item_count) {
+    suffix = ` (${d.item_count} ชิ้น)`;
+  } else if (a.action === 'update_permission' && d.role) {
+    suffix = ` · ${d.role}.${d.permission_key} = ${d.allowed ? 'เปิด' : 'ปิด'}`;
+  } else if (a.action === 'archive' && d.po_count) {
+    suffix = ` (${d.po_count} PO)`;
+  }
+  return `<b>${escapeHtml(name)}</b> · ${escapeHtml(action)}${escapeHtml(suffix)}`;
+}
+
+function activityLine2(a) {
+  const d = a.detail || {};
+  const poLine = d.po_number || d.po_numbers?.[0] || '';
+  const time = relTime(a.created_at);
+  return poLine ? `${escapeHtml(poLine)} · ${time}` : time;
+}
+
+function activityAvatarColor(role) {
+  return (typeof USER_ROLE_COLORS !== 'undefined' && USER_ROLE_COLORS[role]) || '#D7CFC2';
+}
+
+function renderActivityRow(a) {
+  const name = a.user?.display_name || a.user?.username || '?';
+  const initials = [...name].slice(0, 2).join('');
+  const color = activityAvatarColor(a.user?.role);
+  return `
+    <div class="activity-row">
+      <div class="activity-avatar" style="background:${color};">${escapeHtml(initials)}</div>
+      <div class="activity-main">
+        <div class="activity-text">${activityLine1(a)}</div>
+        <div class="activity-meta">${activityLine2(a)}</div>
+      </div>
+    </div>
+  `;
+}
+
+async function refreshActivitySection() {
+  const section = document.getElementById('activity-section');
+  const listEl  = document.getElementById('activity-list');
+  const moreBtn = document.getElementById('activity-more-btn');
+  const pillEl  = document.getElementById('activity-role-pill');
+  if (!section || !listEl) return;
+
+  // Role pill shows the viewing user's role — same vibe as the mockup
+  // where an "●ADMIN" pill sits on the header. Color tied to role.
+  if (pillEl && currentUser) {
+    const roleLabel = (currentUser.role || 'staff').toUpperCase();
+    pillEl.textContent = roleLabel;
+    pillEl.style.color = activityAvatarColor(currentUser.role);
+    pillEl.style.display = '';
+  } else if (pillEl) {
+    pillEl.style.display = 'none';
+  }
+
+  const limit = activityExpanded ? ACTIVITY_EXPANDED_LIMIT : ACTIVITY_COLLAPSED_LIMIT;
+  const rows = await loadRecentActivity(limit);
+  if (!rows || rows.length === 0) {
+    listEl.innerHTML = `<div class="activity-empty">ยังไม่มีกิจกรรม</div>`;
+    if (moreBtn) moreBtn.style.display = 'none';
+    return;
+  }
+  listEl.innerHTML = rows.map(renderActivityRow).join('');
+  if (moreBtn) {
+    // Hide the toggle when fewer than collapsed limit (nothing to expand to)
+    if (rows.length < ACTIVITY_COLLAPSED_LIMIT && !activityExpanded) {
+      moreBtn.style.display = 'none';
+    } else {
+      moreBtn.style.display = '';
+      moreBtn.textContent = activityExpanded ? 'ย่อ ←' : 'ดูทั้งหมด →';
+    }
+  }
+}
+
+// Toggle expanded/collapsed view
+function toggleActivityExpand() {
+  activityExpanded = !activityExpanded;
+  refreshActivitySection();
+}
+
 function renderDashboard() {
   syncPOStatuses(false);  // คำนวณสถานะใหม่แต่ไม่ push ขึ้น Sheet
+  // Kick off activity load (non-blocking — the section fills itself in
+  // once the Supabase round-trip returns; dashboard paint continues).
+  refreshActivitySection();
   const items   = db.items;
   const sent    = items.filter(i => i.status === 'ส่งแล้ว').length;
   const prod    = items.filter(i => i.status === 'กำลังผลิต').length;
