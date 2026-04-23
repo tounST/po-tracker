@@ -825,7 +825,7 @@ button { font-family: inherit; }
 
 .item-builder { border-top: 1px solid var(--line); margin-top: -6px; padding-top: 6px; }
 .item-builder-head, .item-builder-row {
-  display: grid; grid-template-columns: 40px 2fr 1.5fr 70px 40px;
+  display: grid; grid-template-columns: 40px 1.7fr 1.3fr 1.2fr 70px 40px;
   gap: 10px; padding: 10px 14px; align-items: center;
 }
 .item-builder-head {
@@ -1637,6 +1637,18 @@ function hasPermission(permKey) {
 //  HELPERS — date & formatting
 // ═══════════════════════════════════════════════════
 function pad2(n) { return String(n).padStart(2, '0'); }
+
+// Display-ready car-model string for a PO. Mirrors po-mobile.html's
+// getPoDisplayModel so both clients render the same label for the
+// same PO. Prefers per-item carModel (new data shape), falls back to
+// po.model for legacy POs that still carry the value on po_list.
+function getPoDisplayModel(po) {
+  const its = (db.items || []).filter(i => i.po === po.id);
+  const models = [...new Set(its.map(i => i.carModel).filter(Boolean))];
+  if (models.length === 1) return models[0];
+  if (models.length >  1)  return `${models[0]} +${models.length - 1}`;
+  return po.model || '';
+}
 function localISO(d) { return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
 function todayISO() { return localISO(new Date()); }
 
@@ -1877,6 +1889,7 @@ async function loadFromSupabase() {
       po: i.po_number,
       part: i.part_name || '',
       color: i.color || '',
+      carModel: i.car_model || '',
       urgent: i.urgent || false,
       status: i.status || 'รับของแล้ว',
       rework: i.rework || false,
@@ -1987,6 +2000,7 @@ async function createPOInSupabase(po, items) {
         po_number:  po.id,
         part_name:  i.part,
         color:      i.color    || '',
+        car_model:  i.carModel || '',
         urgent:     po.urgent  || false,
         status:     'รับของแล้ว',
         rework:     false
@@ -2368,7 +2382,7 @@ function renderDueCard(po) {
       <div>
         <div class="due-pono">${escapeHtml(po.id)}</div>
         <div class="due-company">${escapeHtml(po.company || '—')}</div>
-        <div class="due-model">${escapeHtml(po.model || '')}</div>
+        <div class="due-model">${escapeHtml(getPoDisplayModel(po))}</div>
       </div>
       <div class="due-foot">
         <div class="due-foot-row">
@@ -2393,7 +2407,7 @@ function renderUrgentRow(po) {
           <span class="urgent-pono">${escapeHtml(po.id)}</span>
           <span class="urgent-company">${escapeHtml(po.company || '—')}</span>
         </div>
-        <div class="urgent-meta">${escapeHtml(po.model || '')}${po.due ? ' · กำหนด ' + po.due.slice(5) : ''}</div>
+        <div class="urgent-meta">${escapeHtml(getPoDisplayModel(po))}${po.due ? ' · กำหนด ' + po.due.slice(5) : ''}</div>
       </div>
       ${poStatusChip(po.status)}
     </div>
@@ -2744,7 +2758,7 @@ function renderListRow(po) {
         <div class="td-company-main">${escapeHtml(po.company || '—')}</div>
         ${po.remark ? `<div class="td-company-sub">${escapeHtml(po.remark)}</div>` : ''}
       </div>
-      <div class="td-model">${escapeHtml(po.model || '')}</div>
+      <div class="td-model">${escapeHtml(getPoDisplayModel(po))}</div>
       <div class="td-date-mono mute">${po.recv ? po.recv.slice(5) : '—'}</div>
       <div class="td-date-mono strong">${po.due ? po.due.slice(5) : '—'}</div>
       <div class="td-qty">${po.sent}/${po.total}</div>
@@ -2825,7 +2839,7 @@ async function renderDetail(params) {
     <div class="hero-strip">
       <div class="hero-cell">
         <div class="hero-cell-label">รุ่นรถ</div>
-        <div class="hero-cell-val">${escapeHtml(po.model || '—')}</div>
+        <div class="hero-cell-val">${escapeHtml(getPoDisplayModel(po) || '—')}</div>
       </div>
       <div class="hero-cell">
         <div class="hero-cell-label">รับของ</div>
@@ -3258,7 +3272,7 @@ function renderDetailItemRow(it, idx) {
       </div>
       <div class="item-color-cell">
         <span class="color-swatch" style="background:${swatchColor};"></span>
-        <span>${escapeHtml(it.color || '—')}</span>
+        <span>${escapeHtml([it.carModel, it.color].filter(Boolean).join(' · ') || '—')}</span>
       </div>
       <div>
         ${qcPassedChip}
@@ -3304,12 +3318,16 @@ function initCreateState() {
   createState = {
     id:      nextPONumber(),
     company: '',
+    // `model` at the PO header level is retained as an empty placeholder
+    // for backward compat with po_list.car_model, but the real model now
+    // lives on each item row via `carModel`. Legacy POs may still have
+    // po_list.car_model set — getPoDisplayModel handles the fallback.
     model:   '',
     recv:    todayISO(),
     due:     todayISO(),
     urgent:  false,
     remark:  '',
-    items:   [{ part: '', color: '', qty: 1 }],  // start with 1 empty row
+    items:   [{ part: '', color: '', carModel: '', qty: 1 }],  // start with 1 empty row
   };
 }
 
@@ -3369,12 +3387,11 @@ async function renderCreate() {
               <input class="form-input" id="f-company" list="dl-companies" value="${escapeHtml(s.company)}" placeholder="เลือกหรือพิมพ์บริษัท">
               <datalist id="dl-companies">${masters.companies.map(c => `<option value="${escapeHtml(c)}">`).join('')}</datalist>
             </div>
-            <div>
-              <label class="form-field-label">รุ่นรถ / Car model</label>
-              <input class="form-input" id="f-model" list="dl-models" value="${escapeHtml(s.model)}" placeholder="เลือกหรือพิมพ์รุ่นรถ">
-              <datalist id="dl-models">${masters.models.map(m => `<option value="${escapeHtml(m)}">`).join('')}</datalist>
-            </div>
-            <div></div>
+            <!-- car model moved to per-item (see renderCreateItemRow) —
+                 a single PO often covers multiple models. masters.models
+                 datalist is still emitted so item rows below can share
+                 the same autocomplete source without re-declaring. -->
+            <datalist id="dl-models">${masters.models.map(m => `<option value="${escapeHtml(m)}">`).join('')}</datalist>
             <div>
               <label class="form-field-label">วันรับของ</label>
               <input type="date" class="form-input mono" id="f-recv" value="${s.recv}">
@@ -3409,7 +3426,7 @@ async function renderCreate() {
           </div>
           <div class="item-builder">
             <div class="item-builder-head">
-              <div>#</div><div>ชิ้นงาน</div><div>สี</div><div>จำนวน</div><div></div>
+              <div>#</div><div>ชิ้นงาน</div><div>รุ่นรถ</div><div>สี</div><div>จำนวน</div><div></div>
             </div>
             <div id="items-container">
               ${s.items.map((it, idx) => renderCreateItemRow(it, idx, masters)).join('')}
@@ -3422,7 +3439,10 @@ async function renderCreate() {
         <div class="side-panel-label">Summary</div>
         <div class="summary-pono" id="sum-pono">${escapeHtml(s.id)}</div>
         <div style="font-size: 13px; color: var(--ink-2); margin-top: 2px;" id="sum-company">${escapeHtml(s.company || '—')}</div>
-        <div style="font-size: 12px; color: var(--ink-3); margin-top: 2px;" id="sum-model">${escapeHtml(s.model || '—')}</div>
+        <!-- car model moved to per-item — summary picks a dominant model
+             from the current items so the right rail still shows context
+             at a glance (e.g. "TRITON" or "TRITON +2"). -->
+        <div style="font-size: 12px; color: var(--ink-3); margin-top: 2px;" id="sum-model">—</div>
 
         <div class="summary-grid">
           <div>
@@ -3455,14 +3475,30 @@ async function renderCreate() {
   wireGotoLinks(el);
 }
 
+// Summary-rail helper — derive "dominant" model label from current
+// createState.items for the #sum-model element. Empty when no item
+// has a model yet; shows "X +N" for multi-model POs.
+function refreshCreateSummaryModel() {
+  const el = document.getElementById('sum-model');
+  if (!el) return;
+  const models = [...new Set((createState?.items || [])
+    .map(i => (i.carModel || '').trim()).filter(Boolean))];
+  if (models.length === 0)      el.textContent = '—';
+  else if (models.length === 1) el.textContent = models[0];
+  else                          el.textContent = `${models[0]} +${models.length - 1}`;
+}
+
 function renderCreateItemRow(it, idx, masters) {
   const num = pad2(idx + 1);
+  // New per-item car model field — reuses the shared #dl-models datalist
+  // declared once at the top of the form.
   return `
     <div class="item-builder-row" data-idx="${idx}">
       <span class="mini-label">${num}</span>
-      <input class="mini-input" data-f="part" list="dl-parts-${idx}" value="${escapeHtml(it.part || '')}" placeholder="เลือกชิ้นงาน">
+      <input class="mini-input" data-f="part" list="dl-parts-${idx}" value="${escapeHtml(it.part || '')}" placeholder="ชิ้นงาน">
       <datalist id="dl-parts-${idx}">${(masters?.parts || []).map(p => `<option value="${escapeHtml(p)}">`).join('')}</datalist>
-      <input class="mini-input" data-f="color" value="${escapeHtml(it.color || '')}" placeholder="เช่น สีดำ B92">
+      <input class="mini-input" data-f="carModel" list="dl-models" value="${escapeHtml(it.carModel || '')}" placeholder="รุ่นรถ">
+      <input class="mini-input" data-f="color" value="${escapeHtml(it.color || '')}" placeholder="สี">
       <input class="mini-input mono" data-f="qty" type="number" min="1" value="${it.qty || 1}">
       <button class="icon-btn-trash" data-remove-item="${idx}" title="ลบ">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
@@ -3477,7 +3513,10 @@ function wireCreateForm() {
   // Top-level fields
   document.getElementById('f-po-id').oninput = e => { s.id = e.target.value; document.getElementById('sum-pono').textContent = s.id; };
   document.getElementById('f-company').oninput = e => { s.company = e.target.value; document.getElementById('sum-company').textContent = s.company || '—'; };
-  document.getElementById('f-model').oninput = e => { s.model = e.target.value; document.getElementById('sum-model').textContent = s.model || '—'; };
+  // NOTE: f-model removed — car_model is now per-item. Summary's
+  // "sum-model" text is refreshed by refreshCreateSummaryModel() below,
+  // which re-derives a dominant label from s.items whenever an item's
+  // carModel field is edited.
   document.getElementById('f-recv').oninput = e => { s.recv = e.target.value; document.getElementById('sum-recv').textContent = s.recv ? s.recv.slice(5) : '—'; };
   document.getElementById('f-due').oninput  = e => { s.due  = e.target.value; document.getElementById('sum-due').textContent  = s.due  ? s.due.slice(5)  : '—'; };
   document.getElementById('f-remark').oninput = e => { s.remark = e.target.value; };
@@ -3502,7 +3541,9 @@ function wireCreateForm() {
       const total = s.items.reduce((t, i) => t + (Number(i.qty) || 0), 0);
       document.getElementById('sum-qty').textContent = total;
     }
+    if (field === 'carModel') refreshCreateSummaryModel();
   };
+  refreshCreateSummaryModel();  // initial paint for edit mode
   container.onclick = (e) => {
     const btn = e.target.closest('[data-remove-item]');
     if (!btn) return;
@@ -3555,18 +3596,25 @@ async function submitCreate() {
     return;
   }
 
-  // Expand each item by qty into individual rows (mobile's convention — 1 row per piece)
+  // Expand each item by qty into individual rows (mobile's convention — 1 row per piece).
+  // Per-item carModel carries through so each piece records its own model.
   const expandedItems = [];
   validItems.forEach(i => {
     for (let k = 0; k < i.qty; k++) {
-      expandedItems.push({ part: i.part.trim(), color: (i.color || '').trim() });
+      expandedItems.push({
+        part:     i.part.trim(),
+        color:    (i.color || '').trim(),
+        carModel: (i.carModel || '').trim()
+      });
     }
   });
 
   showLoading(true);
   try {
     await createPOInSupabase({
-      id: s.id, company: s.company, model: s.model,
+      // po_list.car_model stays empty for new POs — display logic
+      // derives the visible model from items via getPoDisplayModel.
+      id: s.id, company: s.company, model: '',
       recv: s.recv, due: s.due, urgent: s.urgent, remark: s.remark
     }, expandedItems);
 
@@ -3694,7 +3742,7 @@ function renderQCInspectPanel(it) {
 
     <div class="qc-card-pono" style="font-size: 14px;">${escapeHtml(it.po)}</div>
     <div class="qc-card-part" style="font-size: 14px;">${escapeHtml(it.part)}${it.color ? ' · ' + escapeHtml(it.color) : ''}</div>
-    ${po ? `<div class="qc-card-color">${escapeHtml(po.company || '')}${po.model ? ' · ' + escapeHtml(po.model) : ''}</div>` : ''}
+    ${po ? (() => { const m = getPoDisplayModel(po); return `<div class="qc-card-color">${escapeHtml(po.company || '')}${m ? ' · ' + escapeHtml(m) : ''}</div>`; })() : ''}
 
     <div style="font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin-top: 18px; margin-bottom: 8px;">เหตุผลตีกลับ (เลือกถ้าไม่ผ่าน)</div>
     ${defects.length === 0
