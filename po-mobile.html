@@ -2343,7 +2343,7 @@
     <div class="card-title" id="addpo-card-title">📋 ข้อมูล PO</div>
 
     <label>เลขที่ PO *</label>
-    <input type="text" id="add-pono" placeholder="เช่น PO-260325-01">
+    <input type="text" id="add-pono" placeholder="เช่น PO-23/04/69-01">
 
     <label>บริษัท / ลูกค้า *</label>
     <div class="sdropdown" id="sd-company">
@@ -4982,18 +4982,26 @@ function addBulkItems() {
 
 function autoNextPO() {
   const now = new Date();
-  const yy = String(now.getFullYear()).slice(-2);
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  const prefix = `PO-${yy}${mm}${dd}-`;
+  const mm  = String(now.getMonth() + 1).padStart(2, '0');
+  const dd  = String(now.getDate()).padStart(2, '0');
+  // Buddhist year last-2-digits — 2026 Gregorian → 2569 Buddhist → "69".
+  const byy = String((now.getFullYear() + 543) % 100).padStart(2, '0');
+  // Legacy Gregorian last-2-digits — still recognised in the counter
+  // below so we keep numbering sequential across the format transition.
+  const ggyy = String(now.getFullYear()).slice(-2);
 
-  // หาเลขล่าสุดของวันนี้จาก PO ที่มีอยู่
+  const newPrefix    = `PO-${dd}/${mm}/${byy}-`;     // new format — what we emit
+  const legacyPrefix = `PO-${ggyy}${mm}${dd}-`;      // old format — for counting only
+
+  // Count POs created today in EITHER format so the "-NN" counter keeps
+  // advancing sequentially even if earlier POs for this date used the
+  // old PO-YYMMDD-NN layout.
   const todayNums = db.pos
-    .filter(p => p.id && p.id.startsWith(prefix))
+    .filter(p => p.id && (p.id.startsWith(newPrefix) || p.id.startsWith(legacyPrefix)))
     .map(p => parseInt(p.id.split('-').pop()) || 0);
 
   const next = todayNums.length > 0 ? Math.max(...todayNums) + 1 : 1;
-  return `${prefix}${String(next).padStart(2, '0')}`;
+  return `${newPrefix}${String(next).padStart(2, '0')}`;
 }
 
 function toggleUrgent() {
