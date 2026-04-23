@@ -789,40 +789,32 @@
   .item-row .item-name-row {
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   }
-  /* When metadata (รุ่นรถ / color / sent date) follows below, turn the
-     name row's bottom into a full-width underline. A proper border-bottom
-     reads as a clean horizontal rule across every screen DPI — the
-     previous 1px <div> divider looked almost diagonal ("/"-like) on
-     some devices per toun's report. */
-  .item-row .item-name-row.with-meta {
-    padding-bottom: 7px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 7px;
-    width: 100%;
-  }
   .item-row .item-name {
     font-size: 15px; font-weight: 700; color: var(--ink);
     letter-spacing: -0.2px;
+  }
+  /* Inline car-model — sits RIGHT NEXT TO the part name with a 1px
+     VERTICAL separator between them. Reads as "คาดเอว | Fortuner"
+     on the same row per toun's layout request (2026-04-23). The
+     border-left is the divider; no extra element needed. */
+  .item-row .item-model-inline {
+    font-size: 13px; color: var(--ink-2); font-weight: 500;
+    letter-spacing: 0.1px;
+    padding-left: 10px;
+    border-left: 1px solid var(--line);
+    display: inline-flex; align-items: center;
+    min-height: 18px;
   }
   .item-row .item-sub {
     font-size: 12px; color: var(--ink-3); font-weight: 500;
     margin-top: 2px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  /* Thin rule between the item name and its metadata — keeps the
-     hierarchy "heading → supporting info" visually distinct. Uses
-     the same --line token as card borders so it feels native. */
-  .item-row .item-divider {
-    height: 1px; background: var(--line);
-    margin: 6px 0 4px;
-  }
-  /* Per-item car model — primary metadata, own line, thin weight
-     so the part name stays the clear anchor. */
-  .item-row .item-model {
-    font-size: 12px; color: var(--ink-2); font-weight: 500;
-    letter-spacing: 0.1px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  /* (Legacy .item-divider / .item-model block classes kept as no-ops
+     in case any cached render still references them — the new layout
+     uses .item-model-inline inside .item-name-row instead.) */
+  .item-row .item-divider { display: none; }
+  .item-row .item-model { display: none; }
   .item-row .item-meta-qc {
     font-size: 11px; color: var(--danger); font-weight: 600; margin-top: 2px;
   }
@@ -1064,17 +1056,17 @@
     font-size: 14px; font-weight: 700; color: var(--ink);
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   }
-  /* Same with-meta underline treatment as .item-row for consistency
-     between Update-tab item rows and Dashboard detail-modal items. */
-  .modal-item-name.with-meta {
-    padding-bottom: 6px; margin-bottom: 6px;
-    border-bottom: 1px solid var(--line);
-    width: 100%;
-  }
-  .modal-item .item-model {
-    font-size: 12px; color: var(--ink-2); font-weight: 500;
+  /* Inline car-model with vertical divider — "part | model" layout
+     matches the Update-tab .item-row for consistency. */
+  .modal-item-name .item-model-inline {
+    font-size: 12.5px; color: var(--ink-2); font-weight: 500;
     letter-spacing: 0.1px;
+    padding-left: 9px;
+    border-left: 1px solid var(--line);
+    display: inline-flex; align-items: center;
+    min-height: 16px;
   }
+  .modal-item .item-model { display: none; } /* legacy — superseded by inline */
   .modal-item-color {
     font-size: 12px; color: var(--ink-3);
     margin-top: 2px;
@@ -4070,17 +4062,16 @@ function openDetailModal(poId) {
           <div class="detail-group-count">${cnt} ${cnt === 1 ? 'ITEM' : 'ITEMS'}</div>
         </div>
         ${group.map(it => {
-          const modalHasMeta = !!(it.carModel || it.color);
           return `
           <div class="modal-item">
             <div class="modal-item-head">
               <div class="modal-item-main">
-                <div class="modal-item-name${modalHasMeta ? ' with-meta' : ''}">
+                <div class="modal-item-name">
                   ${it.urgent ? '<span class="po-flame">🔥</span>' : ''}
-                  ${escapeHtml(it.part)}
+                  <span>${escapeHtml(it.part)}</span>
+                  ${it.carModel ? `<span class="item-model-inline">${escapeHtml(it.carModel)}</span>` : ''}
                   ${it.rework ? '<span class="po-rework-badge">🔁 แก้</span>' : ''}
                 </div>
-                ${it.carModel ? `<div class="item-model">${escapeHtml(it.carModel)}</div>` : ''}
                 ${it.color ? `<div class="modal-item-color">${escapeHtml(it.color)}</div>` : ''}
                 ${it.qcPassed === false && it.qcDefectReason ? `<div class="modal-item-meta"><span class="meta-danger">❌ QC: ${escapeHtml(it.qcDefectReason)}</span></div>` : ''}
               </div>
@@ -4396,13 +4387,13 @@ function openPoItems(poId) {
         <div class="item-check" id="item-check-${domId}">✓</div>
         <div class="item-status-dot ${stCls}"></div>
         <div class="item-main">
-          <div class="item-name-row${hasMeta ? ' with-meta' : ''}">
+          <div class="item-name-row">
             ${it.urgent ? '<span class="po-flame" style="font-size:13px;">🔥</span>' : ''}
             <span class="item-name">${escapeHtml(it.part)}</span>
+            ${it.carModel ? `<span class="item-model-inline">${escapeHtml(it.carModel)}</span>` : ''}
             <span class="item-status-chip ${stCls}">${stLabel}</span>
             ${it.rework ? '<span class="po-rework-badge">แก้</span>' : ''}
           </div>
-          ${it.carModel ? `<div class="item-model">${escapeHtml(it.carModel)}</div>` : ''}
           ${secondary.length ? `<div class="item-sub">${escapeHtml(secondary.join(' · '))}</div>` : ''}
           ${it.qcPassed === false && it.qcDefectReason ? `<div class="item-meta-qc">QC: ${escapeHtml(it.qcDefectReason)}</div>` : ''}
           ${it.itemDue ? `<div class="item-meta-due">ส่งภายใน ${thaiDate(it.itemDue)} · ${daysLeftLabel(it.itemDue, po.status)}</div>` : ''}
