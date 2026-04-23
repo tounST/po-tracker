@@ -4830,8 +4830,13 @@ async function initAddPOTab() {
   // exists and stays empty so savePO writes '' to po_list.car_model
   // — display logic (getPoDisplayModel) reads from items instead.
 
-  // Always reset these basics — they'll be overwritten below for edit mode
-  document.getElementById('add-recv').value = todayISO();
+  // Always reset these basics — they'll be overwritten below for edit mode.
+  // ALL fields must be cleared here or the form "remembers" values from
+  // a previous edit/create session (BUG27: remark + due were leaking
+  // into the next PO because only recv + urgent + pono got reset).
+  document.getElementById('add-recv').value   = todayISO();
+  document.getElementById('add-due').value    = '';
+  document.getElementById('add-remark').value = '';
   urgentOn = false;
   document.getElementById('add-urgent-toggle').classList.remove('on');
   // Reset items state — applyEditModeUI below will re-populate from DB
