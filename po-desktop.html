@@ -1997,19 +1997,28 @@ async function createPOInSupabase(po, items) {
   return poRow.id;
 }
 
-// Auto-generate next PO number for today: PO-YYMMDD-NN
+// Auto-generate next PO number for today: PO-DD/MM/YY-NN (Buddhist year)
 function nextPONumber() {
   const d = new Date();
-  const yy = String(d.getFullYear() % 100).padStart(2, '0');
   const mm = pad2(d.getMonth() + 1);
   const dd = pad2(d.getDate());
-  const prefix = `PO-${yy}${mm}${dd}-`;
-  const todayPOs = (db.pos || []).filter(p => p.id && p.id.startsWith(prefix));
-  const nums = todayPOs
-    .map(p => parseInt(p.id.slice(prefix.length), 10))
+  // Thai format: Buddhist year's last 2 digits — 2026 Gregorian →
+  // 2569 Buddhist → "69". Matches the mobile auto PO formatter so
+  // PO numbers look identical regardless of which client created them.
+  const byy  = pad2((d.getFullYear() + 543) % 100);
+  const ggyy = pad2(d.getFullYear() % 100);  // legacy, for counting only
+
+  const newPrefix    = `PO-${dd}/${mm}/${byy}-`;   // emit this
+  const legacyPrefix = `PO-${ggyy}${mm}${dd}-`;    // count these too
+
+  // Count POs created today in EITHER format so "-NN" keeps advancing
+  // through the transition window (mirrors po-mobile.html autoNextPO).
+  const todayNums = (db.pos || [])
+    .filter(p => p.id && (p.id.startsWith(newPrefix) || p.id.startsWith(legacyPrefix)))
+    .map(p => parseInt(p.id.split('-').pop(), 10))
     .filter(n => !isNaN(n));
-  const next = (nums.length ? Math.max(...nums) : 0) + 1;
-  return prefix + pad2(next);
+  const next = (todayNums.length ? Math.max(...todayNums) : 0) + 1;
+  return newPrefix + pad2(next);
 }
 
 // Load role_permissions from Supabase and merge them into the in-memory
