@@ -394,6 +394,29 @@
     margin-top: 1px;
   }
 
+  /* ── Add/Edit PO banner ── */
+  .addpo-edit-banner {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; flex-wrap: wrap;
+    background: #F3E6CB; color: #7A4A12;
+    border: 1px solid #E8D5A8; border-radius: 12px;
+    padding: 11px 14px; margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .addpo-edit-banner b { color: #5A3A08; }
+  .addpo-edit-banner .mono {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  .addpo-edit-cancel {
+    background: transparent; border: 1px solid #C89756;
+    color: #7A4A12; font-family: inherit;
+    font-size: 12px; font-weight: 700;
+    padding: 6px 12px; border-radius: 8px;
+    cursor: pointer; touch-action: manipulation;
+  }
+  .addpo-edit-cancel:active { background: #E8D5A8; }
+
   /* ── Recent Activity (Dashboard) ── */
   .activity-section {
     background: var(--surface);
@@ -2307,8 +2330,17 @@
 <!-- ═══════════════ TAB: ADD PO ═══════════════ -->
 <div id="tab-addpo" class="page">
 
+  <!-- Edit-mode banner: shown by initAddPOTab when editPoId !== null.
+       Tells the user they're editing an existing PO, offers a Cancel. -->
+  <div id="addpo-edit-banner" class="addpo-edit-banner" style="display:none;">
+    <div class="addpo-edit-banner-text">
+      📝 <b>กำลังแก้ไข</b> <span id="addpo-edit-pono" class="mono"></span>
+    </div>
+    <button type="button" class="addpo-edit-cancel" onclick="cancelEditPO()">ยกเลิกการแก้ไข</button>
+  </div>
+
   <div class="card">
-    <div class="card-title">📋 ข้อมูล PO</div>
+    <div class="card-title" id="addpo-card-title">📋 ข้อมูล PO</div>
 
     <label>เลขที่ PO *</label>
     <input type="text" id="add-pono" placeholder="เช่น PO-260325-01">
@@ -2370,7 +2402,7 @@
     <div id="add-items-list"></div>
   </div>
 
-  <button class="btn btn-green" onclick="savePO()">✅ บันทึก PO ใหม่</button>
+  <button class="btn btn-green" id="addpo-save-btn" onclick="savePO()">✅ บันทึก PO ใหม่</button>
 </div>
 
 <!-- ═══════════════ TAB: ARCHIVE ═══════════════ -->
@@ -2537,6 +2569,11 @@
     <button class="btn btn-primary" onclick="goUpdateFromModal()" style="margin-top:14px;">
       ✏️ อัพเดทสถานะชิ้นงาน
     </button>
+    <!-- Edit the PO header + add/remove items (admin/supervisor/manager — gated by createPO perm).
+         Opens the Add-PO tab in edit mode, pre-filled from this PO. -->
+    <button class="btn btn-outline perm-create-only" onclick="startEditPO(modalPoId)" style="margin-top:8px;">
+      📝 แก้ไข PO (header + ชิ้นงาน)
+    </button>
     <button class="btn perm-delete-only" onclick="deletePO(modalPoId)"
       style="background:var(--danger);color:#fff;margin-top:8px;">
       🗑️ ลบ PO นี้
@@ -2601,11 +2638,11 @@ function resetSessionTimer() {
 //   manageDataAdd     — add/edit master data rows (company/model/part/defect)
 //   manageDataDelete  — delete master data rows (manager CANNOT — prevents accidental destruction)
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true  },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true  },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true  },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false }
 };
 
 // Station-based status permissions for staff
@@ -2630,6 +2667,7 @@ const PERMISSION_META = [
   { key: 'manageUserRoles',  label: 'เปลี่ยน Role/Station ของ user' },
   { key: 'manageDataAdd',    label: 'เพิ่ม/แก้ Master Data' },
   { key: 'manageDataDelete', label: 'ลบ Master Data' },
+  { key: 'quickAddMaster',   label: 'เพิ่ม master data ตอนสร้าง/แก้ PO (ไม่ต้องไปหน้าจัดการ)' },
 ];
 const ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
 
@@ -2905,6 +2943,9 @@ function applyPermissions() {
   });
   document.querySelectorAll('.perm-delete-only').forEach(el => {
     el.style.display = hasPermission('delete') ? '' : 'none';
+  });
+  document.querySelectorAll('.perm-create-only').forEach(el => {
+    el.style.display = hasPermission('createPO') ? '' : 'none';
   });
   document.querySelectorAll('.role-admin-only').forEach(el => {
     el.style.display = (currentUser.role === 'admin') ? '' : 'none';
@@ -3242,6 +3283,10 @@ let selectedStatus    = '';
 let selectedStatusSel = '';
 let urgentOn     = false;
 let addItemCount = 0;
+// Edit-PO state — null = creating a brand-new PO (original Add-PO flow),
+// non-null = editing the PO with this id (Save emits UPDATE + item diff).
+let editPoId            = null;
+let editDeletedItemIds  = [];
 let selectedItems = new Set();
 let currentPoId   = '';
 let modalPoId     = '';
@@ -3466,6 +3511,14 @@ function syncPOStatuses(pushToCloud) {
 //  TAB SWITCHING
 // ═══════════════════════════════════════════════════
 function switchTab(name) {
+  // Clear edit-PO state if we're navigating AWAY from the addpo tab
+  // without saving (user tapped another bottom-nav tab). Otherwise a
+  // stale editPoId would persist and next time the user opens Add PO
+  // the form would reopen in edit mode with stale data.
+  if (name !== 'addpo' && editPoId) {
+    editPoId = null;
+    editDeletedItemIds = [];
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tabnav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
@@ -3502,6 +3555,7 @@ const ACTION_LABELS = {
   auto_logout:          'ออกจากระบบ (หมดเวลา)',
   create_po:            'สร้าง PO ใหม่',
   add_po:               'สร้าง PO ใหม่',
+  edit_po:              'แก้ไข PO',
   update_status:        'อัพเดทสถานะชิ้นงาน',
   qc_pass:              'ผ่าน QC',
   qc_fail:              'ไม่ผ่าน QC',
@@ -3572,6 +3626,11 @@ function activityLine1(a) {
     suffix = parts.length ? ` · ${parts.join(' · ')}` : '';
   } else if (a.action === 'create_po' && d.item_count) {
     suffix = ` (${d.item_count} ชิ้น)`;
+  } else if (a.action === 'edit_po') {
+    const parts = [];
+    if (d.items_added   > 0) parts.push(`+${d.items_added}`);
+    if (d.items_removed > 0) parts.push(`-${d.items_removed}`);
+    if (parts.length) suffix = ` (${parts.join(' / ')} ชิ้น)`;
   } else if (a.action === 'update_permission' && d.role) {
     suffix = ` · ${d.role}.${d.permission_key} = ${d.allowed ? 'เปิด' : 'ปิด'}`;
   } else if (a.action === 'archive' && d.po_count) {
@@ -4614,7 +4673,12 @@ async function saveUpdate() {
 // ═══════════════════════════════════════════════════
 //  SEARCHABLE DROPDOWN
 // ═══════════════════════════════════════════════════
-function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
+// `cfgType` (optional) — if provided and user has `quickAddMaster`, the
+// dropdown offers an inline "➕ เพิ่ม 'X' ใหม่" row when the typed value
+// isn't in the list. Tapping it UPSERTs into the config table +
+// refreshes the in-memory master list, so the user never has to leave
+// the Add/Edit PO form to create a new company/model/part.
+function initSearchableDropdown(inputId, hiddenId, listId, getOptions, cfgType) {
   const input  = document.getElementById(inputId);
   const hidden = document.getElementById(hiddenId);
   const list   = document.getElementById(listId);
@@ -4629,24 +4693,51 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
     list.classList.remove('open');
   }
 
-  function renderList(filter) {
-    const opts = getOptions();
-    const q = (filter || '').toLowerCase();
-    const filtered = q ? opts.filter(o => o.toLowerCase().includes(q)) : opts;
-    if (!filtered.length) {
-      list.innerHTML = '<div class="sdropdown-empty">ไม่พบรายการ</div>';
-    } else {
-      list.innerHTML = filtered.map(o =>
-        `<div class="sdropdown-item" data-val="${o}">${o}</div>`
-      ).join('');
+  async function commitAddNew(val) {
+    // Optimistic UI + real Supabase insert via existing helper. Local
+    // master list is mutated so future renders see the new option.
+    try {
+      await addConfigInSupabase(cfgType, val);
+      const listKey = cfgType === 'company'   ? 'masterCompanies'
+                    : cfgType === 'car_model' ? 'masterModels'
+                    : cfgType === 'part_name' ? 'masterParts'
+                    : cfgType === 'defect_reason' ? 'masterDefects'
+                    : null;
+      if (listKey && !db[listKey].includes(val)) db[listKey].push(val);
+      saveData(db);
+      commitPick(val);
+      toast(`✅ เพิ่ม "${val}" เข้าในลิสต์แล้ว`, 2000);
+    } catch(e) {
+      toast('❌ เพิ่มไม่สำเร็จ: ' + (e.message || e), 3500);
     }
   }
 
-  // Event delegation on the list — one handler for all items, survives
-  // re-renders. Movement threshold distinguishes tap from scroll: if the
-  // finger moved > 8px or the touch lasted > 500ms, treat it as a scroll
-  // gesture and DON'T commit a selection (previous version committed on
-  // any touchstart, which made scrolling the list impossible).
+  function renderList(filter) {
+    const opts = getOptions();
+    const q = (filter || '').toLowerCase().trim();
+    const filtered = q ? opts.filter(o => o.toLowerCase().includes(q)) : opts;
+    const exactMatch = opts.some(o => o.toLowerCase() === q);
+    const canAddNew = !!cfgType && !!q && !exactMatch && hasPermission('quickAddMaster');
+
+    let html = '';
+    if (filtered.length) {
+      html = filtered.map(o =>
+        `<div class="sdropdown-item" data-val="${escapeHtml(o)}">${escapeHtml(o)}</div>`
+      ).join('');
+    } else if (!canAddNew) {
+      html = '<div class="sdropdown-empty">ไม่พบรายการ</div>';
+    }
+    if (canAddNew) {
+      html += `<div class="sdropdown-item sdropdown-add-new" data-add-val="${escapeHtml(filter.trim())}">
+        <span style="color:var(--accent);font-weight:700;">➕ เพิ่ม "${escapeHtml(filter.trim())}" เข้าในลิสต์</span>
+      </div>`;
+    }
+    list.innerHTML = html;
+  }
+
+  // Event delegation on the list — movement threshold distinguishes
+  // tap from scroll. Same pattern as BUG24 fix; now also branches on
+  // data-add-val for the inline-add row.
   let touchStart = null;
   list.addEventListener('touchstart', (e) => {
     const item = e.target.closest('.sdropdown-item');
@@ -4663,16 +4754,17 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
     const dt = Date.now() - touchStart.time;
     const item = touchStart.item;
     touchStart = null;
-    if (dy > 8 || dx > 8 || dt > 500) return;  // scroll / long-press, not a tap
-    e.preventDefault();                         // cancel synthetic click
-    commitPick(item.dataset.val);
+    if (dy > 8 || dx > 8 || dt > 500) return;
+    e.preventDefault();
+    if (item.dataset.addVal) commitAddNew(item.dataset.addVal);
+    else                    commitPick(item.dataset.val);
   }, { passive: false });
 
-  // Desktop / any non-touch click path
   list.addEventListener('click', (e) => {
     const item = e.target.closest('.sdropdown-item');
     if (!item) return;
-    commitPick(item.dataset.val);
+    if (item.dataset.addVal) commitAddNew(item.dataset.addVal);
+    else                    commitPick(item.dataset.val);
   });
 
   input.addEventListener('focus', () => {
@@ -4681,7 +4773,7 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
   });
 
   input.addEventListener('input', () => {
-    hidden.value = input.value; // allow custom entry
+    hidden.value = input.value;
     renderList(input.value);
     list.classList.add('open');
   });
@@ -4689,7 +4781,6 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
   input.addEventListener('blur', () => {
     setTimeout(() => {
       list.classList.remove('open');
-      // if typed value matches an option, set it
       const opts = getOptions();
       const match = opts.find(o => o.toLowerCase() === input.value.toLowerCase());
       if (match) { input.value = match; hidden.value = match; }
@@ -4697,10 +4788,6 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions) {
     }, 150);
   });
 
-  // Close the list immediately on a tap outside — fixes a UX bug where
-  // the 150ms blur-timeout kept the dropdown overlapping the save button
-  // so the first tap "landed" on a dropdown item instead of the button
-  // (user experienced it as "save ปุ่มเหมือน drift ไป").
   document.addEventListener('pointerdown', (e) => {
     if (!list.classList.contains('open')) return;
     if (input.contains(e.target) || list.contains(e.target)) return;
@@ -4721,14 +4808,15 @@ async function initAddPOTab() {
     console.warn('[initAddPOTab] refresh skipped, using cached db:', e);
   }
 
-  // Searchable dropdown — บริษัท
+  // Searchable dropdown — บริษัท (with inline-add if user has quickAddMaster)
   initSearchableDropdown('add-company-input', 'add-company', 'sd-company-list',
-    () => db.masterCompanies.slice().sort());
+    () => db.masterCompanies.slice().sort(), 'company');
 
-  // Searchable dropdown — รุ่นรถ
+  // Searchable dropdown — รุ่นรถ (with inline-add)
   initSearchableDropdown('add-model-input', 'add-model', 'sd-model-list',
-    () => db.masterModels.slice().sort());
+    () => db.masterModels.slice().sort(), 'car_model');
 
+  // Always reset these basics — they'll be overwritten below for edit mode
   document.getElementById('add-recv').value = todayISO();
   urgentOn = false;
   document.getElementById('add-urgent-toggle').classList.remove('on');
@@ -4736,12 +4824,140 @@ async function initAddPOTab() {
   document.getElementById('add-items-list').innerHTML = '';
   document.getElementById('add-pono').value = autoNextPO();
 
-  // ★ Populate bulk part dropdown
+  // ★ Populate bulk part dropdown (+ sentinel option for inline add)
   const bulkPartSel = document.getElementById('bulk-part');
-  bulkPartSel.innerHTML = '<option value="">— เลือกชิ้นงาน —</option>' +
-    db.masterParts.map(p => `<option value="${p}">${p}</option>`).join('');
+  populatePartSelect(bulkPartSel, '');
+  bulkPartSel.onchange = () => handlePartSelectChange(bulkPartSel);
   document.getElementById('bulk-color').value = '';
   document.getElementById('bulk-qty').value = 1;
+
+  // If editPoId was set by startEditPO(), pre-fill the form from the
+  // target PO + load its items into the list. Otherwise this is a
+  // normal Add-PO entry (already reset above).
+  applyEditModeUI();
+}
+
+// Build the form UI for either "create new" or "edit existing" based
+// on the editPoId state. Kept separate from initAddPOTab so startEditPO
+// can set the state first then call initAddPOTab to repaint cleanly.
+function applyEditModeUI() {
+  const banner  = document.getElementById('addpo-edit-banner');
+  const bannerP = document.getElementById('addpo-edit-pono');
+  const poInput = document.getElementById('add-pono');
+  const saveBtn = document.getElementById('addpo-save-btn');
+  const cardTit = document.getElementById('addpo-card-title');
+  if (!editPoId) {
+    if (banner)  banner.style.display = 'none';
+    if (poInput) poInput.disabled = false;
+    if (saveBtn) saveBtn.textContent = '✅ บันทึก PO ใหม่';
+    if (cardTit) cardTit.textContent = '📋 ข้อมูล PO';
+    return;
+  }
+  // Edit mode — find the PO; fall back to create if it vanished
+  const po = db.pos.find(p => p.id === editPoId);
+  if (!po) {
+    editPoId = null;
+    editDeletedItemIds = [];
+    applyEditModeUI();
+    return;
+  }
+  // Banner on, PO number locked (changing it would desync po_items.po_number)
+  if (banner)  banner.style.display = '';
+  if (bannerP) bannerP.textContent = po.id;
+  if (poInput) { poInput.value = po.id; poInput.disabled = true; }
+  if (saveBtn) saveBtn.textContent = '💾 บันทึกการแก้ไข';
+  if (cardTit) cardTit.textContent = '📝 แก้ไข PO';
+
+  // Prefill header fields
+  const companyInput = document.getElementById('add-company-input');
+  const companyHid   = document.getElementById('add-company');
+  if (companyInput) companyInput.value = po.company || '';
+  if (companyHid)   companyHid.value   = po.company || '';
+  const modelInput = document.getElementById('add-model-input');
+  const modelHid   = document.getElementById('add-model');
+  if (modelInput) modelInput.value = po.model || '';
+  if (modelHid)   modelHid.value   = po.model || '';
+  document.getElementById('add-recv').value   = po.recv || todayISO();
+  document.getElementById('add-due').value    = po.due  || '';
+  document.getElementById('add-remark').value = po.remark || '';
+  urgentOn = !!po.urgent;
+  document.getElementById('add-urgent-toggle').classList.toggle('on', urgentOn);
+
+  // Load existing items — each row carries its _sbId so savePO knows
+  // which are already in DB vs newly added.
+  editDeletedItemIds = [];
+  const its = db.items.filter(i => i.po === po.id);
+  its.forEach(it => addItemRow(it.part, it.color, it._sbId));
+}
+
+// Entry point for editing. Validates permission, switches tab, and
+// initAddPOTab's repaint will pull the PO into the form.
+async function startEditPO(poId) {
+  if (!hasPermission('createPO')) {
+    toast('❌ คุณไม่มีสิทธิ์แก้ไข PO'); return;
+  }
+  if (!poId) return;
+  closeDetailModal();
+  editPoId = poId;
+  editDeletedItemIds = [];
+  switchTab('addpo');  // initAddPOTab fires via switchTab → applyEditModeUI handles the rest
+}
+
+// User-triggered: clear edit state, return to dashboard. Also used as
+// cleanup when Save succeeds.
+function cancelEditPO() {
+  editPoId = null;
+  editDeletedItemIds = [];
+  switchTab('dashboard');
+}
+
+// Build <option>s for a part <select>. Includes:
+// - empty placeholder
+// - all masterParts
+// - (admin+manager roles) a sentinel "__ADD_NEW__" row that prompts
+//   for a name via handlePartSelectChange.
+function populatePartSelect(sel, selectedVal) {
+  const canAddNew = hasPermission('quickAddMaster');
+  const opts = ['<option value="">— เลือกชิ้นงาน —</option>'];
+  if (canAddNew) {
+    opts.push('<option value="__ADD_NEW__" style="color:var(--accent);font-weight:700;">➕ เพิ่มชิ้นงานใหม่...</option>');
+  }
+  db.masterParts.forEach(p => {
+    opts.push(`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`);
+  });
+  sel.innerHTML = opts.join('');
+  if (selectedVal) sel.value = selectedVal;
+}
+
+// When user picks the "__ADD_NEW__" sentinel, prompt for a name, insert
+// to config, refresh every open part select in the Add-PO tab, and
+// preselect the new value on the originating dropdown.
+async function handlePartSelectChange(sel) {
+  if (sel.value !== '__ADD_NEW__') return;
+  const name = (prompt('ชื่อชิ้นงานใหม่ (เช่น คิ้วล้อ, สเกิร์ตหลัง):') || '').trim();
+  if (!name) {
+    sel.value = '';
+    return;
+  }
+  if (db.masterParts.includes(name)) {
+    toast('⚠️ มีชิ้นงานชื่อนี้อยู่แล้ว');
+    sel.value = name;
+    return;
+  }
+  try {
+    await addConfigInSupabase('part_name', name);
+    db.masterParts.push(name);
+    saveData(db);
+    // Refresh every open part select and keep current values
+    document.querySelectorAll('select[id^="item-part-"], #bulk-part').forEach(s => {
+      const current = s === sel ? name : s.value;
+      populatePartSelect(s, current);
+    });
+    toast(`✅ เพิ่ม "${name}" เข้าในลิสต์แล้ว`, 2000);
+  } catch(e) {
+    sel.value = '';
+    toast('❌ เพิ่มไม่สำเร็จ: ' + (e.message || e), 3500);
+  }
 }
 
 // ★ เพิ่มหลายชิ้นพร้อมกัน
@@ -4785,12 +5001,17 @@ function toggleUrgent() {
   document.getElementById('add-urgent-toggle').classList.toggle('on', urgentOn);
 }
 
-function addItemRow(prefillPart, prefillColor) {
+// `sbId` (optional): when editing an existing PO, pass the item's
+// Supabase UUID here. The row renders with `data-sbid` so savePO can
+// tell existing items apart from newly added ones, and so removing
+// the row records the _sbId in editDeletedItemIds for DELETE-on-save.
+function addItemRow(prefillPart, prefillColor, sbId) {
   addItemCount++;
   const idx = addItemCount;
   const div = document.createElement('div');
   div.id = `add-item-${idx}`;
   div.style.cssText = 'padding:10px;border-radius:9px;border:1.5px solid var(--border);margin-bottom:8px;background:#fafafa;';
+  if (sbId) div.dataset.sbid = sbId;  // mark as existing DB row
 
   // ★★★ FIX: สร้าง <select> ด้วย DOM API โดยตรง — ไม่ใช้ innerHTML
   // เพราะ innerHTML + selected attribute ไม่ทำงานถูกต้องบนเบราว์เซอร์มือถือบางรุ่น
@@ -4798,22 +5019,9 @@ function addItemRow(prefillPart, prefillColor) {
   sel.id = `item-part-${idx}`;
   sel.style.cssText = 'margin-bottom:8px;width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;';
 
-  // เพิ่ม option ว่าง
-  const emptyOpt = document.createElement('option');
-  emptyOpt.value = '';
-  emptyOpt.textContent = '— ชิ้นงาน —';
-  sel.appendChild(emptyOpt);
-
-  // เพิ่ม options จาก masterParts
-  db.masterParts.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p;
-    opt.textContent = p;
-    sel.appendChild(opt);
-  });
-
-  // ★ ตั้งค่า value ด้วย DOM API — การันตี 100% ทุกเบราว์เซอร์
-  if (prefillPart) sel.value = prefillPart;
+  // Populate via shared helper (includes ➕ sentinel for quickAddMaster)
+  populatePartSelect(sel, prefillPart || '');
+  sel.addEventListener('change', () => handlePartSelectChange(sel));
 
   // สร้างส่วน HTML ที่เหลือ (ไม่มี select)
   div.innerHTML = `
@@ -4844,7 +5052,16 @@ function addItemRow(prefillPart, prefillColor) {
 
 function removeItem(idx) {
   const el = document.getElementById(`add-item-${idx}`);
-  if (el) el.remove();
+  if (!el) return;
+  // If this row was loaded from an existing PO (has data-sbid), remember
+  // the _sbId so savePO can DELETE it from po_items on the edit commit.
+  // New rows (no sbid) are just removed from the DOM — they were never
+  // persisted so there's nothing to clean up.
+  const sbid = el.dataset.sbid;
+  if (sbid && !editDeletedItemIds.includes(sbid)) {
+    editDeletedItemIds.push(sbid);
+  }
+  el.remove();
 }
 
 function toggleItemUrgent(idx) {
@@ -4863,6 +5080,7 @@ async function savePO() {
     return;
   }
 
+  const isEdit  = !!editPoId;
   const poNo    = document.getElementById('add-pono').value.trim();
   const company = document.getElementById('add-company').value;
   const model   = document.getElementById('add-model').value;
@@ -4874,71 +5092,146 @@ async function savePO() {
     toast('⚠️ กรุณากรอกข้อมูลให้ครบ (PO, บริษัท, วันที่)'); return;
   }
 
-  // BUG23 defense — re-fetch right before INSERT to catch a race
-  // where another device pushed the same PO number in the gap between
-  // opening Add PO and pressing save. Without this, a stale local
-  // db.pos lets a collision slip through to Supabase, whose UNIQUE
-  // constraint rejects it with an opaque error → user saw "save
-  // ไม่ติด" on the 2nd device.
-  showLoading(true);
-  try {
-    const fresh = await loadFromSupabase();
-    if (fresh) { db = fresh; saveData(db); }
-  } catch(e) {
-    console.warn('[savePO] pre-check refresh skipped:', e);
-  }
-  showLoading(false);
+  // BUG23 defense (create mode only) — re-fetch to catch race where
+  // another device pushed the same PO number while user filled the
+  // form. Skip this in edit mode since the PO number is locked and
+  // already exists.
+  if (!isEdit) {
+    showLoading(true);
+    try {
+      const fresh = await loadFromSupabase();
+      if (fresh) { db = fresh; saveData(db); }
+    } catch(e) {
+      console.warn('[savePO] pre-check refresh skipped:', e);
+    }
+    showLoading(false);
 
-  if (db.pos.find(p => p.id === poNo)) {
-    // Suggest the next available number so user can retry with one tap
-    const suggested = autoNextPO();
-    document.getElementById('add-pono').value = suggested;
-    toast('⚠️ PO "' + poNo + '" ถูกใช้ไปแล้วในอีกเครื่อง — เปลี่ยนเป็น "' + suggested + '" ให้แล้ว กดบันทึกอีกครั้งได้เลย', 5000);
-    return;
-  }
-
-  const newItems = [];
-  let skipped = 0;
-  for (let i = 1; i <= addItemCount; i++) {
-    const partEl  = document.getElementById(`item-part-${i}`);
-    const colorEl = document.getElementById(`item-color-${i}`);
-    const urgEl   = document.getElementById(`item-urg-${i}`);
-    if (!partEl) continue;
-    const part  = partEl.value;
-    const color = colorEl ? colorEl.value.trim() : '';
-    const urg   = urgEl ? urgEl.classList.contains('on') : false;
-    if (part) {
-      const itemDueEl = document.getElementById(`item-due-${i}`);
-      const itemDue = (itemDueEl && urg) ? itemDueEl.value : '';
-      newItems.push({ po: poNo, part, color, urgent: urg, itemDue: itemDue,
-        status: 'รับของแล้ว', sentDate: '', bundlePO: '', remark: '' });
-    } else {
-      skipped++;
+    if (db.pos.find(p => p.id === poNo)) {
+      const suggested = autoNextPO();
+      document.getElementById('add-pono').value = suggested;
+      toast('⚠️ PO "' + poNo + '" ถูกใช้ไปแล้วในอีกเครื่อง — เปลี่ยนเป็น "' + suggested + '" ให้แล้ว กดบันทึกอีกครั้งได้เลย', 5000);
+      return;
     }
   }
 
-  // ★★★ ป้องกัน: ไม่ save PO ที่ไม่มี items เลย
-  if (newItems.length === 0) {
-    toast('⚠️ ไม่มีชิ้นงาน — กรุณาเลือกชิ้นงานอย่างน้อย 1 รายการ'); return;
+  // Walk the DOM rows. Each row is either an EXISTING item (has
+  // data-sbid — already in po_items, just keep) or a NEW item (no
+  // sbid — needs INSERT). editDeletedItemIds tracks sbids the user
+  // removed from the form so savePO can DELETE them on commit.
+  const keptExistingIds = [];
+  const newItems = [];
+  for (let i = 1; i <= addItemCount; i++) {
+    const rowEl   = document.getElementById(`add-item-${i}`);
+    const partEl  = document.getElementById(`item-part-${i}`);
+    const colorEl = document.getElementById(`item-color-${i}`);
+    const urgEl   = document.getElementById(`item-urg-${i}`);
+    if (!rowEl || !partEl) continue;
+    const part = partEl.value;
+    if (!part) continue;
+    const color = colorEl ? colorEl.value.trim() : '';
+    const urg   = urgEl ? urgEl.classList.contains('on') : false;
+    const itemDueEl = document.getElementById(`item-due-${i}`);
+    const itemDue = (itemDueEl && urg) ? itemDueEl.value : '';
+    const existingId = rowEl.dataset.sbid;
+    if (existingId) {
+      // Existing item — user kept it as-is. No INSERT/UPDATE needed.
+      // (This feature doesn't edit existing items in-place — status is
+      // edited via the Update tab. Item part/color lives at creation
+      // time.) Just record it so we know it survived the edit.
+      keptExistingIds.push(existingId);
+    } else {
+      newItems.push({
+        po: poNo, part, color, urgent: urg, itemDue: itemDue,
+        status: 'รับของแล้ว', sentDate: '', bundlePO: '', remark: ''
+      });
+    }
   }
 
-  const newPo = { id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark };
+  const totalItemsAfterSave = keptExistingIds.length + newItems.length;
+  if (totalItemsAfterSave === 0) {
+    toast('⚠️ ต้องมีชิ้นงานอย่างน้อย 1 รายการ'); return;
+  }
 
-  // INSERT po_list → รับ id กลับ → INSERT po_items ด้วย po_id นั้น → reload
   showLoading(true);
   try {
-    await createPOInSupabase(newPo, newItems);
-    await logActivity('create_po', 'po', { po_number: poNo, company, item_count: newItems.length });
+    if (isEdit) {
+      // EDIT flow: UPDATE po_list header + DELETE removed items +
+      // INSERT any newly added rows. po_number is locked so po_items
+      // FK via po_number stays valid for kept items.
+      const target = db.pos.find(p => p.id === editPoId);
+      if (!target || !target._sbId) throw new Error('ไม่พบ PO ใน local cache');
+
+      const { error: e1 } = await sb.from('po_list').update({
+        company, car_model: model,
+        order_date: recv || null, due_date: due || null,
+        urgent: urgentOn, remark,
+        updated_at: new Date().toISOString()
+      }).eq('id', target._sbId);
+      if (e1) throw new Error('po_list update: ' + e1.message);
+
+      if (editDeletedItemIds.length > 0) {
+        const { error: e2 } = await sb.from('po_items').delete()
+          .in('id', editDeletedItemIds);
+        if (e2) throw new Error('po_items delete: ' + e2.message);
+      }
+
+      if (newItems.length > 0) {
+        await insertItemsForPO(target._sbId, poNo, newItems);
+      }
+
+      await logActivity('edit_po', 'po', {
+        po_number: poNo, company,
+        items_added:   newItems.length,
+        items_removed: editDeletedItemIds.length,
+        items_total:   totalItemsAfterSave
+      });
+      toast(`✅ แก้ไข PO ${poNo} สำเร็จ (+${newItems.length} / -${editDeletedItemIds.length} ชิ้น)`, 3200);
+    } else {
+      // CREATE flow — unchanged
+      const newPo = { id: poNo, company, model, recv, due, urgent: urgentOn, status: 'Order', remark };
+      await createPOInSupabase(newPo, newItems);
+      await logActivity('create_po', 'po', { po_number: poNo, company, item_count: newItems.length });
+      toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
+    }
+
+    // Reload db so dashboard + other tabs see the change
     const fresh = await loadFromSupabase();
     if (fresh) { db = fresh; localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
-    toast(`✅ เพิ่ม PO ${poNo} สำเร็จ (${newItems.length} ชิ้น)`, 3000);
+
+    // Clear edit state + repaint whichever tab we land on
+    editPoId = null;
+    editDeletedItemIds = [];
     initAddPOTab();
     setTimeout(() => switchTab('dashboard'), 1200);
   } catch(e) {
-    toast('❌ เพิ่ม PO ล้มเหลว: ' + e.message, 5000);
+    console.error('[savePO]', e);
+    toast('❌ ' + (isEdit ? 'แก้ไข PO ล้มเหลว' : 'เพิ่ม PO ล้มเหลว') + ': ' + (e.message || e), 5000);
+    return;  // don't clear state / switch tab on error
   } finally {
     showLoading(false);
   }
+}
+
+// Helper for the EDIT flow: insert newItems linked to an existing
+// po_list row (by Supabase UUID + PO number). Mirrors the INSERT half
+// of createPOInSupabase so both paths share item-row shape conventions.
+async function insertItemsForPO(poSbId, poNumber, items) {
+  if (!items.length) return;
+  const rows = items.map(it => ({
+    po_id:     poSbId,
+    po_number: poNumber,
+    part_name: it.part,
+    color:     it.color    || '',
+    urgent:    it.urgent   || false,
+    status:    it.status   || 'รับของแล้ว',
+    rework:    it.rework   || false,
+    due_date:  it.itemDue  || null,
+    sent_date: it.sentDate || null,
+    bundle_po: it.bundlePO || '',
+    remark:    it.remark   || ''
+  }));
+  const { error } = await sb.from('po_items').insert(rows);
+  if (error) throw new Error('po_items insert: ' + error.message);
 }
 
 // ═══════════════════════════════════════════════════
