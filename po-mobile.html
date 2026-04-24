@@ -2927,6 +2927,7 @@ function doLogout() {
   if (!confirm('ออกจากระบบ?')) return;
   if (sessionTimer) clearTimeout(sessionTimer);
   logActivity('logout', 'system', {}).catch(e => console.warn('Logout activity log failed:', e));
+  disconnectRealtime();  // BETA: tear down WebSocket channel
   currentUser = null;
   sessionStorage.removeItem('po_user_id');
   pinInput = '';
@@ -2941,6 +2942,7 @@ function showApp() {
   document.getElementById('app-wrapper').style.display = 'block';
   applyPermissions();
   renderDashboard();
+  connectRealtime();  // BETA: open WebSocket channel for push updates
 }
 
 function applyPermissions() {
@@ -3031,15 +3033,160 @@ async function logActivity(action, targetType, detail) {
 // ═══════════════════════════════════════════════════
 //  SUPABASE CLIENT
 // ═══════════════════════════════════════════════════
-const APP_VERSION = 'v4.9-SUPABASE-2026-03-24';
+const APP_VERSION = 'v5.0-REALTIME-2026-04-24';
 console.log('🚀 PO Tracker Mobile ' + APP_VERSION + ' loaded at ' + new Date().toISOString());
 
 const SUPABASE_URL      = 'https://rkdxbxtakvisroxelrvq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHhieHRha3Zpc3JveGVscnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMzM2MjgsImV4cCI6MjA4OTkwOTYyOH0.KvTaFrdXCERYl77hVt5x5_udMQn7YSy6GFdDoyu9bOU';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// BETA: Realtime config — worker:true moves heartbeat to a Web Worker so
+// mobile browser throttling doesn't silently kill the WebSocket when the
+// tab is backgrounded. eventsPerSecond caps how fast the server will push
+// events to us (10/sec is plenty for factory workflow). Docs:
+// https://supabase.com/docs/guides/troubleshooting/realtime-handling-silent-disconnections-in-backgrounded-applications-592794
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  realtime: {
+    params: { eventsPerSecond: 10 },
+    worker: true,
+    heartbeatIntervalMs: 30000
+  }
+});
 
 // Map ของ config table id: { 'company': { 'ACE': uuid }, 'car_model': {...}, 'part_name': {...} }
 let _configIdMap = {};
+
+// ═══════════════════════════════════════════════════
+//  REALTIME (BETA) — WebSocket push from Supabase
+// ═══════════════════════════════════════════════════
+//
+//  Design: "invalidate-and-refetch". Instead of mapping each postgres_changes
+//  payload to a surgical db mutation (error-prone: INSERT/UPDATE/DELETE for
+//  6 tables × different column shapes vs our local field names), we use the
+//  event as a *signal* that something changed, then re-run loadFromSupabase()
+//  to get a fresh snapshot. Debounced by 300ms so a burst of events in one
+//  save (e.g. 20 item INSERTs when creating a PO) = 1 refetch, not 20.
+//
+//  Safety net: the existing setInterval polling loop keeps running at 60s
+//  (bumped from 30s). If Realtime drops silently, the next polling tick
+//  resyncs. Users never see stale data for more than 60s.
+//
+//  Busy guard: onRealtimeRefresh() respects isUserBusy() — if the user is
+//  mid-edit, we still refresh db in memory but skip re-render so selection /
+//  form state survives.
+
+let _rtChannel = null;
+let _rtReconnectTimer = null;
+let _rtDebounceTimer = null;
+let _rtLastEventAt = 0;
+const _RT_DEBOUNCE_MS = 300;
+
+function updateRtStatusBadge(text, color) {
+  const el = document.getElementById('beta-rt-status');
+  if (!el) return;
+  el.textContent = text;
+  el.style.opacity = '1';
+  if (color) el.style.color = color;
+}
+
+function connectRealtime() {
+  if (!currentUser) return;  // only after login
+  if (_rtChannel) return;    // already connected
+  console.log('[Realtime] connecting...');
+  updateRtStatusBadge('กำลังเชื่อมต่อ...', '#fff');
+  _rtChannel = sb.channel('po-tracker-changes')
+    // A single generic handler for every table we care about. Whichever
+    // row changes, we just refresh everything (debounced).
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'po_list' },         onRealtimeEvent)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'po_items' },        onRealtimeEvent)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'config' },          onRealtimeEvent)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_log' },    onRealtimeEvent)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'role_permissions' },onRealtimeEvent)
+    .subscribe((status, err) => {
+      console.log('[Realtime] status =', status, err || '');
+      if (status === 'SUBSCRIBED') {
+        updateRtStatusBadge('● เชื่อมต่อแล้ว', '#d1fae5');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        updateRtStatusBadge('🔄 กำลังเชื่อมต่อใหม่...', '#fecaca');
+        scheduleRtReconnect();
+      }
+    });
+}
+
+function disconnectRealtime() {
+  if (_rtReconnectTimer) { clearTimeout(_rtReconnectTimer); _rtReconnectTimer = null; }
+  if (_rtDebounceTimer)  { clearTimeout(_rtDebounceTimer);  _rtDebounceTimer = null; }
+  if (_rtChannel) {
+    try { sb.removeChannel(_rtChannel); } catch(e) { console.warn('[Realtime] removeChannel:', e); }
+    _rtChannel = null;
+  }
+  updateRtStatusBadge('ยังไม่เชื่อมต่อ', '#fff');
+}
+
+function scheduleRtReconnect() {
+  if (_rtReconnectTimer) return;  // already scheduled
+  _rtReconnectTimer = setTimeout(() => {
+    _rtReconnectTimer = null;
+    if (_rtChannel) {
+      try { sb.removeChannel(_rtChannel); } catch(e) {}
+      _rtChannel = null;
+    }
+    connectRealtime();
+    // Also force a full refresh — we may have missed events while disconnected.
+    onRealtimeEvent();
+  }, 5000);
+}
+
+function onRealtimeEvent(payload) {
+  _rtLastEventAt = Date.now();
+  if (payload) {
+    console.log('[Realtime] event:', payload.table, payload.eventType);
+  }
+  // Debounce: a single PO save fires 1 po_list + N po_items events — we
+  // want 1 refresh, not N+1.
+  if (_rtDebounceTimer) clearTimeout(_rtDebounceTimer);
+  _rtDebounceTimer = setTimeout(onRealtimeRefresh, _RT_DEBOUNCE_MS);
+}
+
+async function onRealtimeRefresh() {
+  _rtDebounceTimer = null;
+  try {
+    const data = await loadFromSupabase();
+    if (!data) return;
+    // Always update in-memory db (cheap). Re-render only if safe.
+    if (data.items.length >= db.items.length || data.pos.length !== db.pos.length) {
+      db = data;
+      localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    } else {
+      db = data;
+    }
+    if (isUserBusy()) return;  // same guard as polling loop
+    const activeName = getActiveTabName();
+    if (activeName === 'dashboard') renderDashboard();
+    else if (activeName === 'update') {
+      const updSelect = document.getElementById('update-select-section');
+      if (updSelect && updSelect.style.display !== 'none') renderUpdatePoList();
+    }
+  } catch(e) {
+    console.warn('[Realtime] refresh failed:', e);
+  }
+}
+
+// When the tab becomes visible again (e.g. phone unlocked), force a full
+// refresh + reconnect if the WebSocket died while backgrounded. Mobile
+// browsers throttle JS timers aggressively, so a channel that was alive
+// when the tab went to background may be silently dead now.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !currentUser) return;
+  onRealtimeEvent();  // triggers debounced refresh
+  // Reconnect if the channel is in a bad state
+  if (_rtChannel && _rtChannel.state !== 'joined') {
+    try { sb.removeChannel(_rtChannel); } catch(e) {}
+    _rtChannel = null;
+    connectRealtime();
+  } else if (!_rtChannel) {
+    connectRealtime();
+  }
+});
 
 // ═══════════════════════════════════════════════════
 //  DATA LAYER — Supabase (แทน GAS + saveAll)
@@ -6173,26 +6320,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderDashboard();
   }
 
-  // Auto-refresh ทุก 30 วินาที เพื่อซิงค์กับเครื่องอื่น — BUG28 smart mode.
-  // Previously this ran renderDashboard() + applyPermissions() unconditionally
-  // every tick → layout shifted under the user's finger (pages "bounced"
-  // on Android). Now we check isUserBusy() first and only repaint the
-  // tab the user is actually looking at.
+  // BETA: Polling runs every 60s as a FALLBACK for Realtime. If the
+  // WebSocket silently dies, the next polling tick catches up. If Realtime
+  // is healthy, polling finds nothing new and costs almost nothing (a
+  // single loadFromSupabase call with isUserBusy guard). Period doubled
+  // from 30s → 60s since Realtime handles the fast-path now.
   setInterval(async () => {
     if (document.hidden || !currentUser) return;
     if (isUserBusy()) return;  // skip entirely — try again next tick
+    // If Realtime delivered an event within the last 45s, skip this poll
+    // entirely — our data is already fresh. Saves bandwidth when Realtime
+    // is doing its job.
+    if (Date.now() - _rtLastEventAt < 45000) return;
     try {
-      // Pick up permission edits an admin made on another device
       await loadRolePermissions();
       applyPermissions();
       const data = await loadFromSupabase();
       if (data && data.items.length >= db.items.length) {
         db = data;
         localStorage.setItem(STORE_KEY, JSON.stringify(db));
-        // Only paint the tab the user can see. renderDashboard() writes
-        // into #tab-dashboard; if the user is on any other tab we just
-        // keep the data fresh in memory — the tab's own init function
-        // will read it next time the user switches there.
         const activeName = getActiveTabName();
         if (activeName === 'dashboard') renderDashboard();
         else if (activeName === 'update') {
@@ -6201,9 +6347,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
     } catch(e) {
-      console.warn('[Auto-refresh] Failed:', e);
+      console.warn('[Auto-refresh fallback] Failed:', e);
     }
-  }, 30000);
+  }, 60000);
 });
 
 // ─── isUserBusy / getActiveTabName — auto-refresh guardrails (BUG28) ───
