@@ -233,6 +233,12 @@
     color: var(--muted);
     transition: color .15s;
     min-height: 56px;
+    /* BUG28: kill Android 300ms tap delay + gesture interception.
+       The + primary button felt unresponsive because every tap waited
+       for double-tap-to-zoom disambiguation. Forcing manipulation
+       disables that timer for the whole nav. */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(184,92,60,.18);
   }
   .tabnav button .tab-icon {
     font-size: 20px;
@@ -4879,17 +4885,16 @@ function initSearchableDropdown(inputId, hiddenId, listId, getOptions, cfgType) 
 }
 
 async function initAddPOTab() {
-  // Refresh from Supabase first so autoNextPO sees POs created on
-  // other devices/clients (BUG23.1: opening Add PO on a 2nd phone
-  // was using a stale local db.pos → collided with existing PO
-  // numbers → Supabase rejected the insert → user saw "save not
-  // working"). Silent-fall-back to cached db if offline.
-  try {
-    const fresh = await loadFromSupabase();
-    if (fresh) { db = fresh; saveData(db); }
-  } catch(e) {
-    console.warn('[initAddPOTab] refresh skipped, using cached db:', e);
-  }
+  // BUG29: repaint the form IMMEDIATELY from cached db so the tap on
+  // the + button gets a visible response before network returns. The
+  // original code awaited loadFromSupabase() first — on slow 4G that
+  // meant the user saw the *previous* PO's values for up to 2s and
+  // tapped + again thinking nothing happened.
+  //
+  // The BUG23 race (auto-PO collision when another device creates a
+  // PO mid-form) is still handled — savePO() re-fetches and
+  // auto-regenerates the number before INSERT, so the worst case here
+  // is a PO# that's briefly one step behind reality until first save.
 
   // Searchable dropdown — บริษัท (with inline-add if user has quickAddMaster)
   initSearchableDropdown('add-company-input', 'add-company', 'sd-company-list',
@@ -4930,6 +4935,29 @@ async function initAddPOTab() {
   // target PO + load its items into the list. Otherwise this is a
   // normal Add-PO entry (already reset above).
   applyEditModeUI();
+
+  // Background refresh — non-blocking so the paint above is instant.
+  // When it finishes we patch the auto-PO# only if (a) we're not in
+  // edit mode and (b) the input still holds a value that LOOKS like
+  // our auto-generated format (user hasn't customised it).
+  (async () => {
+    try {
+      const fresh = await loadFromSupabase();
+      if (!fresh) return;
+      db = fresh;
+      saveData(db);
+      if (editPoId) return;  // edit mode has a locked PO#
+      const poInput = document.getElementById('add-pono');
+      if (!poInput) return;
+      // Auto format is PO-DD/MM/YY-NN (Buddhist year) or legacy PO-YYMMDD-NN.
+      const looksAuto = /^PO-(?:\d{2}\/\d{2}\/\d{2}|\d{6})-\d+$/.test(poInput.value);
+      if (!looksAuto) return;
+      const newAuto = autoNextPO();
+      if (newAuto !== poInput.value) poInput.value = newAuto;
+    } catch(e) {
+      console.warn('[initAddPOTab] background refresh skipped:', e);
+    }
+  })();
 }
 
 // Build the form UI for either "create new" or "edit existing" based
@@ -6145,32 +6173,72 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderDashboard();
   }
 
-  // Auto-refresh ทุก 30 วินาที เพื่อซิงค์กับเครื่องอื่น
+  // Auto-refresh ทุก 30 วินาที เพื่อซิงค์กับเครื่องอื่น — BUG28 smart mode.
+  // Previously this ran renderDashboard() + applyPermissions() unconditionally
+  // every tick → layout shifted under the user's finger (pages "bounced"
+  // on Android). Now we check isUserBusy() first and only repaint the
+  // tab the user is actually looking at.
   setInterval(async () => {
-    if (!document.hidden && currentUser) {
-      try {
-        // Pick up permission edits an admin made on another device
-        await loadRolePermissions();
-        applyPermissions();
-        const data = await loadFromSupabase();
-        if (data && data.items.length >= db.items.length) {
-          db = data;
-          localStorage.setItem(STORE_KEY, JSON.stringify(db));
-          renderDashboard();
-          // Also refresh the Update tab list if the user is sitting on it
-          // and hasn't drilled into a specific PO — keeps chip counts live
-          const updateTab = document.getElementById('tab-update');
+    if (document.hidden || !currentUser) return;
+    if (isUserBusy()) return;  // skip entirely — try again next tick
+    try {
+      // Pick up permission edits an admin made on another device
+      await loadRolePermissions();
+      applyPermissions();
+      const data = await loadFromSupabase();
+      if (data && data.items.length >= db.items.length) {
+        db = data;
+        localStorage.setItem(STORE_KEY, JSON.stringify(db));
+        // Only paint the tab the user can see. renderDashboard() writes
+        // into #tab-dashboard; if the user is on any other tab we just
+        // keep the data fresh in memory — the tab's own init function
+        // will read it next time the user switches there.
+        const activeName = getActiveTabName();
+        if (activeName === 'dashboard') renderDashboard();
+        else if (activeName === 'update') {
           const updSelect = document.getElementById('update-select-section');
-          if (updateTab?.classList.contains('active') && updSelect?.style.display !== 'none') {
-            renderUpdatePoList();
-          }
+          if (updSelect && updSelect.style.display !== 'none') renderUpdatePoList();
         }
-      } catch(e) {
-        console.warn('[Auto-refresh] Failed:', e);
       }
+    } catch(e) {
+      console.warn('[Auto-refresh] Failed:', e);
     }
   }, 30000);
 });
+
+// ─── isUserBusy / getActiveTabName — auto-refresh guardrails (BUG28) ───
+// A tick is skipped when ANY of these hold. The goal is the same one the
+// user articulated: "don't re-paint while I'm in the middle of doing
+// something." If we're wrong and skip too often, worst case is data is
+// 30s staler — the next idle tick will catch up.
+function isUserBusy() {
+  // 1) Items selected in Update tab → re-render would replace the DOM
+  //    those selections point at
+  if (typeof selectedItems !== 'undefined' && selectedItems && selectedItems.size > 0) return true;
+  // 2) Any searchable dropdown is open (user is about to pick)
+  if (document.querySelector('.sdropdown-list.open')) return true;
+  // 3) User is typing in a field
+  const a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT')) return true;
+  // 4) Add-PO form has unsaved items stacked
+  if (typeof stackedItems !== 'undefined' && stackedItems && stackedItems.length > 0) return true;
+  // 5) Edit-existing-PO session in progress
+  if (typeof editPoId !== 'undefined' && editPoId) return true;
+  // 6) Save bar is up — user is reviewing pending changes
+  if (document.body.classList.contains('has-save-bar')) return true;
+  // 7) Any modal/sheet is open (sync-modal uses display:flex to show)
+  const syncModal = document.getElementById('sync-modal');
+  if (syncModal && syncModal.style.display && syncModal.style.display !== 'none') return true;
+  return false;
+}
+function getActiveTabName() {
+  const names = ['dashboard','update','addpo','archive','master'];
+  const btns = document.querySelectorAll('.tabnav button');
+  for (let i = 0; i < btns.length; i++) {
+    if (btns[i].classList.contains('active')) return names[i];
+  }
+  return null;
+}
 // ═══════════════════ END DOMContentLoaded ═══════════════════
 
 // ═══════════════════════════════════════════════════
