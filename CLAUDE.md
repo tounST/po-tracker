@@ -157,6 +157,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG24 (Mobile): scroll dropdown รุ่นรถ/บริษัทไม่ได้ — touchstart ยิงเลือก item แทนที่จะเลื่อน | ✅ Fixed (2026-04-22) → BUG22 fix (touchstart + preventDefault เลือก item ทันที) ทำให้ scroll ไม่ได้. แก้โดยเปลี่ยนเป็น event delegation ที่ `.sdropdown-list` + movement threshold: เก็บ touch start coords → เช็คใน touchend, ถ้าขยับ > 8px หรือนานกว่า 500ms = scroll/long-press (ไม่ commit), ถ้า static tap = commit selection |
 | BUG25 (Mobile): ปุ่มบันทึก PO ใหม่เหมือนกดไม่ติด/drift ต้องกดตรงอื่นถึงโดน | ✅ Fixed (2026-04-22) → input blur มี `setTimeout(150ms)` ก่อนซ่อน dropdown list → ในช่วง 150ms นั้น dropdown ยังทับปุ่ม save → tap แรกโดน dropdown item. แก้โดยเพิ่ม `pointerdown` listener ที่ document: ถ้า list เปิดอยู่ + tap outside input/list → ซ่อน list ทันที (sync) |
 | Feature (Mobile + PC): Admin delete PO จาก list row | ✅ 2026-04-22 → Mobile: เพิ่ม `.po-card-del-btn` (trash icon) มุมขวาบนของทุก PO card ใน Dashboard + Update tab, gate ด้วย `.role-admin-only` class. Reuse existing `deletePO()` function. `event.stopPropagation()` กัน card click. PC: เพิ่ม `.td-del-btn` ในคอลัมน์สุดท้ายของ PO list table, inline admin check (`currentUser.role === 'admin'`), หา `deletePoFromList(sbId, poNumber, ...)` ใหม่ที่ใช้ `_sbId` เป็น stable key (BUG8 pattern) |
+| BUG26 (Mobile): แก้ไข PO เดิมแล้วรายการชิ้นงานว่าง + กดเพิ่มชิ้นงานไม่ได้ | ✅ Fixed (2026-04-23) → `addItemRow(prefillPart, prefillColor, sbId)` ไม่มี parameter `prefillModel` แต่ใน body ใช้ตัวแปรนั้น → ReferenceError ตอน loop prefill items เก่า → ทั้งฟังก์ชัน throw กลางทาง → list ว่าง + ปุ่มตาย. แก้ตรง signature: `addItemRow(prefillPart, prefillColor, sbId, prefillModel)`. บทเรียน: feature migration (car_model per-item) ต้อง grep callsite ทั้งหมดที่เรียก helper นั้น — silent ReferenceError ไม่แสดง error UI ทำให้ debug ลำบาก |
+| BUG27 (Mobile): สร้าง PO ใหม่แล้ว ช่องหมายเหตุ + วันครบกำหนดค้างค่าเก่าจาก PO ก่อน | ✅ Fixed (2026-04-23) → `initAddPOTab()` reset เฉพาะ company/car/part/color/qty ไม่แตะ `#add-remark` + `#add-due` → ค่าเก่าเหลือติดฟอร์ม, ถ้า user ไม่สังเกตจะ save ค่าเก่าลง DB. เพิ่ม 2 บรรทัดใน always-reset block. บทเรียน: Every form field ที่ไม่มี `{required}` ต้องถูก list ใน init/reset path ด้วย — defaults ของ HTML element หลัง submit เก็บเหมือน react controlled inputs |
+| BUG28 (Mobile): หน้าเด้งไปมาตอน auto-refresh ทุก 30 วิ + ปุ่ม + Add PO กดไม่ค่อยติดบน Android | ✅ Fixed (2026-04-24) → **Auto-refresh (Option B smart re-render)**: เพิ่ม `isUserBusy()` guard check 7 เงื่อนไข (selectedItems > 0 / dropdown open / focused input / stackedItems > 0 / editPoId set / save bar up / modal open) — ถ้า busy skip tick ทั้งหมด. เพิ่ม `getActiveTabName()` → renderDashboard/renderUpdatePoList ทำเฉพาะ tab ที่ user เห็น. ก่อนหน้านี้รันทุกตัวทุกรอบ → layout shift ใต้นิ้ว user. **Touch fix**: `.tabnav button` ไม่มี `touch-action: manipulation` → Android เสีย 300ms รอ double-tap-zoom ตัดสิน → ปุ่ม + รู้สึกหน่วง. เพิ่ม `touch-action` + `-webkit-tap-highlight-color` terracotta tint เป็น feedback |
+| BUG29 (Mobile): Add PO tab ต้องรอ network จบก่อนเห็นฟอร์มเริ่มใหม่ (Android 4G 1-2s) | ✅ Fixed (2026-04-24) → `initAddPOTab()` เดิม `await loadFromSupabase()` **ก่อน** reset form → ช่วง network user เห็น form ของ PO ก่อน → tap + ซ้ำเพราะนึกว่าไม่ติด. แก้โดย paint form ทันทีจาก cached db, ยิง refresh เป็น IIFE background, ถ้า PO# ที่ auto-gen เปลี่ยน + ยังเป็น format อัตโนมัติ (regex `/^PO-(?:\d{2}\/\d{2}\/\d{2}|\d{6})-\d+$/`) ค่อย patch. BUG23 collision ยังกัน 2 ชั้น: savePO มี pre-INSERT re-fetch + auto-regen ถ้าซ้ำ |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
@@ -241,6 +245,42 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - **Admin row ล็อก**: UI disable + `savePermissionToggle` refuse `role='admin'` + `loadRolePermissions` ignore DB rows ที่ role='admin' → **defense in depth** กัน lock-out แม้ DB จะถูก hack
   - **Reset button**: re-upsert ครบ 50 rows ด้วยค่าจาก `PERMISSIONS_CODE_DEFAULTS_JSON` (snapshot ที่ freeze ตอน boot)
   - **Cross-device sync**: `loadRolePermissions` ยิงทั้งใน login (ก่อน `applyPermissions` / `showApp`) + auto-refresh 30s → sessions อื่น catch-up permission change ภายใน ≤ 30 วิ
+- ✅ **Mobile Dashboard — Recent Activity section** (2026-04-23) — เพิ่ม "กิจกรรมล่าสุด" ท้าย dashboard (parity กับ desktop)
+  - `loadRecentActivity()` fetch `activity_log` 10 rows ล่าสุด + `ACTION_LABELS` map action key → Thai label
+  - `relTime()` + `escapeHtml()` helpers copy จาก desktop
+  - `refreshActivitySection()` เรียกตอน login + auto-refresh 30s + หลัง save action
+- ✅ **PO number format → `PO-DD/MM/YY-NN`** (2026-04-23, mobile + PC parity)
+  - เปลี่ยนจาก `PO-YYMMDD-NN` (เลขติดกัน) → `PO-DD/MM/YY-NN` Buddhist year (พ.ศ.)
+  - `(year + 543) % 100` ให้ 68 สำหรับ 2025 / 69 สำหรับ 2026 ตามธรรมเนียมไทย
+  - `autoNextPO()` / `nextPONumber()` นับเลขจากทั้ง format เก่า + ใหม่ในวันนั้น → migration smooth ไม่มี collision
+- ✅ **Edit-existing-PO flow + inline master-data add** (2026-04-23, mobile)
+  - ทุก PO เปิดเข้าไปแก้ได้ผ่าน `editPO(sbId)`: pre-fill header fields + items ใน stacked form
+  - **Edit shortcut button** ที่ subheader ของ Update tab มุมขวาบน (`.update-edit-btn`) — design ตรงกับ existing subheader icons
+  - **Inline master-data add**: ถ้ากรอก company/car/part ใหม่ที่ยังไม่มีใน `config` table → ปุ่ม "➕ เพิ่ม X" ข้าง hidden dropdown → UPSERT + reload options ทันที (ไม่ต้องสลับไป tab Manage)
+- ✅ **Per-item `car_model` migration** (2026-04-23, mobile + PC)
+  - เดิม: `po_list.car_model` เป็น column เดี่ยวใน header → 1 PO = 1 รุ่นรถ. ขัดกับ real PO ที่ครอบคลุมหลายรุ่นในใบเดียว
+  - ใหม่: `po_items.car_model TEXT` per-row (DB migration apply แล้ว manual ใน Supabase SQL Editor)
+  - Mobile: `addItemRow` + `stackedItems[]` + `renderAddItemsList` รับ `carModel` per row. Legacy `po_list.car_model` ยังเก็บเป็น fallback (read path ดู items ก่อน)
+  - PC: `renderCreateItemRow` → 6-col grid (`# | ชิ้นงาน | รุ่นรถ | สี | จำนวน | 🗑`). `refreshCreateSummaryModel()` derive dominant model สำหรับ summary
+  - `getPoDisplayModel(po)` helper — prefer items' dominant model, fallback legacy header field — ใช้ข้าม due-soon/urgent/detail/QC cards
+- ✅ **Stack duplicate items (มือถือ)** (2026-04-23) — Add PO form รวมชิ้นที่ part+model+color ซ้ำกันเป็น card เดียว + badge "× N ชิ้น" + expandable list
+  - State source of truth: `stackedItems[]` (pure state → render pattern, ไม่ใช่ DOM mutation). Helpers: `addPiecesToStack` / `removeStack` / `removeStackPiece` / `toggleStackExpand`
+  - Bulk-add grid: swap column order → **รุ่นรถ ซ้ายมือ** ก่อน part (toun's UX preference)
+- ✅ **Update-tab item layout — inline model divider** (2026-04-23) — toun ย้ำ "ใช้ design เดิม" ทุก UI ใหม่
+  - Target render: `คาดเอว │ Fortuner` (part name bold + 1px vertical divider + model, same row) + `554` (color code, next line)
+  - CSS: `.item-model-inline` → `font-size: 12px; color: var(--ink-3); border-left: 1px solid var(--line); padding-left: 8px`
+  - Tried horizontal divider → wrong. Tried "model below part" → wrong. Final: inline same-row with vertical `border-left` as the separator
+  - **Outcome**: permanent feedback memory `feedback_design_consistency.md` — grep neighbor components before any UI write; never drift off token grid
+- ✅ **BUG26 + BUG27** (2026-04-23, mobile) — ดู bug table ด้านบน
+- ✅ **Smart auto-refresh + Android tap fix (BUG28 + BUG29)** (2026-04-24, mobile)
+  - **Problem**: ลูกน้องเปิดบนมือถือบ่น 2 อย่าง — จอ "เด้งไปมา" เป็นช่วง ๆ + ปุ่ม + Add PO กดไม่ค่อยติดบน Android
+  - **Root cause 1 (bouncing)**: auto-refresh loop เดิมรัน `applyPermissions()` + `renderDashboard()` **ทุก 30 วิ ไม่ว่า user อยู่ tab ไหน** → innerHTML replace ใน #tab-dashboard + display toggle บน `.role-admin-only` etc. → layout shift. ถ้า user อยู่บน dashboard + scroll อยู่ → viewport เด้ง. Guard เดียวที่มี (`update-select-section display !== none`) ใช้กับ update tab เท่านั้น
+  - **Root cause 2 (unresponsive +)**: `.tabnav button` CSS ไม่มี `touch-action: manipulation` → Android Chrome 300ms tap delay + feedback visual (transform:scale(.95)) สั้นแค่ .1s. `initAddPOTab` ยัง `await loadFromSupabase()` ก่อน reset form → ช่วง network (200-2000ms) form ยังโชว์ค่าเก่า → user tap + ซ้ำนึกว่าไม่ติด
+  - **Fix (BUG28)**: `isUserBusy()` helper check 7 condition (selectedItems > 0 / `.sdropdown-list.open` / focused input / stackedItems > 0 / editPoId set / `has-save-bar` class / modal visible). setInterval tick skip **ทั้งหมด** ถ้า busy. `getActiveTabName()` gate: renderDashboard ทำเฉพาะตอน user อยู่ dashboard, renderUpdatePoList ทำเฉพาะ update + list view
+  - **Fix (BUG29)**: CSS `.tabnav button` เพิ่ม `touch-action: manipulation` + `-webkit-tap-highlight-color: rgba(184,92,60,.18)` → ตัด 300ms delay + terracotta tint feedback. `initAddPOTab` refactor: synchronous reset จาก cached db ก่อน → render ทันที. Refresh เป็น IIFE background, auto-patch PO# เฉพาะถ้า still matches regex `/^PO-(?:\d{2}\/\d{2}\/\d{2}|\d{6})-\d+$/` (ไม่ override ถ้า user typed custom PO#)
+  - **BUG23 collision safety intact**: savePO() line 5333-5348 ยังมี pre-INSERT `loadFromSupabase()` + auto-regen ถ้า db.pos มี duplicate → เสีย blocking await ที่ init time ไม่กระทบ correctness
+  - **Option chosen** (boss decision 2026-04-24): **B + full** — ไม่เอา Realtime (ต้องหาข้อมูลเพิ่ม). Realtime ยังอยู่ใน roadmap ลำดับ 3
+  - **Known followup** (not fixed in this commit): `po-desktop.html` line 2241 `setInterval(() => refreshData())` มี same pattern issue. Desktop ใช้ BUG16 guard (skip re-render ถ้ามี active edit state) แต่ไม่ใช่ full `isUserBusy` check — monitor ถ้า PC user บ่น จะ port มาที่หลัง
 
 ## 🗺️ แผนพัฒนา (Development Roadmap)
 
@@ -313,27 +353,26 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 
 ---
 
-### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-23)
+### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-24 end of day)
 
-**ไม่มีงาน active** — ปิดทุก milestone เสร็จแล้ว
+**ไม่มีงาน active** — ปิด BUG28 + BUG29 เสร็จแล้ว รอ toun สั่งงานต่อ
 
-**Deploy state (ทุก branch = commit `7205f87`)**:
-- ✅ PC Version (ลำดับ 1)
-- ✅ Granular Permissions + Office role (ลำดับ 1.5)
-- ✅ BUG19–25 (constraint, po_status drift, archive flow, Android touch, cross-device PO#, dropdown scroll, save drift)
-- ✅ Mobile Update tab filter chips + admin delete on PO cards
-- ✅ Desktop Archive "Archive ตอนนี้" button + admin delete on PO list rows
-- ✅ **Admin-editable Permissions matrix** — DB-backed, instant toggle, reset-to-defaults, admin row code-locked (new 2026-04-23)
-- ✅ Cache v17
-
-**Active branches** (ต้อง sync กันเสมอ ตามกฎ Git Management):
-```
-main = Dev = Dev-PC = 7205f87
-```
+**Deploy state (ทุก branch ควรจะเท่ากัน หลัง commit + merge)**:
+- ✅ PC Version (ลำดับ 1) + Granular Permissions + Office role (ลำดับ 1.5)
+- ✅ BUG19–29 (constraint, po_status drift, archive, Android touch, cross-device PO#, dropdown scroll, save drift, edit-PO ReferenceError, form state leakage, **BUG28** auto-refresh bouncing, **BUG29** Add PO button unresponsive on Android)
+- ✅ Admin-editable Permissions matrix (DB-backed, toggle, reset, admin locked)
+- ✅ Mobile Dashboard — Recent Activity section
+- ✅ **PO number format `PO-DD/MM/YY-NN` Buddhist year** — mobile + PC parity
+- ✅ **Edit-existing-PO flow** + inline master-data add (mobile) + Edit shortcut button in Update-tab subheader
+- ✅ **Per-item `car_model`** — migrated from PO header → per-row (mobile + PC)
+- ✅ **Stacked duplicate items** (mobile Add-PO form) + bulk-add grid "รุ่นรถ ซ้ายมือ"
+- ✅ **Update-tab item layout** — inline `คาดเอว │ Fortuner` + `554` (vertical divider via border-left)
+- ✅ **Permanent design-consistency rule** in memory (`feedback_design_consistency.md`) — toun ย้ำ ไม่ต้องถามอีก
+- ✅ **Smart auto-refresh (Option B)** — `isUserBusy()` guard + `getActiveTabName()` gate; ไม่เด้งใต้นิ้ว user + repaint เฉพาะ tab ที่เห็น (mobile only, desktop follow-up pending)
 
 **Next candidates** (ยังไม่เริ่ม toun ต้องสั่ง):
 - ลำดับ 2 — Phase 3 ฟีเจอร์ธุรกิจ (6 features, ~2-4 สัปดาห์)
-- ลำดับ 3 — Hardening + Backup (RLS, Realtime, auto-backup) — ควรทำก่อน user > 5 คน
+- ลำดับ 3 — Hardening + Backup (RLS, **Realtime**, auto-backup) — ควรทำก่อน user > 5 คน; toun ขอหาข้อมูล Realtime เพิ่มก่อน commit
 - ลำดับ 5 — i18n Burmese (optional, parked)
 
 ### ⚠️ Incident log (เพื่อ learn from mistakes)
@@ -443,6 +482,17 @@ main = Dev = Dev-PC = 7205f87
 - **ทำไม admin row ใน Permissions matrix ต้อง code-locked**: UI + save + load ทั้ง 3 ชั้นบังคับให้ admin = code defaults เสมอ. ถ้า admin ปิด `manage` ของตัวเอง (เช่น toggle ผิด) → admin เข้า tab Manage ไม่ได้ → แก้ permission ไม่ได้เลย dead-end ต้องงัด DB ซ่อม. Defense in depth: (1) UI `disabled` + 🔒 note, (2) `savePermissionToggle` refuse `role='admin'`, (3) `loadRolePermissions` ignore DB rows `role='admin'` — แม้มีคน INSERT ใน Supabase dashboard โดยตรง admin ก็ยัง lock อยู่. บทเรียนทั่วไป: **ถ้า decision ใน UI อาจ brick ตัวเอง ต้องกันที่หลายชั้น ไม่ใช่แค่ warning dialog**
 - **ทำไมใช้ `JSON.stringify(PERMISSIONS)` snapshot ตอน boot แทน structuredClone ทุกครั้ง**: `const PERMISSIONS_CODE_DEFAULTS_JSON = JSON.stringify(PERMISSIONS)` ทำครั้งเดียวตอน script boot ก่อนมี chance mutate. String เป็น immutable by nature — snapshot ถูก freeze โดย JavaScript เอง ไม่ต้อง Object.freeze ที่อาจมี edge case. `JSON.parse(snapshot)` ได้ fresh object deep-copy ทุกครั้งที่ต้อง reset. Pattern นี้ = "functional immutability on mutable object" ด้วย zero-dependency
 - **ทำไมเก็บ permissions ใน DB table แทน localStorage หรือ config blob**: (1) Cross-device sync — admin แก้ใน PC แล้ว mobile user คนอื่น pickup ได้ใน 30 วิ. localStorage = single-device only. (2) Per-cell atomic update — UPSERT 1 row ต่อ toggle แก้ concurrent edit ได้ดีกว่า single JSON blob ที่มี write-wins conflict. (3) Queryable — audit ได้ว่า `admin` ปิดสิทธิ์ `office.manageDataDelete` เมื่อไหร่ ผ่าน `updated_at` + `updated_by`. (4) Schema validates — `CHECK (role = ANY (...))` กัน typo. Trade-off: 1 round-trip ต่อ toggle แต่ toast ทันทีไม่ต้องรอ optimistic UI
+- **ทำไม PO number format ใช้ `PO-DD/MM/YY-NN` Buddhist year แทน ISO `YYYY-MM-DD`**: toun + พนักงานอ่าน/เขียน PO number บนใบจริงด้วยมือเสมอ — Thai convention ใช้ พ.ศ. (68/69) กับ `DD/MM/YY` slash-separated. ISO `PO-20260423-01` ดู tech เกินไปสำหรับลูกน้องจุดรับของที่ copy ลงใบงาน. Buddhist year compute: `(year + 543) % 100`. Parser ของ `autoNextPO` / `nextPONumber` ต้องรับทั้ง format เก่า (`PO-YYMMDD-NN`) + ใหม่ (`PO-DD/MM/YY-NN`) ในวันเดียวกัน — migration smooth ไม่ break PO เดิม
+- **ทำไม `car_model` ย้ายจาก PO header → per item**: real PO หลายใบ ครอบคลุมหลายรุ่นรถในใบเดียว (เช่น "คาดเอว Fortuner 10 ชิ้น + กันชนหน้า Vigo 5 ชิ้น"). เดิม 1 PO = 1 model ทำให้ user ต้อง split เป็น 2 PO เทียม. Migration: เพิ่ม `po_items.car_model TEXT` + keep `po_list.car_model` legacy fallback. Read path ใช้ `getPoDisplayModel(po)` — prefer items' dominant model (mode/most-frequent), fallback legacy header ถ้า items ไม่มี. Write path เลิกเขียน `po_list.car_model` สำหรับ PO ใหม่. Display tweak: "Fortuner + 2 อื่น" ใน card summary ถ้ามีหลาย model
+- **ทำไม edit-existing-PO ไม่สร้างหน้าแยก แค่ reuse Add PO form**: Add PO form มีทุก field/widget ที่ edit ต้องการอยู่แล้ว (header + item list + inline master-data add). Spawning แค่หน้าเดียว + prefill state → ประหยัด ~200 บรรทัด เทียบกับสร้าง `#page-edit-po`. `editPO(sbId)` แค่ `initAddPOTab({ editingSbId: sbId, prefillFromDB })` แล้ว save path reuse เดิม. Trade-off: title bar ต้องเปลี่ยน "เพิ่ม PO" ↔ "แก้ไข PO-DD/MM/YY-NN" ตาม mode แต่ส่วนอื่นเหมือนกันหมด
+- **ทำไม stacked items ใช้ state array แทน DOM mutation**: Add PO form เดิม spawn `<div class="item-row">` ตรง ๆ ตามที่ user กรอก. Stacking ซ้ำ part+model+color ผ่าน DOM mutation = ยุ่งมาก (ต้อง traverse, update badge, move delete buttons). `stackedItems[]` เป็น source of truth → helpers `addPiecesToStack` / `removeStack` mutate array → `renderAddItemsList` generates DOM. Pure state → render = test ง่าย, เพิ่ม feature expand/collapse เป็นแค่ flag ใน state. Pattern นี้เหมือน React controlled list แต่ด้วย vanilla JS — ideal เมื่อ form logic ซับซ้อน
+- **ทำไม `.item-model-inline` ใช้ `border-left` แทน separator character `·` หรือ `/`**: toun reject "คาดเอว · Fortuner · 554" (metadata soup — อ่านยาก แยกไม่ออกว่าอะไรสำคัญ). คำขอ: vertical divider จริง ๆ ระหว่าง part กับ model, color code อยู่บรรทัดใหม่. Solution: CSS `border-left: 1px solid var(--line)` บน `<span>` ที่อยู่ inline-flex ถัดจาก part name — เส้นใช้ token `--line` (subtle gray), padding-left 8px จัด rhythm เหมือน `.po-card` dividers. ไม่ใช่ character เพราะ character ไม่ align กับ `line-height` ของ row + เปลี่ยน font size ก็เลื่อนตาม. Typography: 12px var(--ink-3) — ตรงกับ "secondary metadata" tier ใน feedback_design_consistency.md
+- **ทำไม design consistency ต้องเป็น permanent memory rule ไม่ใช่ one-off correction**: ทุก ๆ new UI ที่ไม่ check neighbor component ก่อน → drift (hex literal แทน token, 13.5px ขนาดแปลก, metadata joined ด้วย · แทน vertical divider). toun เคย correction ครั้ง 2 ครั้ง 3 แล้ว message สุดท้าย (2026-04-23): "จำในระบบไว้นะว่า ให้ใช้รูปแบบ design เดิมตลอด...ไม่ต้องให้ฉันบอกอีก". บันทึก rule เป็น `feedback_design_consistency.md` ใน memory = ทุก session ในอนาคต Claude จะเห็น rule ตั้งแต่ boot (via MEMORY.md index). บทเรียนทั่วไป: **repeated feedback = implicit system rule that should be persisted, ไม่ใช่คำ nag ที่ Claude ลืมหลัง session**
+- **ทำไม auto-refresh Option B (smart skip) ดีกว่า Option A (badge + manual tap) สำหรับธุรกิจ toun**: ลูกน้อง toun ทำงานหลายจุด (รับของ/ผลิต/ส่ง) ต้องเห็นข้อมูลอีกจุด live. Option A (badge) ต้องการ discipline ให้ลูกน้องกดเอง — ไม่สามเณรพูดยังไง ลูกน้อง factory ส่วนใหญ่จะลืมแตะ → data stale → ลูกน้อง A รับของ 5 ชิ้น / ลูกน้อง B ที่ผลิตไม่เห็น 30 วิ → business impact. Option B ทำงานเงียบเมื่อ user idle + skip เมื่อ user กำลังทำ action → ลูกน้องไม่ต้องเรียนรู้อะไรใหม่ + ข้อมูลสดเสมอ. Trade-off: code ซับซ้อนขึ้น ~30 บรรทัด (isUserBusy 7 conditions) — ยอมเพื่อ UX. Decision log: toun เลือก B + full โดยยัง defer Realtime (ขอหาข้อมูลเพิ่ม) — logical ดี เพราะ Realtime เปลี่ยน transport (polling → WebSocket) ไม่ใช่ policy. Policy (A vs B) เป็น prerequisite — ถ้ามี Realtime โดยไม่มี B → ยังเด้งอยู่ดี แค่ถี่ขึ้น
+- **ทำไม `isUserBusy()` ใช้หลาย condition แทน single dirty-flag**: Flag เดียว (e.g., `isFormDirty`) ต้อง maintain ในทุก entry/exit path ของทุก form field — high risk ของ missed set/reset (เหมือน BUG11 save bar ค้าง). `isUserBusy` **อ่าน DOM state สด**ตอน tick → ไม่มี state ที่ต้อง sync. Condition list ออกแบบเป็น "ถ้าเห็น X user กำลังทำอะไรอยู่ไม่ควรขัด" — orthogonal, แต่ละข้อ independent. False positive (skip เกินจำเป็น) = ข้อมูล stale 30 วิเพิ่ม (ok). False negative (refresh ทั้งที่ user busy) = เด้ง (bad) → prefer false positive. Pattern: **derived state > stored flag** — copy decision ของ BUG20/21 ที่ query `db.pos.filter(p.status===Complete)` in-memory แทน cached column
+- **ทำไม `getActiveTabName()` ใช้ DOM query แทน global state**: เดิม code dispatch tab via `switchTab(name)` แต่ไม่มี global `currentTabName`. Adding global = ต้อง sync ใน switchTab ทุก exit path + risk drift. `getActiveTabName()` อ่านจาก `.tabnav button.active` ที่ switchTab เขียนอยู่แล้ว (line 2966, 3592) = single source of truth ไม่มี duplicate state. Cost: O(5) DOM read per tick — negligible
+- **ทำไม `initAddPOTab` refactor เป็น instant-reset + background-refresh safe**: สลับ order ทำได้เพราะ BUG23.2 safety net ยังอยู่ — `savePO()` (line 5333) มี pre-INSERT `loadFromSupabase()` + auto-regen PO# ถ้าซ้ำ → collision ตอน save ปลอดภัย 100%. Init-time refresh เป็นแค่ pre-fetch UX เพื่อ PO# แสดงถูกแต่แรก — ไม่ใช่ correctness invariant. Insight: **distinguish "nice-to-have fast path" vs "correctness invariant"** — ถ้าเผลอเอา invariant ไปเป็น async ไม่ block จะเกิด race; ถ้าเผลอเอา UX-hint ไป block จะเสีย UX. ดู safety net เดิมก่อนเสมอก่อนตัดสินใจ refactor
+- **ทำไม regex `/^PO-(?:\d{2}\/\d{2}\/\d{2}|\d{6})-\d+$/` รองรับ 2 format**: BUG-free migration path — `PO-YYMMDD-NN` (เก่า) + `PO-DD/MM/YY-NN` (ใหม่ Buddhist year) ยังต้อง coexist ใน DB สำหรับ PO เก่าที่ค้างอยู่. regex match ทั้งสองเพื่อ detect "user ยังไม่ได้ customize PO#" → ถ้า match = auto-gen, background refresh แก้ได้. ถ้า user พิมพ์เลขรูปแบบลูกค้า (เช่น `CO-PO-12345`) → regex ไม่ match → ไม่แตะ. Defensive: better miss a possible auto-update than overwrite user intent
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
