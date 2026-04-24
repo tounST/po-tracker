@@ -272,6 +272,24 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   - Tried horizontal divider → wrong. Tried "model below part" → wrong. Final: inline same-row with vertical `border-left` as the separator
   - **Outcome**: permanent feedback memory `feedback_design_consistency.md` — grep neighbor components before any UI write; never drift off token grid
 - ✅ **BUG26 + BUG27** (2026-04-23, mobile) — ดู bug table ด้านบน
+- ✅ **Supabase Realtime — ลำดับ 3 (Hardening) partial** (2026-04-24, mobile)
+  - **Problem solved**: cross-device delay เดิม 30 วิ (polling) → Realtime WebSocket push <1 วินาที. ลูกน้องหลายจุด (รับ → ผลิต → QC → ส่ง) pipeline เดินเร็วขึ้น
+  - **Flow**: boss ขอหาข้อมูลก่อน → ผมดึง Supabase docs (quotas, pricing, mobile gotchas) → boss decide Option B + full BUG28/29 ก่อน → ทดสอบ BUG28/29 ผ่าน → boss ขอต่อ Realtime → implement beta file ที่ `po-mobile-beta.html` → boss ทดสอบ cross-device ผ่าน → promote เป็น `po-mobile.html` + ลบ beta + bump v31
+  - **Architecture** (invalidate-and-refetch pattern):
+    - `sb.channel('po-tracker-changes').on('postgres_changes', {event:'*', schema:'public', table:X}, onRealtimeEvent).subscribe()` สำหรับ 5 tables: po_list, po_items, config, activity_log, role_permissions
+    - `onRealtimeEvent` debounce 300ms แล้วเรียก `loadFromSupabase()` ทั้งชุด — ไม่ surgical update เพราะ error-prone (INSERT/UPDATE/DELETE × 6 tables × column mapping)
+    - `isUserBusy()` guard (BUG28 pattern) ยัง gate re-render: event มา → update in-memory db ทุกครั้ง, render เฉพาะตอน user ไม่ busy
+  - **Mobile stability**: `worker: true` ใน createClient config → ย้าย heartbeat ไป Web Worker กัน Android Chrome throttle ตัดสัญญาณตอน background. `heartbeatIntervalMs: 30000` + `visibilitychange` listener force-refresh ตอน phone unlock/tab visible + reconnect ถ้า channel state ไม่ 'joined'
+  - **Defense in depth (3 layers)**: (1) Realtime WebSocket primary (<1s), (2) Polling 60s fallback ถ้า Realtime silent-dead (เดิม 30s ลดเหลือ 60s เพราะ Realtime handle fast path แล้ว), (3) polling tick skip ถ้า `_rtLastEventAt` อยู่ใน 45s ล่าสุด = ไม่ duplicate work เมื่อ Realtime healthy. (4) localStorage cache สุดท้ายถ้า offline
+  - **Lifecycle**: `connectRealtime()` เรียกใน `showApp()` (ทั้ง login + session recovery). `disconnectRealtime()` ใน `doLogout()` cleanup channel + timers ครบ
+  - **Reconnect policy**: CHANNEL_ERROR / TIMED_OUT / CLOSED → schedule reconnect 5s backoff, กัน reconnect loop ด้วย `_rtReconnectTimer` guard
+  - **DB migration** (manual ใน Supabase dashboard SQL editor):
+    - Enable RLS บนทุก table (po_list, po_items, config, users, activity_log, role_permissions) — Supabase Realtime requires RLS
+    - `CREATE POLICY "allow_all" FOR ALL USING (true) WITH CHECK (true)` ทุก table — permissive = ไม่ lock ใครออก + match current anon-key behavior ทุกประการ
+    - `ALTER PUBLICATION supabase_realtime ADD TABLE` 5 tables (ไม่ใส่ users — PIN login ใช้ localStorage cache ไม่ต้อง sync)
+  - **Bandwidth impact**: egress ลดลง ~20 เท่า (polling 40KB × 3,000 ticks/วัน → Realtime 200 bytes × N events จริงเท่านั้น). Free tier 5 GB/เดือน ใช้เหลือ <5% แทน 60%
+  - **Testing path**: beta URL (`po-mobile-beta.html`) serve ข้าง production (po-mobile.html) พร้อมกัน บน GitHub Pages เดียวกัน ลูกน้อง production ไม่ affect — boss ทดสอบ cross-device บน beta URL แยก
+  - **Promotion**: copy beta file → po-mobile.html, delete beta file, bump cache v30→v31, merge 3 branches. Banner `#beta-banner` + APP_VERSION suffix `BETA` ตัดออก — production clean
 - ✅ **Smart auto-refresh + Android tap fix (BUG28 + BUG29)** (2026-04-24, mobile)
   - **Problem**: ลูกน้องเปิดบนมือถือบ่น 2 อย่าง — จอ "เด้งไปมา" เป็นช่วง ๆ + ปุ่ม + Add PO กดไม่ค่อยติดบน Android
   - **Root cause 1 (bouncing)**: auto-refresh loop เดิมรัน `applyPermissions()` + `renderDashboard()` **ทุก 30 วิ ไม่ว่า user อยู่ tab ไหน** → innerHTML replace ใน #tab-dashboard + display toggle บน `.role-admin-only` etc. → layout shift. ถ้า user อยู่บน dashboard + scroll อยู่ → viewport เด้ง. Guard เดียวที่มี (`update-select-section display !== none`) ใช้กับ update tab เท่านั้น
@@ -355,7 +373,7 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 
 ### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-24 end of day)
 
-**ไม่มีงาน active** — ปิด BUG28 + BUG29 เสร็จแล้ว รอ toun สั่งงานต่อ
+**ไม่มีงาน active** — Realtime promotion เสร็จแล้ว (2026-04-24 end of day) รอ toun สั่งงานต่อ
 
 **Deploy state (ทุก branch ควรจะเท่ากัน หลัง commit + merge)**:
 - ✅ PC Version (ลำดับ 1) + Granular Permissions + Office role (ลำดับ 1.5)
@@ -369,6 +387,7 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - ✅ **Update-tab item layout** — inline `คาดเอว │ Fortuner` + `554` (vertical divider via border-left)
 - ✅ **Permanent design-consistency rule** in memory (`feedback_design_consistency.md`) — toun ย้ำ ไม่ต้องถามอีก
 - ✅ **Smart auto-refresh (Option B)** — `isUserBusy()` guard + `getActiveTabName()` gate; ไม่เด้งใต้นิ้ว user + repaint เฉพาะ tab ที่เห็น (mobile only, desktop follow-up pending)
+- ✅ **Supabase Realtime** — WebSocket push <1s cross-device + `worker:true` mobile background stability + polling 60s fallback + RLS permissive policies (mobile only, desktop follow-up pending)
 
 **Next candidates** (ยังไม่เริ่ม toun ต้องสั่ง):
 - ลำดับ 2 — Phase 3 ฟีเจอร์ธุรกิจ (6 features, ~2-4 สัปดาห์)
@@ -493,6 +512,11 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - **ทำไม `getActiveTabName()` ใช้ DOM query แทน global state**: เดิม code dispatch tab via `switchTab(name)` แต่ไม่มี global `currentTabName`. Adding global = ต้อง sync ใน switchTab ทุก exit path + risk drift. `getActiveTabName()` อ่านจาก `.tabnav button.active` ที่ switchTab เขียนอยู่แล้ว (line 2966, 3592) = single source of truth ไม่มี duplicate state. Cost: O(5) DOM read per tick — negligible
 - **ทำไม `initAddPOTab` refactor เป็น instant-reset + background-refresh safe**: สลับ order ทำได้เพราะ BUG23.2 safety net ยังอยู่ — `savePO()` (line 5333) มี pre-INSERT `loadFromSupabase()` + auto-regen PO# ถ้าซ้ำ → collision ตอน save ปลอดภัย 100%. Init-time refresh เป็นแค่ pre-fetch UX เพื่อ PO# แสดงถูกแต่แรก — ไม่ใช่ correctness invariant. Insight: **distinguish "nice-to-have fast path" vs "correctness invariant"** — ถ้าเผลอเอา invariant ไปเป็น async ไม่ block จะเกิด race; ถ้าเผลอเอา UX-hint ไป block จะเสีย UX. ดู safety net เดิมก่อนเสมอก่อนตัดสินใจ refactor
 - **ทำไม regex `/^PO-(?:\d{2}\/\d{2}\/\d{2}|\d{6})-\d+$/` รองรับ 2 format**: BUG-free migration path — `PO-YYMMDD-NN` (เก่า) + `PO-DD/MM/YY-NN` (ใหม่ Buddhist year) ยังต้อง coexist ใน DB สำหรับ PO เก่าที่ค้างอยู่. regex match ทั้งสองเพื่อ detect "user ยังไม่ได้ customize PO#" → ถ้า match = auto-gen, background refresh แก้ได้. ถ้า user พิมพ์เลขรูปแบบลูกค้า (เช่น `CO-PO-12345`) → regex ไม่ match → ไม่แตะ. Defensive: better miss a possible auto-update than overwrite user intent
+- **ทำไม Realtime ใช้ invalidate-and-refetch แทน surgical row-level mutations**: postgres_changes payload ส่ง row column names ของ Supabase (po_number, car_model, order_date, due_date) แต่ local db ใช้ field names ที่ map ไว้ใน `loadFromSupabase` (id, model, recv, due). Surgical update = ต้อง maintain duplicate mapping logic สำหรับ INSERT/UPDATE/DELETE × 6 tables × column list — error surface ใหญ่. Invalidate-and-refetch = event มา → debounce 300ms → reload ทั้งหมดครั้งเดียว → data consistency guarantee + code simple. Cost: 1 extra HTTP call ต่อ batch of events. สำหรับ scale ของ toun (17,000 writes/เดือน, debounced to ~2,000 refetches/เดือน) = ยัง <5% ของ 5 GB egress quota. **Rule**: complexity budget มีจำกัด — spend มันกับ reliability (reconnect, busy guard) ไม่ใช่ optimize ที่ไม่จำเป็น
+- **ทำไม `worker: true` + `heartbeatIntervalMs: 30000` ต้องตั้งทั้งคู่สำหรับ mobile PWA**: Android Chrome throttle JavaScript timers ใน inactive tab → default heartbeat ที่รันจาก main thread อาจยิงไม่ทัน interval → Supabase server เห็นเงียบนานเกินไป → WebSocket ถูก disconnect silently. `worker: true` ย้าย heartbeat ไปรันใน Web Worker (separate thread, throttle ได้น้อยกว่า) + `heartbeatIntervalMs: 30000` = ชัดเจนให้ปลอดภัยจาก default อาจเปลี่ยน. References: [Supabase Troubleshooting — Silent Disconnections](https://supabase.com/docs/guides/troubleshooting/realtime-handling-silent-disconnections-in-backgrounded-applications-592794). **Rule**: ทุก Realtime feature บน mobile ต้องตั้ง 2 options นี้ — ไม่เป็น optional
+- **ทำไมเก็บ polling 60s เป็น fallback แทน drop เลย**: Realtime WebSocket มี failure modes ที่ hard to diagnose จาก client (RLS policy misconfig, Supabase outage, network firewall block WebSocket). ถ้าขาด event silently → user เห็นข้อมูลค้างโดยไม่รู้ตัว. Polling fallback = ป้องกันโดย definition: ทุก 60s ยิง fetch ถ้าไม่ได้ event มาใน 45s → ถ้า Realtime ตาย user จะ sync กลับมาใน 60s (เหมือน pre-Realtime). Extra bandwidth = ~1-2% ของ Free tier (ไม่ significant). **Rule**: production feature สำคัญต้องมี fallback — Realtime เป็น optimization, ไม่ใช่ source of truth
+- **ทำไม beta URL (beta file) คือ safer testing pattern กว่า feature flag**: feature flag = 1 file + runtime switch (`if (USE_REALTIME)`) — production จะใช้ code ชุดเดียวกับ beta → risk ของ beta code ไปโดน production user โดยไม่ตั้งใจ (misconfiguration, typo). Beta URL = 2 ไฟล์แยก → beta มี banner สีต่างชัดเจน + ลูกน้อง production ไม่เคย navigate ไป URL beta → 100% isolation. Trade-off: เก็บ 2 ไฟล์ copy กันชั่วคราว (~10K บรรทัด duplicate). หลังจาก promote → delete beta file = back to single source of truth. **Rule**: testing ของ production feature ที่กระทบ multiple devices ควร physical separation ไม่ใช่ logical branch ใน code เดียวกัน
+- **ทำไม RLS policy ต้อง permissive `using (true)` ไม่ใช่ strict user-based policy**: toun's PIN login ไม่ใช่ Supabase Auth (ใช้ client-side localStorage + `users` table match). `auth.uid()` ใน RLS policy จะ return NULL เพราะไม่มี JWT token → strict policy `using (auth.uid() = user_id)` จะ block ทุกคน → app พัง. Permissive policy = match current behavior ของ anon key (เปิดให้ทุกอย่าง) — ไม่ downgrade security เพราะ baseline เดิมก็ permissive อยู่แล้ว. **ถ้าอนาคต toun ต้องการ proper per-user authorization** → ต้อง migrate ไป Supabase Auth ก่อน (Phase 4 scale-up) แล้วค่อยเขียน strict policies. **Rule**: RLS policy strictness ต้อง match authentication architecture — mismatch = lockout
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
