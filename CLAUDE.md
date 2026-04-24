@@ -388,6 +388,7 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - ✅ **Permanent design-consistency rule** in memory (`feedback_design_consistency.md`) — toun ย้ำ ไม่ต้องถามอีก
 - ✅ **Smart auto-refresh (Option B)** — `isUserBusy()` guard + `getActiveTabName()` gate; ไม่เด้งใต้นิ้ว user + repaint เฉพาะ tab ที่เห็น (mobile only, desktop follow-up pending)
 - ✅ **Supabase Realtime** — WebSocket push <1s cross-device + `worker:true` mobile background stability + polling 60s fallback + RLS permissive policies (mobile only, desktop follow-up pending)
+- ✅ **Recent Activity gated to admin + supervisor** (2026-04-24) — new `viewActivityLog` permission flag: admin + supervisor (หัวหน้า) = true; office/manager/staff = false. UI gate via `.view-activity-only` class + `applyPermissions()`. `refreshActivitySection()` also early-returns if no permission (saves Supabase round-trip). Admin-editable via Permissions sub-tab in Manage. Default seeded in `PERMISSIONS` matrix; DB seed SQL documented in session notes
 
 **Next candidates** (ยังไม่เริ่ม toun ต้องสั่ง):
 - ลำดับ 2 — Phase 3 ฟีเจอร์ธุรกิจ (6 features, ~2-4 สัปดาห์)

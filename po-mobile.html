@@ -2213,8 +2213,8 @@
   <!-- PO Cards -->
   <div id="po-cards"></div>
 
-  <!-- Recent Activity (last N actions from activity_log) -->
-  <div class="activity-section" id="activity-section">
+  <!-- Recent Activity (last N actions from activity_log) — admin + supervisor only -->
+  <div class="activity-section view-activity-only" id="activity-section">
     <div class="activity-section-head">
       <div class="section-label-pair inline">
         <div class="slp-th">กิจกรรมล่าสุด</div>
@@ -2699,11 +2699,11 @@ function resetSessionTimer() {
 //   manageDataAdd     — add/edit master data rows (company/model/part/defect)
 //   manageDataDelete  — delete master data rows (manager CANNOT — prevents accidental destruction)
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true  },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true  },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false }
 };
 
 // Station-based status permissions for staff
@@ -2729,6 +2729,7 @@ const PERMISSION_META = [
   { key: 'manageDataAdd',    label: 'เพิ่ม/แก้ Master Data' },
   { key: 'manageDataDelete', label: 'ลบ Master Data' },
   { key: 'quickAddMaster',   label: 'เพิ่ม master data ตอนสร้าง/แก้ PO (ไม่ต้องไปหน้าจัดการ)' },
+  { key: 'viewActivityLog',  label: 'ดูกิจกรรมล่าสุดบน Dashboard' },
 ];
 const ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
 
@@ -3012,6 +3013,12 @@ function applyPermissions() {
   });
   document.querySelectorAll('.role-admin-only').forEach(el => {
     el.style.display = (currentUser.role === 'admin') ? '' : 'none';
+  });
+  // Recent Activity on Dashboard — admin + supervisor only (toun 2026-04-24).
+  // Gated via PERMISSIONS matrix so admin can re-grant via the Permissions
+  // sub-tab in Manage without a code deploy.
+  document.querySelectorAll('.view-activity-only').forEach(el => {
+    el.style.display = hasPermission('viewActivityLog') ? '' : 'none';
   });
 }
 
@@ -3893,6 +3900,9 @@ async function refreshActivitySection() {
   const moreBtn = document.getElementById('activity-more-btn');
   const pillEl  = document.getElementById('activity-role-pill');
   if (!section || !listEl) return;
+  // Skip the whole fetch if the user can't see activity. applyPermissions
+  // already hides the section visually; this just saves a round-trip.
+  if (!hasPermission('viewActivityLog')) return;
 
   // Role pill shows the viewing user's role — same vibe as the mockup
   // where an "●ADMIN" pill sits on the header. Color tied to role.
