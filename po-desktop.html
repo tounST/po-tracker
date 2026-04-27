@@ -396,6 +396,76 @@ button { font-family: inherit; }
 .activity-text b { font-weight: 700; }
 .activity-meta { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); margin-top: 2px; }
 
+/* Dashboard — Urgent feature carousel */
+.urgent-carousel {
+  display: flex; gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin-bottom: 24px;
+  padding: 4px 4px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+.urgent-carousel::-webkit-scrollbar { height: 6px; }
+.urgent-carousel::-webkit-scrollbar-thumb { background: var(--line-deep); border-radius: 99px; }
+.urgent-carousel::-webkit-scrollbar-track { background: transparent; }
+.urgent-feature {
+  background: var(--surface); border: 1px solid var(--line);
+  border-top: 3px solid var(--danger);
+  border-radius: 14px; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  cursor: pointer; transition: border-color 0.12s;
+  flex: 0 0 360px;
+  scroll-snap-align: start;
+}
+.urgent-feature:hover { border-color: var(--line-deep); }
+.urgent-feature-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.urgent-feature-chip {
+  padding: 5px 12px; border-radius: 99px;
+  font-size: 11px; font-weight: 800;
+  background: var(--accent); color: #fff;
+  white-space: nowrap;
+}
+.urgent-feature-pono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 16px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; }
+.urgent-feature-company { font-size: 13px; color: var(--ink-2); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.urgent-feature-model { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
+
+/* Dashboard — Due Soon list rows */
+.due-list { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.due-list-row {
+  display: grid; grid-template-columns: 96px 1fr 200px;
+  align-items: center; gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.due-list-row:last-child { border-bottom: none; }
+.due-list-row:hover { background: var(--bg); }
+.due-list-chip {
+  padding: 5px 10px; border-radius: 99px;
+  font-size: 11px; font-weight: 800;
+  text-align: center;
+}
+.due-list-chip.danger { background: var(--danger-bg); color: var(--danger); }
+.due-list-chip.warning { background: var(--warning-bg); color: var(--warning); }
+.due-list-chip.info { background: var(--info-bg); color: var(--info); }
+.due-list-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.due-list-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.due-list-pono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-weight: 800; color: var(--ink); }
+.due-list-company { font-size: 13px; color: var(--ink-2); }
+.due-list-meta { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-3); }
+.due-list-progress { display: flex; align-items: center; gap: 8px; }
+
+/* Section header view-all link */
+.section-link {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px; color: var(--ink-3);
+  letter-spacing: 1px; text-transform: uppercase; font-weight: 700;
+  cursor: pointer; padding: 4px 0;
+  transition: color 0.12s;
+}
+.section-link:hover { color: var(--accent); }
+
 /* ═══ PO LIST ═══ */
 .filter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
 .pill {
@@ -2380,14 +2450,14 @@ function renderDashboard() {
   const urgent = pos.filter(p => p.urgent && p.status !== 'Complete').length;
   const rework = items.filter(i => i.rework || i.status === 'กลับมาแก้ไข').length;
 
-  // Due Soon — sort by daysLeft, pick top 4 non-complete
+  // Due Soon — sort by daysLeft, pick top 5 non-complete (Q3-A: 5 rows + view-all)
   const dueSoon = pos
     .filter(p => p.status !== 'Complete' && p.due)
     .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999))
-    .slice(0, 4);
+    .slice(0, 5);
 
-  // Urgent list (cap 5)
-  const urgentList = pos.filter(p => p.urgent && p.status !== 'Complete').slice(0, 5);
+  // Urgent list — show all (Q2-C: horizontal carousel scrolls)
+  const urgentList = pos.filter(p => p.urgent && p.status !== 'Complete');
 
   // Activity feed
   const activities = (db.activities || []).slice(0, 6);
@@ -2398,7 +2468,6 @@ function renderDashboard() {
         <div class="kpi-label">PO ใช้งาน</div>
         <div class="kpi-row-val">
           <div class="kpi-value">${totalPO}</div>
-          <div class="kpi-trend accent">LIVE</div>
         </div>
         <div class="kpi-sub">Active POs · ${totalItems} ชิ้น</div>
       </div>
@@ -2406,7 +2475,6 @@ function renderDashboard() {
         <div class="kpi-label">ส่งแล้ว</div>
         <div class="kpi-row-val">
           <div class="kpi-value">${sent}</div>
-          <div class="kpi-trend ok">ชิ้น</div>
         </div>
         <div class="kpi-sub">Shipped · จากทั้งหมด</div>
       </div>
@@ -2414,7 +2482,6 @@ function renderDashboard() {
         <div class="kpi-label">งานด่วน</div>
         <div class="kpi-row-val">
           <div class="kpi-value">${urgent}</div>
-          ${urgent > 0 ? '<div class="kpi-trend bad">!</div>' : ''}
         </div>
         <div class="kpi-sub">Urgent · ต้องเร่ง</div>
       </div>
@@ -2429,35 +2496,35 @@ function renderDashboard() {
 
     <div class="section-header">
       <div class="section-title-wrap">
-        <h2 class="section-title-th">ใกล้ถึงกำหนดส่ง</h2>
-        <div class="section-title-en">Due soon</div>
+        <h2 class="section-title-th">งานด่วน</h2>
+        <div class="section-title-en">Urgent orders</div>
       </div>
-    </div>
-    <div class="due-grid">
-      ${dueSoon.length
-        ? dueSoon.map(renderDueCard).join('')
-        : `<div class="empty-state" style="grid-column: 1 / -1;"><span class="emoji">🎯</span><p>ไม่มี PO ใกล้ deadline</p></div>`
+      ${urgentList.length
+        ? `<span class="status-chip status-chip-sm" style="background: var(--danger-bg); color: var(--danger);">${urgentList.length} รายการ</span>`
+        : ''
       }
     </div>
+    ${urgentList.length
+      ? `<div class="urgent-carousel">${urgentList.map(renderUrgentFeature).join('')}</div>`
+      : `<div class="card-box" style="padding: 28px; text-align: center; color: var(--ink-3); font-size: 13px; margin-bottom: 24px;">ไม่มีงานด่วน — ดีเลย ๆ</div>`
+    }
 
     <div class="split-grid${hasPermission('viewActivityLog') ? '' : ' single-col'}">
       <div>
         <div class="section-header">
           <div class="section-title-wrap">
-            <h2 class="section-title-th">งานด่วน</h2>
-            <div class="section-title-en">Urgent orders</div>
+            <h2 class="section-title-th">ใกล้ถึงกำหนดส่ง</h2>
+            <div class="section-title-en">Due soon</div>
           </div>
-          ${urgentList.length
-            ? `<span class="status-chip status-chip-sm" style="background: var(--danger-bg); color: var(--danger);">${urgentList.length} รายการ</span>`
+          ${dueSoon.length
+            ? `<span class="section-link" id="due-view-all">เลื่อนดูทั้งหมด</span>`
             : ''
           }
         </div>
-        <div class="card-box">
-          ${urgentList.length
-            ? urgentList.map(renderUrgentRow).join('')
-            : `<div style="padding: 28px; text-align: center; color: var(--ink-3); font-size: 13px;">ไม่มีงานด่วน — ดีเลย ๆ</div>`
-          }
-        </div>
+        ${dueSoon.length
+          ? `<div class="due-list">${dueSoon.map(renderDueListRow).join('')}</div>`
+          : `<div class="card-box" style="padding: 28px; text-align: center; color: var(--ink-3); font-size: 13px;">🎯 ไม่มี PO ใกล้ deadline</div>`
+        }
       </div>
 
       ${hasPermission('viewActivityLog') ? `
@@ -2480,38 +2547,39 @@ function renderDashboard() {
   `;
 
   // Wire Dashboard card clicks → Detail
-  el.querySelectorAll('.due-card[data-po], .urgent-row[data-po]').forEach(node => {
+  el.querySelectorAll('.urgent-feature[data-po], .due-list-row[data-po]').forEach(node => {
     node.onclick = () => goTo('detail', { poId: node.dataset.po });
   });
+
+  // "เลื่อนดูทั้งหมด" → PO list filtered to active (sorted by closest due)
+  const viewAll = el.querySelector('#due-view-all');
+  if (viewAll) {
+    viewAll.onclick = () => { currentFilter = 'active'; goTo('list'); };
+  }
 }
 
-function renderDueCard(po) {
+function renderUrgentFeature(po) {
   const d = po.daysLeft;
   const overdue = d !== null && d < 0;
-  const critical = d !== null && d >= 0 && d <= 1;
-  const soon = d !== null && d > 1 && d <= 3;
-  const tone = (overdue || critical) ? 'danger' : soon ? 'warning' : 'info';
-  const topCls = tone === 'danger' ? 'danger-top' : tone === 'warning' ? 'warning-top' : 'info-top';
   const label = d === null ? '—'
     : overdue ? `เลย ${Math.abs(d)} วัน`
     : d === 0 ? 'วันนี้'
     : d === 1 ? 'พรุ่งนี้'
     : `อีก ${d} วัน`;
-
   return `
-    <div class="due-card ${topCls}" data-po="${po.id}">
-      <div class="due-head-row">
-        <div class="due-chip ${tone}">${label}</div>
-        ${po.urgent ? '<span style="font-size: 13px;">🔥</span>' : ''}
+    <div class="urgent-feature" data-po="${po.id}">
+      <div class="urgent-feature-head">
+        <div class="urgent-feature-chip">${label}</div>
+        ${poStatusChip(po.status)}
       </div>
       <div>
-        <div class="due-pono">${escapeHtml(po.id)}</div>
-        <div class="due-company">${escapeHtml(po.company || '—')}</div>
-        <div class="due-model">${escapeHtml(getPoDisplayModel(po))}</div>
+        <div class="urgent-feature-pono">${escapeHtml(po.id)}</div>
+        <div class="urgent-feature-company">${escapeHtml(po.company || '—')}</div>
+        <div class="urgent-feature-model">${escapeHtml(getPoDisplayModel(po))}</div>
       </div>
       <div class="due-foot">
         <div class="due-foot-row">
-          <span class="due-foot-label">กำหนดส่ง</span>
+          <span class="due-foot-label">กำหนด</span>
           <span class="due-foot-val">${po.due ? po.due.slice(5) : '—'}</span>
         </div>
         <div class="progress">
@@ -2523,18 +2591,32 @@ function renderDueCard(po) {
   `;
 }
 
-function renderUrgentRow(po) {
+function renderDueListRow(po) {
+  const d = po.daysLeft;
+  const overdue = d !== null && d < 0;
+  const critical = d !== null && d >= 0 && d <= 1;
+  const soon = d !== null && d > 1 && d <= 3;
+  const tone = (overdue || critical) ? 'danger' : soon ? 'warning' : 'info';
+  const label = d === null ? '—'
+    : overdue ? `เลย ${Math.abs(d)} วัน`
+    : d === 0 ? 'วันนี้'
+    : d === 1 ? 'พรุ่งนี้'
+    : `อีก ${d} วัน`;
   return `
-    <div class="urgent-row" data-po="${po.id}">
-      <div class="urgent-badge">🔥</div>
-      <div class="urgent-main">
-        <div class="urgent-title">
-          <span class="urgent-pono">${escapeHtml(po.id)}</span>
-          <span class="urgent-company">${escapeHtml(po.company || '—')}</span>
+    <div class="due-list-row" data-po="${po.id}">
+      <div class="due-list-chip ${tone}">${label}</div>
+      <div class="due-list-main">
+        <div class="due-list-title">
+          <span class="due-list-pono">${escapeHtml(po.id)}</span>
+          ${po.urgent ? '<span style="font-size: 12px;">🔥</span>' : ''}
+          <span class="due-list-company">${escapeHtml(po.company || '—')}</span>
         </div>
-        <div class="urgent-meta">${escapeHtml(getPoDisplayModel(po))}${po.due ? ' · กำหนด ' + po.due.slice(5) : ''}</div>
+        <div class="due-list-meta">${escapeHtml(getPoDisplayModel(po))}${po.due ? ' · กำหนด ' + po.due.slice(5) : ''}</div>
       </div>
-      ${poStatusChip(po.status)}
+      <div class="due-list-progress">
+        <div class="progress-track"><div class="progress-fill" style="width:${po.progress}%"></div></div>
+        <span class="progress-pct">${po.progress}%</span>
+      </div>
     </div>
   `;
 }
