@@ -373,7 +373,7 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 
 ### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-24 end of day)
 
-**ไม่มีงาน active** — Realtime promotion เสร็จแล้ว (2026-04-24 end of day) รอ toun สั่งงานต่อ
+**ไม่มีงาน active** — PC Realtime + isUserBusy + viewActivityLog parity เสร็จ (2026-04-24 late). ทุก feature ของ mobile วันนี้ port มา PC ครบแล้ว รอ toun สั่งงานต่อ
 
 **Deploy state (ทุก branch ควรจะเท่ากัน หลัง commit + merge)**:
 - ✅ PC Version (ลำดับ 1) + Granular Permissions + Office role (ลำดับ 1.5)
@@ -386,9 +386,16 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - ✅ **Stacked duplicate items** (mobile Add-PO form) + bulk-add grid "รุ่นรถ ซ้ายมือ"
 - ✅ **Update-tab item layout** — inline `คาดเอว │ Fortuner` + `554` (vertical divider via border-left)
 - ✅ **Permanent design-consistency rule** in memory (`feedback_design_consistency.md`) — toun ย้ำ ไม่ต้องถามอีก
-- ✅ **Smart auto-refresh (Option B)** — `isUserBusy()` guard + `getActiveTabName()` gate; ไม่เด้งใต้นิ้ว user + repaint เฉพาะ tab ที่เห็น (mobile only, desktop follow-up pending)
-- ✅ **Supabase Realtime** — WebSocket push <1s cross-device + `worker:true` mobile background stability + polling 60s fallback + RLS permissive policies (mobile only, desktop follow-up pending)
+- ✅ **Smart auto-refresh (Option B)** — `isUserBusy()` guard + active-tab gate; ไม่เด้งใต้นิ้ว user + repaint เฉพาะ tab ที่เห็น (**both mobile + PC**)
+- ✅ **Supabase Realtime** — WebSocket push <1s cross-device + `worker:true` background stability + polling 60s fallback + RLS permissive policies (**both mobile + PC**, channel names suffixed `-pc-` vs mobile to keep separate)
 - ✅ **Recent Activity gated to admin + supervisor** (2026-04-24) — new `viewActivityLog` permission flag: admin + supervisor (หัวหน้า) = true; office/manager/staff = false. UI gate via `.view-activity-only` class + `applyPermissions()`. `refreshActivitySection()` also early-returns if no permission (saves Supabase round-trip). Admin-editable via Permissions sub-tab in Manage. Default seeded in `PERMISSIONS` matrix; DB seed SQL documented in session notes
+- ✅ **PC Realtime + isUserBusy + viewActivityLog parity** (2026-04-24, **Dev-PC** branch) — port mobile features 1-3 to `po-desktop.html`:
+  - **Realtime**: same `sb.channel('po-tracker-pc-changes').on('postgres_changes', {...})` subscription on 5 tables, `worker:true` client config, debounced 300ms refetch via `refreshData()`, reconnect with 5s backoff, visibilitychange listener. Channel name suffixed `-pc-` to keep PC + mobile channels separate (best practice — easier to debug per-client connection state in Supabase dashboard)
+  - **isUserBusy()**: extracted from inline `hasActiveEdit` check in `refreshData()`. 5 conditions adapted for PC's state model: detail page selection/targetStatus, createState in progress, qcState selection, focused INPUT/TEXTAREA/SELECT, modal open. PC's modal selectors differ from mobile (`.modal-backdrop:not(.hidden)` instead of `#sync-modal display:flex`)
+  - **Polling 30s → 60s + Realtime-recency skip**: same defense-in-depth pattern as mobile. Polling skips entirely if Realtime delivered an event within last 45s
+  - **viewActivityLog + quickAddMaster**: PC's `PERMISSIONS` was missing BOTH flags (mobile had 12, PC had 10). Added both for full parity. Recent Activity column on Dashboard gated via inline `${hasPermission('viewActivityLog') ? '<column>' : ''}` (PC uses route registry render, no `applyPermissions` function). Added `.split-grid.single-col { grid-template-columns: 1fr }` so urgent column expands when activity hidden. `loadActivity(15)` skipped on login + on refresh if no permission (saves round-trip)
+  - **No DB changes needed** — RLS + publication already set, role_permissions table already seeded with all 12 flags (mobile commit a63286e seeded `viewActivityLog` for all 5 roles; `quickAddMaster` was seeded earlier with the original Permissions matrix). PC's `loadRolePermissions` will now apply the rows that previously got silently ignored due to missing keys
+  - **Cache** bumped v32 → v33 so PC users get the new code on next service-worker activation
 
 **Next candidates** (ยังไม่เริ่ม toun ต้องสั่ง):
 - ลำดับ 2 — Phase 3 ฟีเจอร์ธุรกิจ (6 features, ~2-4 สัปดาห์)

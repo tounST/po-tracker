@@ -356,6 +356,7 @@ button { font-family: inherit; }
 .progress-pct { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700; color: var(--ink-2); }
 
 .split-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+.split-grid.single-col { grid-template-columns: 1fr; }  /* Recent Activity hidden by perm → urgent column expands full width */
 .card-box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 
 .urgent-row {
@@ -1562,7 +1563,18 @@ button { font-family: inherit; }
 // ═══════════════════════════════════════════════════
 const SUPABASE_URL      = 'https://rkdxbxtakvisroxelrvq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHhieHRha3Zpc3JveGVscnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMzM2MjgsImV4cCI6MjA4OTkwOTYyOH0.KvTaFrdXCERYl77hVt5x5_udMQn7YSy6GFdDoyu9bOU';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Realtime config — worker:true keeps the heartbeat alive when the
+// browser tab is backgrounded (PC desktop usually less affected than
+// mobile, but we mirror mobile's setup so the same WebSocket guarantees
+// apply to both clients). Mobile uses the same options.
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  realtime: {
+    params: { eventsPerSecond: 10 },
+    worker: true,
+    heartbeatIntervalMs: 30000
+  }
+});
 
 let currentUser = null;
 let db = { pos: [], items: [], activities: [], masters: { companies: [], models: [], parts: [], defects: [] } };
@@ -1589,11 +1601,11 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 // Permissions — mirrored from po-mobile.html so both clients enforce the same rules.
 // See po-mobile.html for flag definitions.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true  },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false }
 };
 const ROLE_LABELS = { admin: 'Admin', supervisor: 'Supervisor', office: 'Office', manager: 'Manager', staff: 'Staff' };
 const ROLE_COLORS = { admin: '#A33B2E', supervisor: '#B8832A', office: '#2C6E70', manager: '#3F5AA6', staff: '#4A7F3F' };
@@ -1613,6 +1625,8 @@ const PERMISSION_META = [
   { key: 'manageUserRoles',  label: 'เปลี่ยน Role/Station ของ user' },
   { key: 'manageDataAdd',    label: 'เพิ่ม/แก้ Master Data' },
   { key: 'manageDataDelete', label: 'ลบ Master Data' },
+  { key: 'quickAddMaster',   label: 'เพิ่ม master data ตอนสร้าง/แก้ PO (ไม่ต้องไปหน้าจัดการ)' },
+  { key: 'viewActivityLog',  label: 'ดูกิจกรรมล่าสุดบน Dashboard' },
 ];
 const ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
 
@@ -1841,6 +1855,7 @@ function logout(expired = false) {
   if (currentUser) {
     logActivity('logout_desktop', 'user', { username: currentUser.username, expired });
   }
+  disconnectRealtime();  // tear down WebSocket channel + timers
   currentUser = null;
   db = { pos: [], items: [], activities: [] };
   sessionStorage.removeItem('po_user_id');
@@ -2063,6 +2078,88 @@ async function loadRolePermissions() {
   }
 }
 
+// ═══════════════════════════════════════════════════
+//  REALTIME — WebSocket push from Supabase (port from mobile)
+// ═══════════════════════════════════════════════════
+//
+//  Same invalidate-and-refetch pattern as po-mobile.html:
+//   - Subscribe once on login to po_list, po_items, config, activity_log,
+//     role_permissions
+//   - Any event → debounce 300ms → call refreshData() to get a fresh
+//     snapshot. PC's refreshData already has the BUG16 hasActiveEdit
+//     guard, which we extend below into isUserBusy().
+//   - Polling stays as a 60s fallback (was 30s) and skips itself if
+//     Realtime delivered an event in the last 45s.
+
+let _rtChannel = null;
+let _rtReconnectTimer = null;
+let _rtDebounceTimer = null;
+let _rtLastEventAt = 0;
+const _RT_DEBOUNCE_MS = 300;
+
+function connectRealtime() {
+  if (!currentUser) return;
+  if (_rtChannel) return;
+  console.log('[Realtime] connecting...');
+  _rtChannel = sb.channel('po-tracker-pc-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'po_list' },         onRealtimeEvent)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'po_items' },        onRealtimeEvent)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'config' },          onRealtimeEvent)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_log' },    onRealtimeEvent)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'role_permissions' },onRealtimeEvent)
+    .subscribe((status, err) => {
+      console.log('[Realtime] status =', status, err || '');
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        scheduleRtReconnect();
+      }
+    });
+}
+
+function disconnectRealtime() {
+  if (_rtReconnectTimer) { clearTimeout(_rtReconnectTimer); _rtReconnectTimer = null; }
+  if (_rtDebounceTimer)  { clearTimeout(_rtDebounceTimer);  _rtDebounceTimer = null; }
+  if (_rtChannel) {
+    try { sb.removeChannel(_rtChannel); } catch(e) { console.warn('[Realtime] removeChannel:', e); }
+    _rtChannel = null;
+  }
+}
+
+function scheduleRtReconnect() {
+  if (_rtReconnectTimer) return;
+  _rtReconnectTimer = setTimeout(() => {
+    _rtReconnectTimer = null;
+    if (_rtChannel) { try { sb.removeChannel(_rtChannel); } catch(e) {} _rtChannel = null; }
+    connectRealtime();
+    onRealtimeEvent();  // also force a fresh fetch — we may have missed events
+  }, 5000);
+}
+
+function onRealtimeEvent(payload) {
+  _rtLastEventAt = Date.now();
+  if (payload) console.log('[Realtime] event:', payload.table, payload.eventType);
+  // Debounce: a single PO save fires 1 po_list + N po_items events — we
+  // want 1 refresh, not N+1. refreshData itself respects isUserBusy.
+  if (_rtDebounceTimer) clearTimeout(_rtDebounceTimer);
+  _rtDebounceTimer = setTimeout(() => {
+    _rtDebounceTimer = null;
+    refreshData().catch(e => console.warn('[Realtime] refresh failed:', e));
+  }, _RT_DEBOUNCE_MS);
+}
+
+// When the tab becomes visible again, force a refresh + reconnect the
+// channel if the WebSocket died while backgrounded.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !currentUser) return;
+  onRealtimeEvent();
+  if (_rtChannel && _rtChannel.state !== 'joined') {
+    try { sb.removeChannel(_rtChannel); } catch(e) {}
+    _rtChannel = null;
+    connectRealtime();
+  } else if (!_rtChannel) {
+    connectRealtime();
+  }
+});
+
 // Recent activity — joins users to get display name
 async function loadActivity(limit = 15) {
   try {
@@ -2199,7 +2296,9 @@ async function onLoginSuccess() {
 
   const data = await loadFromSupabase();
   if (data) db = { ...db, ...data };
-  db.activities = await loadActivity(15);
+  // Only fetch activity log if the role can actually see it on Dashboard.
+  // Saves a Supabase round-trip per login for office/manager/staff.
+  db.activities = hasPermission('viewActivityLog') ? await loadActivity(15) : [];
 
   initShell();
   resetSessionTimer();
@@ -2207,28 +2306,46 @@ async function onLoginSuccess() {
   // Default route by role — Staff goes to Dashboard too (same)
   goTo('dashboard');
   showLoading(false);
+
+  // Open the WebSocket channel after the UI is up so the first
+  // postgres_changes event can land cleanly into a fully-rendered tree.
+  connectRealtime();
+}
+
+// Centralised busy detection — same intent as po-mobile.html's isUserBusy.
+// Used by both the Realtime refresh path (onRealtimeEvent → refreshData)
+// and the polling fallback. Returns true when the user is actively
+// editing something or has UI affordances open we shouldn't disturb.
+function isUserBusy() {
+  // 1) Detail page with selection or staged status — same BUG16 guard
+  if (currentRoute === 'detail' && (detailState.selection.size > 0 || !!detailState.targetStatus)) return true;
+  // 2) Create-PO draft in progress
+  if (currentRoute === 'create' && createState) return true;
+  // 3) QC inspection in progress
+  if (currentRoute === 'qc' && qcState.selectedItemId) return true;
+  // 4) User is typing in any input (covers Manage forms, modals, search boxes)
+  const a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT')) return true;
+  // 5) Any modal/sheet visible (PC has user form modal etc)
+  const openModal = document.querySelector('.modal-backdrop:not(.hidden), .modal[style*="display: flex"], .modal[style*="display:flex"]');
+  if (openModal) return true;
+  return false;
 }
 
 async function refreshData() {
   // Also pull permission updates so if Admin on another device edited
   // role_permissions, this session picks them up on its next auto-refresh
-  // (every 30s) or manual refresh click.
+  // (every 60s, or near-instant via Realtime) or manual refresh click.
   await loadRolePermissions();
   applySidebarPermissions();
 
   const data = await loadFromSupabase();
   if (data) db = { ...db, ...data };
-  if (currentRoute === 'dashboard') db.activities = await loadActivity(15);
+  if (currentRoute === 'dashboard' && hasPermission('viewActivityLog')) db.activities = await loadActivity(15);
 
   // Don't blow away the user's in-progress work on a background refresh.
-  // If they've started editing on the current page, silently update db
-  // and skip the re-render — they'll see fresh data on their next action
-  // (save / cancel / navigate) or next manual refresh.
-  const hasActiveEdit =
-    (currentRoute === 'detail' && (detailState.selection.size > 0 || !!detailState.targetStatus)) ||
-    (currentRoute === 'create' && createState) ||
-    (currentRoute === 'qc'     && qcState.selectedItemId);
-  if (hasActiveEdit) return;
+  // db is already updated above — they'll see fresh data on next action.
+  if (isUserBusy()) return;
 
   const cfg = ROUTES[currentRoute];
   if (cfg) {
@@ -2237,10 +2354,16 @@ async function refreshData() {
   }
 }
 
-// Auto-refresh every 30s if tab visible
+// Polling fallback for Realtime (mirrors po-mobile.html). 60s instead of
+// the previous 30s because Realtime handles the fast path now. If
+// Realtime delivered an event in the last 45s we skip this tick — fresh
+// data already in memory, no need to re-query.
 setInterval(() => {
-  if (currentUser && !document.hidden) refreshData();
-}, 30000);
+  if (!currentUser || document.hidden) return;
+  if (isUserBusy()) return;
+  if (Date.now() - _rtLastEventAt < 45000) return;
+  refreshData();
+}, 60000);
 
 // ═══════════════════════════════════════════════════
 //  RENDER: DASHBOARD
@@ -2317,7 +2440,7 @@ function renderDashboard() {
       }
     </div>
 
-    <div class="split-grid">
+    <div class="split-grid${hasPermission('viewActivityLog') ? '' : ' single-col'}">
       <div>
         <div class="section-header">
           <div class="section-title-wrap">
@@ -2337,6 +2460,7 @@ function renderDashboard() {
         </div>
       </div>
 
+      ${hasPermission('viewActivityLog') ? `
       <div>
         <div class="section-header">
           <div class="section-title-wrap">
@@ -2351,6 +2475,7 @@ function renderDashboard() {
           }
         </div>
       </div>
+      ` : ''}
     </div>
   `;
 
