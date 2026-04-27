@@ -3,7 +3,7 @@
 //  Version: v1.0 — 2026-03-20
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME = 'po-tracker-v33';
+const CACHE_NAME = 'po-tracker-v34';
 
 // ไฟล์ที่จะ cache ไว้ใช้ offline
 const CACHE_FILES = [

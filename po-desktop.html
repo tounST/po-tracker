@@ -3692,7 +3692,14 @@ async function submitCreate() {
   const s = createState;
 
   // Validation
-  if (!s.id || !/^PO-[\w-]+$/i.test(s.id)) { toast('⚠️ PO Number ต้องขึ้นต้นด้วย PO-'); return; }
+  // BUG30 fix: previous regex /^PO-[\w-]+$/i used \w which is [A-Za-z0-9_]
+  // — that REJECTED forward slashes, so the new Buddhist-year auto format
+  // PO-DD/MM/YY-NN (introduced 2026-04-23) failed validation even though
+  // it was a valid PO id. Loosen to "PO- + at least one char of anything"
+  // so both auto formats AND customer-specific custom formats (e.g.
+  // PO-CUST123/456) pass. trim() in case of paste-with-whitespace.
+  s.id = (s.id || '').trim();
+  if (!s.id || !/^PO-.+$/i.test(s.id)) { toast('⚠️ PO Number ต้องขึ้นต้นด้วย PO-'); return; }
   if (!s.company) { toast('⚠️ กรุณาเลือกบริษัท'); return; }
   if (!s.recv || !s.due) { toast('⚠️ กรุณากรอกวันที่'); return; }
   const validItems = s.items.filter(i => i.part && i.part.trim() && (i.qty >= 1));
