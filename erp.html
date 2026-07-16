@@ -252,10 +252,16 @@
   #pin-login-screen {
     position: fixed; inset: 0; z-index: 9999;
     background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column; padding: 32px 22px;
+    display: flex;
   }
   #pin-login-screen.hidden { display: none; }
+  /* Brand panel: hidden on mobile, shown on desktop (same pattern as po-desktop.html) */
+  .login-brand-panel { display: none; }
+  .login-form-panel {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px 22px;
+  }
   .pin-login-box {
     background: transparent; box-shadow: none; padding: 0;
     width: 100%; max-width: 340px; text-align: center;
@@ -346,6 +352,66 @@
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  /* ══════════════════════════════════════════════
+     Desktop / PC (≥1024px) — same design language as po-desktop.html
+     ══════════════════════════════════════════════ */
+  @media (min-width: 1024px) {
+    body { padding-bottom: 40px; }
+
+    /* Login: split brand + form panels (mirrors po-desktop.html) */
+    .login-brand-panel {
+      width: 42%; background: var(--ink); color: var(--bg);
+      padding: 56px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .login-brand-top { display: flex; align-items: center; gap: 12px; }
+    .login-brand-mark {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 20px;
+    }
+    .login-brand-name { font-size: 16px; font-weight: 800; }
+    .login-brand-sub {
+      font-family: var(--font-mono);
+      font-size: 11px; opacity: 0.55; letter-spacing: 0.5px; margin-top: 2px;
+    }
+    .login-hero-title {
+      font-size: 40px; font-weight: 800;
+      letter-spacing: -1.2px; line-height: 1.15;
+    }
+    .login-hero-sub {
+      font-size: 15px; opacity: 0.6; margin-top: 16px;
+      max-width: 380px; line-height: 1.55;
+    }
+    .login-brand-foot {
+      display: flex; gap: 18px;
+      font-family: var(--font-mono);
+      font-size: 11px; opacity: 0.55; letter-spacing: 0.5px;
+    }
+    .login-form-panel { padding: 48px; }
+    .pin-login-box { max-width: 400px; }
+
+    /* Topbar + content: wider, same rhythm as po-desktop's .content */
+    .topbar { padding: 18px 32px; }
+    .wrap { max-width: 1140px; padding: 28px 32px 0; }
+
+    .erp-hero { margin-bottom: 24px; }
+    .erp-hero-avatar { width: 54px; height: 54px; font-size: 23px; }
+    .erp-hero-name { font-size: 22px; }
+
+    .kpi-strip { gap: 16px; margin-bottom: 28px; }
+    .kpi-tile { padding: 20px 16px; }
+    .kpi-num { font-size: 34px; }
+    .kpi-label { font-size: 12.5px; margin-top: 6px; }
+
+    .module-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .module-card { padding: 22px 20px; gap: 10px; }
+    .module-icon { font-size: 34px; }
+    .module-title { font-size: 17px; }
+    .module-desc { font-size: 13px; }
+  }
+
   @media (max-width: 360px) {
     .kpi-strip { grid-template-columns: repeat(2, 1fr); }
   }
@@ -363,6 +429,30 @@
 
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="pin-login-screen">
+
+  <!-- Brand panel — desktop only (same pattern as po-desktop.html) -->
+  <aside class="login-brand-panel">
+    <div class="login-brand-top">
+      <div class="login-brand-mark">🏭</div>
+      <div>
+        <div class="login-brand-name">ERP โรงงานพ่นสี</div>
+        <div class="login-brand-sub">factory erp · v0.1 · desktop</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="login-hero-title">จัดการโรงงาน<br>ครบทุกหมวด ที่เดียว</div>
+      <div class="login-hero-sub">งานผลิต · คลังสต๊อก · เอกสารขาย · ต้นทุน — ข้อมูลเชื่อมถึงกันทุกจุดงาน แบบเรียลไทม์</div>
+    </div>
+
+    <div class="login-brand-foot">
+      <span>© 2026</span>
+      <span>ERP</span>
+      <span>Desktop</span>
+    </div>
+  </aside>
+
+  <div class="login-form-panel">
   <div class="pin-login-box">
     <div class="pin-brand-mark">🏭</div>
     <h2>ERP โรงงานพ่นสี</h2>
@@ -378,6 +468,7 @@
     <div class="pin-keypad" id="pin-keypad"></div>
     <div class="pin-info">ERP · secured by Supabase</div>
   </div>
+  </div><!-- /login-form-panel -->
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -895,10 +986,18 @@ async function renderDashboard() {
 // ═══════════════════════════════════════════════════
 //  MODULE NAVIGATION
 // ═══════════════════════════════════════════════════
+// Same viewport rule as index.html router: real PC (wide + no touch) → desktop PO app.
+// iPad / touch laptops get the mobile app (44px tap targets) — matches project decision log.
+function poAppUrl() {
+  const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  const wide = window.innerWidth >= 1024;
+  return (wide && !isTouch) ? 'po-desktop.html' : 'po-mobile.html';
+}
+
 function handleModuleClick(action) {
   switch (action) {
     case 'po':
-      window.location.href = 'po-mobile.html';
+      window.location.href = poAppUrl();
       break;
     case 'stock':
       // stock.html not built yet — navigating there is intentional (task spec).
@@ -909,8 +1008,8 @@ function handleModuleClick(action) {
         toast('ไม่มีสิทธิ์เข้าถึงส่วนนี้');
         return;
       }
-      // Manage lives in po-mobile.html for now.
-      window.location.href = 'po-mobile.html';
+      // Manage lives in the PO app for now — route to the right variant per device.
+      window.location.href = poAppUrl();
       break;
     case 'soon':
     default:
