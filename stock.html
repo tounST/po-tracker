@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#B85C3C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ERP โรงงานพ่นสี">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23B85C3C'/%3E%3Ctext x='96' y='132' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='96' fill='white'%3E%F0%9F%8F%AD%3C/text%3E%3C/svg%3E">
+<meta name="apple-touch-fullscreen" content="yes">
+<title>📦 คลังสต๊อก — ERP</title>
+<style>
+  :root {
+    /* ══════════════════════════════════════════════
+       Standard tokens (from tokens.css — official design system)
+       Copied verbatim from erp.html / po-mobile.html so the stock
+       module shares the exact same terracotta / warm-cream language.
+       ══════════════════════════════════════════════ */
+
+    /* Base — warm neutrals */
+    --bg:        #F6F1EA;
+    --bg-deep:   #EDE5DA;
+    --surface:   #FCFAF6;
+    --surface-2: #FFFFFF;
+    --ink:       #2A2520;
+    --ink-2:     #5A4F42;
+    --ink-3:     #8A7F72;
+    --line:      #E5DDD0;
+    --line-deep: #D6CCBD;
+
+    /* Semantic */
+    --success:    #4A7F3F;  --success-bg: #E0EBD8;
+    --warning:    #B8832A;  --warning-bg: #F3E6CB;
+    --danger:     #A33B2E;  --danger-bg:  #F4D9D4;
+    --info:       #3F6E8C;  --info-bg:    #D9E6EE;
+
+    /* Accent — Terracotta (locked) */
+    --accent:      #B85C3C;
+    --accent-soft: #F4E3D8;
+    --accent-ink:  #5A2818;
+
+    /* Status chip pairs (PO item) */
+    --status-recv-fg:   #3F6E8C;   --status-recv-bg:   #D9E6EE;
+    --status-prod-fg:   #7A5614;   --status-prod-bg:   #F0E4D1;
+    --status-qc-fg:     #4B3D78;   --status-qc-bg:     #E3DDF0;
+    --status-ship-fg:   #4A7F3F;   --status-ship-bg:   #E0EBD8;
+    --status-rework-fg: #A33B2E;   --status-rework-bg: #F4D9D4;
+
+    /* Status chip pairs (PO level) */
+    --status-order-fg:   #3F6E8C;  --status-order-bg:   #D9E6EE;
+    --status-inprog-fg:  #B8832A;  --status-inprog-bg:  #F3E6CB;
+    --status-partial-fg: #A35530;  --status-partial-bg: #F3E0D8;
+    --status-done-fg:    #4A7F3F;  --status-done-bg:    #E0EBD8;
+
+    /* Role colors */
+    --role-admin:      #A33B2E;
+    --role-supervisor: #B8832A;
+    --role-office:     #2C6E70;
+    --role-manager:    #3F5AA6;
+    --role-staff:      #4A7F3F;
+
+    /* Typography */
+    --font-sans: 'Sarabun', 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    /* Radius */
+    --r-xs:   8px;
+    --r-sm:  10px;
+    --r-md:  12px;
+    --r-card:14px;
+    --r-lg:  18px;
+    --r-pill: 9999px;
+
+    /* Shadows */
+    --shadow-card:  0 1px 2px rgba(42,37,32,.04), 0 1px 0 rgba(42,37,32,.03);
+    --shadow-hover: 0 2px 8px rgba(42,37,32,.08);
+    --shadow-float: 0 8px 24px rgba(42,37,32,.12);
+
+    /* Hit target */
+    --touch-min: 44px;
+
+    /* ══════════════════════════════════════════════
+       Backwards-compat aliases — existing CSS uses these names.
+       ══════════════════════════════════════════════ */
+    --blue:   var(--accent);
+    --green:  var(--success);
+    --amber:  var(--warning);
+    --red:    var(--danger);
+    --orange: var(--status-partial-fg);
+    --purple: var(--status-qc-fg);
+    --grey:   var(--ink-2);
+    --card:   var(--surface);
+    --border: var(--line);
+    --text:   var(--ink);
+    --muted:  var(--ink-3);
+    --radius: var(--r-md);
+    --shadow: var(--shadow-hover);
+  }
+
+  /* Mono utility — for numbers, dates, counts. Never apply to Thai text. */
+  .mono { font-family: var(--font-mono); font-feature-settings: 'tnum' 1; }
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .spin-svg { animation: spin 1s linear infinite; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ── Top Bar (warm cream) — from erp.html ── */
+  .topbar {
+    background: var(--card);
+    color: var(--text);
+    padding: 16px 18px 14px;
+    position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 12px;
+  }
+  .topbar-greeting { flex: 1; min-width: 0; }
+  .topbar-subtitle {
+    font-size: 13px;
+    color: var(--muted); font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: 0.1px;
+  }
+  .topbar-title {
+    font-size: 24px; font-weight: 800;
+    letter-spacing: -0.3px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin: 0;
+  }
+  .topbar-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .icon-btn {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(184,92,60,.18);
+    transition: background .15s, border-color .15s, transform .1s;
+  }
+  .icon-btn:hover { background: var(--accent-soft); border-color: var(--blue); }
+  .icon-btn:active { transform: scale(.94); }
+
+  /* ── Content wrap ── */
+  .wrap { padding: 16px 14px 0; max-width: 720px; margin: 0 auto; }
+
+  /* ── Login screen (warm cream, minimal) — from erp.html ── */
+  #pin-login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; padding: 32px 22px;
+  }
+  #pin-login-screen.hidden { display: none; }
+  .pin-login-box {
+    background: transparent; box-shadow: none; padding: 0;
+    width: 100%; max-width: 340px; text-align: center;
+  }
+  .pin-brand-mark {
+    width: 56px; height: 56px;
+    border-radius: var(--r-lg);
+    background: var(--accent); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800; letter-spacing: -0.3px;
+    margin-bottom: 14px;
+  }
+  .pin-login-box h2 {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.3px;
+    color: var(--ink); margin-bottom: 4px;
+  }
+  .pin-login-box .pin-subtitle {
+    font-size: 13px; color: var(--ink-3); margin-bottom: 36px;
+  }
+  .pin-dots {
+    display: flex; justify-content: center; gap: 14px; margin-bottom: 10px;
+  }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: var(--r-pill);
+    border: 1.5px solid var(--line-deep);
+    background: transparent;
+    transition: all .15s ease;
+  }
+  .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+  .pin-hint {
+    font-size: 12px; color: var(--ink-3);
+    margin-bottom: 24px; letter-spacing: 0.2px;
+  }
+  .pin-keypad {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .pin-key {
+    height: 58px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    font-size: 22px; font-weight: 700;
+    color: var(--ink);
+    cursor: pointer; font-family: inherit;
+    touch-action: manipulation;
+    transition: background .1s, transform .08s, border-color .1s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-key:hover { background: var(--bg-deep); }
+  .pin-key:active {
+    transform: scale(.96);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .pin-key.backspace { background: transparent; font-size: 18px; color: var(--ink-2); }
+  .pin-key.empty { background: transparent; border: none; pointer-events: none; }
+  .pin-error {
+    color: var(--danger); font-size: 13px; font-weight: 600;
+    min-height: 18px; margin-bottom: 10px;
+  }
+  .pin-error.shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .pin-info {
+    font-size: 11px; color: var(--ink-3);
+    margin-top: 22px; letter-spacing: 0.4px;
+  }
+  .role-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 700; margin-left: 4px;
+  }
+  .role-badge-admin { background: #FFEBEE; color: #C62828; }
+  .role-badge-supervisor { background: #FFF3E0; color: #E65100; }
+  .role-badge-office { background: #E0F2F1; color: #00695C; }
+  .role-badge-manager { background: #E8F0FE; color: var(--blue); }
+  .role-badge-staff { background: #E8F5E9; color: #2E7D32; }
+
+  /* ── Toast (from erp.html) ── */
+  #toast {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #263238; color: #fff; padding: 12px 24px;
+    border-radius: 24px; font-size: 15px; font-weight: 600;
+    opacity: 0; transition: all .3s; z-index: 9999; white-space: nowrap;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ══════════════════════════════════════════════
+     STOCK MODULE — new UI (terracotta design language)
+     ══════════════════════════════════════════════ */
+
+  /* ── Low-stock alert banner ── */
+  .stock-banner {
+    background: var(--warning-bg); color: var(--warning);
+    border: 1px solid var(--warning); border-radius: var(--r-card);
+    padding: 12px 14px; margin-bottom: 14px;
+    font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(184,131,42,.18);
+    transition: transform .1s;
+  }
+  .stock-banner:active { transform: scale(.99); }
+  .stock-banner.hidden { display: none; }
+
+  /* ── Filter chips row ── */
+  .chip-row {
+    display: flex; gap: 8px; overflow-x: auto;
+    padding-bottom: 4px; margin-bottom: 16px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .chip-row::-webkit-scrollbar { display: none; }
+  .stock-chip {
+    flex-shrink: 0;
+    font-size: 13px; font-weight: 700;
+    padding: 8px 14px; border-radius: var(--r-pill);
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--ink-2); cursor: pointer; font-family: inherit;
+    min-height: var(--touch-min);
+    display: flex; align-items: center; gap: 6px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(184,92,60,.18);
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .stock-chip.active {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .stock-chip .chip-count {
+    font-size: 11px; font-variant-numeric: tabular-nums; opacity: .85;
+  }
+
+  /* ── Item card ── */
+  .stock-card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-card); padding: 14px;
+    margin-bottom: 10px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .stock-card.is-low { border-left: 3px solid var(--danger); }
+  .stock-card-body {
+    display: flex; justify-content: space-between; gap: 12px;
+    cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(184,92,60,.10);
+  }
+  .stock-card-info { min-width: 0; flex: 1; }
+  .stock-card-name {
+    font-size: 15.5px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.2px; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .cat-chip {
+    font-size: 10.5px; font-weight: 700;
+    padding: 2px 9px; border-radius: var(--r-pill);
+  }
+  .cat-si    { background: var(--accent-soft); color: var(--accent-ink); }
+  .cat-thin  { background: var(--info-bg); color: var(--info); }
+  .cat-raw   { background: var(--status-prod-bg); color: var(--status-prod-fg); }
+  .cat-other { background: var(--bg-deep); color: var(--ink-3); }
+  .stock-card-min { font-size: 12px; color: var(--muted); }
+  .stock-card-qty { text-align: right; flex-shrink: 0; }
+  .stock-qty-num {
+    font-size: 22px; font-weight: 800; color: var(--ink);
+    font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.5px; line-height: 1.1;
+  }
+  .stock-qty-unit { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .low-indicator {
+    display: inline-block; margin-top: 4px;
+    font-size: 11px; font-weight: 800;
+    color: var(--danger); background: var(--danger-bg);
+    padding: 2px 8px; border-radius: var(--r-pill);
+  }
+  .stock-card-actions {
+    display: flex; gap: 8px; border-top: 1px solid var(--line);
+    padding-top: 10px;
+  }
+  .qa-btn {
+    flex: 1; min-height: var(--touch-min);
+    border-radius: var(--r-sm); border: 1px solid var(--line);
+    background: var(--surface); font-family: inherit;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    color: var(--ink-2);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(184,92,60,.18);
+    transition: background .15s, border-color .15s, transform .1s;
+  }
+  .qa-btn:active { transform: scale(.97); }
+  .qa-in  { color: var(--success); }
+  .qa-in:active  { background: var(--success-bg); border-color: var(--success); }
+  .qa-out { color: var(--warning); }
+  .qa-out:active { background: var(--warning-bg); border-color: var(--warning); }
+  .qa-adjust { color: var(--ink-2); }
+  .qa-adjust:active { background: var(--bg-deep); border-color: var(--line-deep); }
+
+  /* ── Floating add button ── */
+  .stock-add-btn {
+    position: fixed; right: 18px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    height: 52px; padding: 0 20px; border-radius: var(--r-pill);
+    background: var(--accent); color: #fff; border: none;
+    font-family: inherit; font-size: 15px; font-weight: 800;
+    box-shadow: var(--shadow-float); cursor: pointer; z-index: 200;
+    display: flex; align-items: center; gap: 8px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255,255,255,.2);
+    transition: transform .1s, filter .15s;
+  }
+  .stock-add-btn:active { transform: scale(.96); filter: brightness(.96); }
+
+  /* ── Empty state ── */
+  .stock-empty {
+    text-align: center; padding: 36px 20px; color: var(--muted);
+    font-size: 14px; line-height: 1.6;
+  }
+
+  /* ── Modal (bottom sheet) ── */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(42,37,32,.42);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 0;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal-sheet {
+    background: var(--surface); width: 100%; max-width: 480px;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    max-height: 90vh; overflow-y: auto;
+  }
+  @media (min-width: 520px) {
+    .modal-backdrop { align-items: center; }
+    .modal-sheet { border-radius: var(--r-lg); }
+  }
+  .modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .modal-title { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; }
+  .modal-close {
+    width: 36px; height: 36px; border-radius: var(--r-sm);
+    border: 1px solid var(--line); background: var(--bg);
+    font-size: 16px; cursor: pointer; color: var(--ink-2);
+    touch-action: manipulation;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block; font-size: 13px; font-weight: 700;
+    color: var(--ink-2); margin-bottom: 6px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 12px; font-size: 15px; font-family: inherit;
+    border: 1px solid var(--line); border-radius: var(--r-sm);
+    background: var(--surface-2); color: var(--ink);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .field textarea { resize: vertical; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .btn-primary {
+    width: 100%; min-height: var(--touch-min); padding: 14px;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--r-sm); font-family: inherit;
+    font-size: 15px; font-weight: 800; cursor: pointer;
+    touch-action: manipulation; margin-top: 4px;
+    transition: transform .1s, filter .15s;
+  }
+  .btn-primary:active { transform: scale(.99); filter: brightness(.96); }
+  .btn-danger-ghost {
+    width: 100%; min-height: var(--touch-min); padding: 12px;
+    background: transparent; color: var(--danger);
+    border: 1px solid var(--danger-bg); border-radius: var(--r-sm);
+    font-family: inherit; font-size: 14px; font-weight: 700;
+    cursor: pointer; margin-top: 10px; touch-action: manipulation;
+  }
+
+  /* ── Movement item label ── */
+  .mv-item-label {
+    font-size: 14px; font-weight: 700; color: var(--ink-2);
+    margin-bottom: 14px; padding: 10px 12px;
+    background: var(--bg-deep); border-radius: var(--r-sm);
+  }
+
+  /* ── Detail sheet summary + movement history ── */
+  .detail-summary {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
+    margin-bottom: 4px;
+  }
+  .detail-summary-qty {
+    text-align: right; flex-shrink: 0;
+  }
+  .detail-summary-qty .big {
+    font-size: 30px; font-weight: 800; color: var(--ink);
+    font-variant-numeric: tabular-nums; letter-spacing: -1px; line-height: 1;
+  }
+  .detail-summary-meta { font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+  .detail-actions { display: flex; gap: 8px; margin: 14px 0; }
+  .detail-history-head {
+    font-size: 13px; font-weight: 800; color: var(--muted);
+    margin: 12px 0 4px;
+  }
+  .mv-list { margin-top: 4px; }
+  .mv-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .mv-row:last-child { border-bottom: none; }
+  .mv-badge {
+    font-size: 11px; font-weight: 800; padding: 3px 9px;
+    border-radius: var(--r-pill); flex-shrink: 0;
+  }
+  .mv-in     { background: var(--success-bg); color: var(--success); }
+  .mv-out    { background: var(--warning-bg); color: var(--warning); }
+  .mv-adjust { background: var(--bg-deep);    color: var(--ink-2); }
+  .mv-main { flex: 1; min-width: 0; }
+  .mv-qty { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .mv-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .mv-bal {
+    font-size: 12px; color: var(--ink-3); flex-shrink: 0;
+    font-variant-numeric: tabular-nums; text-align: right;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ═══ LOADING OVERLAY ═══ -->
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(246,241,234,.92);align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+  <svg class="spin-svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+  <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.2px;">กำลังดึงข้อมูลล่าสุด</div>
+  <div style="font-size:12px;color:var(--ink-3);letter-spacing:0.3px;">ข้อมูลจะตรงกันทุกเครื่อง</div>
+</div>
+
+<!-- ═══ LOGIN SCREEN (byte-for-byte identical to erp.html) ═══ -->
+<div id="pin-login-screen">
+  <div class="pin-login-box">
+    <div class="pin-brand-mark">🏭</div>
+    <h2>ERP โรงงานพ่นสี</h2>
+    <div class="pin-subtitle">ระบบจัดการโรงงาน · Factory ERP</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pin-dot-0"></div>
+      <div class="pin-dot" id="pin-dot-1"></div>
+      <div class="pin-dot" id="pin-dot-2"></div>
+      <div class="pin-dot" id="pin-dot-3"></div>
+    </div>
+    <div class="pin-hint">ใส่ PIN 4 หลัก · Enter 4-digit PIN</div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-keypad" id="pin-keypad"></div>
+    <div class="pin-info">ERP · secured by Supabase</div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app-wrapper" style="display:none;">
+
+  <div class="topbar">
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="goBack()" title="กลับ" aria-label="Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+    <div class="topbar-greeting">
+      <div class="topbar-subtitle">ERP · คลังสต๊อก</div>
+      <h1 class="topbar-title">คลังวัตถุดิบ / สี</h1>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="doLogout()" title="ออกจากระบบ" aria-label="Logout">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- Low-stock alert banner -->
+    <div class="stock-banner hidden" id="stock-banner">
+      <span id="stock-banner-text">⚠️ มีรายการใกล้หมด</span>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="chip-row" id="stock-chips">
+      <button class="stock-chip active" data-filter="all">ทั้งหมด <span class="chip-count">0</span></button>
+      <button class="stock-chip" data-filter="สี">สี <span class="chip-count">0</span></button>
+      <button class="stock-chip" data-filter="ทินเนอร์">ทินเนอร์ <span class="chip-count">0</span></button>
+      <button class="stock-chip" data-filter="ชิ้นดิบ">ชิ้นดิบ <span class="chip-count">0</span></button>
+      <button class="stock-chip" data-filter="อื่นๆ">อื่นๆ <span class="chip-count">0</span></button>
+      <button class="stock-chip" data-filter="low">⚠️ ใกล้หมด <span class="chip-count">0</span></button>
+    </div>
+
+    <!-- Item list -->
+    <div id="stock-list">
+      <div class="stock-empty">กำลังโหลด…</div>
+    </div>
+
+  </div>
+
+  <!-- Floating add button (gated: manageDataAdd) -->
+  <button class="stock-add-btn manage-data-add-only" id="stock-add-btn" style="display:none;" onclick="openAddStockModal()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    เพิ่มวัสดุ
+  </button>
+</div>
+
+<!-- ═══ ADD / EDIT MATERIAL MODAL ═══ -->
+<div class="modal-backdrop hidden" id="stock-modal">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title" id="stock-modal-title">เพิ่มวัสดุ</div>
+      <button class="modal-close" onclick="closeStockModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="field">
+      <label>ชื่อวัสดุ *</label>
+      <input id="st-name" type="text" placeholder="เช่น สีดำเงา 2K" autocomplete="off">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>ประเภท</label>
+        <input id="st-cat" type="text" list="cat-list" placeholder="สี" autocomplete="off">
+        <datalist id="cat-list">
+          <option value="สี"></option>
+          <option value="ทินเนอร์"></option>
+          <option value="ชิ้นดิบ"></option>
+          <option value="อื่นๆ"></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label>หน่วย</label>
+        <input id="st-unit" type="text" list="unit-list" placeholder="กก." autocomplete="off">
+        <datalist id="unit-list">
+          <option value="กก."></option>
+          <option value="ลิตร"></option>
+          <option value="กระป๋อง"></option>
+          <option value="ชิ้น"></option>
+        </datalist>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field" id="st-qty-field">
+        <label>จำนวนเริ่มต้น</label>
+        <input id="st-qty" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+      </div>
+      <div class="field">
+        <label>จุดเตือน (ขั้นต่ำ)</label>
+        <input id="st-min" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+      </div>
+    </div>
+    <div class="field">
+      <label>ต้นทุน/หน่วย (บาท)</label>
+      <input id="st-cost" type="number" inputmode="decimal" min="0" step="any" placeholder="ไม่ระบุ">
+    </div>
+    <div class="field">
+      <label>หมายเหตุ</label>
+      <textarea id="st-note" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+    </div>
+    <button class="btn-primary" onclick="saveStock()">บันทึก</button>
+    <button class="btn-danger-ghost" id="st-delete-btn" style="display:none;" onclick="deleteStock()">🗑️ ลบวัสดุนี้</button>
+  </div>
+</div>
+
+<!-- ═══ STOCK MOVEMENT MODAL (in / out / adjust) ═══ -->
+<!-- z-index above detail-modal (500) so it stacks on top when opened from the detail sheet -->
+<div class="modal-backdrop hidden" id="mv-modal" style="z-index:600;">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title" id="mv-title">รับเข้า</div>
+      <button class="modal-close" onclick="closeMovementModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="mv-item-label" id="mv-item-label"></div>
+    <div class="field">
+      <label id="mv-qty-label">จำนวน</label>
+      <input id="mv-qty" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+    </div>
+    <div class="field">
+      <label>หมายเหตุ / อ้างอิง (เช่น เลข PO)</label>
+      <input id="mv-note" type="text" placeholder="ไม่ระบุ" autocomplete="off">
+    </div>
+    <button class="btn-primary" id="mv-confirm" onclick="confirmMovement()">ยืนยัน</button>
+  </div>
+</div>
+
+<!-- ═══ ITEM DETAIL SHEET ═══ -->
+<div class="modal-backdrop hidden" id="detail-modal">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title" id="detail-title">วัสดุ</div>
+      <button class="modal-close" onclick="closeDetailSheet()" aria-label="ปิด">✕</button>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  STOCK MODULE — reuses erp.html / po-mobile.html foundation
+// ═══════════════════════════════════════════════════
+const APP_VERSION = 'stock-v0.1-2026-07-16';
+console.log('📦 คลังสต๊อก ' + APP_VERSION + ' loaded');
+
+// ═══════════════════════════════════════════════════
+//  SUPABASE CLIENT  (copied verbatim from erp.html)
+// ═══════════════════════════════════════════════════
+const SUPABASE_URL      = 'https://rkdxbxtakvisroxelrvq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHhieHRha3Zpc3JveGVscnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMzM2MjgsImV4cCI6MjA4OTkwOTYyOH0.KvTaFrdXCERYl77hVt5x5_udMQn7YSy6GFdDoyu9bOU';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  realtime: {
+    params: { eventsPerSecond: 10 },
+    worker: true,
+    heartbeatIntervalMs: 30000
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  HELPERS  (copied verbatim from erp.html)
+// ═══════════════════════════════════════════════════
+function localISO(d) {
+  if (!d) d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayISO() { return localISO(); }
+
+// Full local timestamp WITH timezone offset — for timestamptz columns
+// (updated_at). Never uses toISOString() (BUG6 rule) — builds the string
+// from local getters + the browser's own UTC offset.
+function nowTS() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const offMin = -d.getTimezoneOffset();          // minutes east of UTC
+  const sign = offMin >= 0 ? '+' : '-';
+  const oh = p(Math.floor(Math.abs(offMin) / 60));
+  const om = p(Math.abs(offMin) % 60);
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}${sign}${oh}:${om}`;
+}
+
+// Escape HTML special chars before interpolating into innerHTML.
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Human-readable relative time (mirrors erp.html / po-mobile).
+function relTime(iso) {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return '';
+  const diffSec = Math.floor((Date.now() - t) / 1000);
+  if (diffSec < 30)          return 'เมื่อกี้นี้';
+  if (diffSec < 60)          return `${diffSec} วิก่อน`;
+  if (diffSec < 3600)        return `${Math.floor(diffSec/60)} นาทีก่อน`;
+  if (diffSec < 86400)       return `${Math.floor(diffSec/3600)} ชม. ก่อน`;
+  if (diffSec < 86400 * 7)   return `${Math.floor(diffSec/86400)} วันก่อน`;
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth()+1}/${String(d.getFullYear()+543).slice(-2)}`;
+}
+
+// Format numeric qty — drop trailing zeros, keep up to 2 decimals.
+function fmtNum(n) {
+  const v = Number(n);
+  if (!isFinite(v)) return '0';
+  return (v % 1 === 0) ? String(v) : String(parseFloat(v.toFixed(2)));
+}
+
+function showLoading(show) {
+  const el = document.getElementById('loading-overlay');
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
+
+function toast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ═══════════════════════════════════════════════════
+//  PIN LOGIN + ROLE / PERMISSION SYSTEM
+//  (copied verbatim from erp.html)
+// ═══════════════════════════════════════════════════
+let currentUser = null; // { id, username, display_name, pin, role, station, is_active }
+let pinInput = '';
+
+// ── Auto-logout after 30 minutes of inactivity ──
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+let sessionTimer = null;
+
+function resetSessionTimer() {
+  if (sessionTimer) clearTimeout(sessionTimer);
+  if (!currentUser) return;
+  sessionTimer = setTimeout(() => {
+    if (currentUser) {
+      logActivity('auto_logout', 'system', { reason: 'inactivity_30min', username: currentUser.username }).catch(() => {});
+      currentUser = null;
+      sessionStorage.removeItem('po_user_id');
+      pinInput = '';
+      document.getElementById('app-wrapper').style.display = 'none';
+      document.getElementById('pin-login-screen').classList.remove('hidden');
+      updatePINDots();
+      document.getElementById('pin-error').textContent = '';
+      alert('⏰ หมดเวลาใช้งาน (30 นาที) กรุณา login ใหม่');
+    }
+  }, SESSION_TIMEOUT_MS);
+}
+['click', 'touchstart', 'keydown', 'scroll'].forEach(evt => {
+  document.addEventListener(evt, resetSessionTimer, { passive: true });
+});
+
+// Permission matrix: role -> permissions  (copied verbatim from erp.html)
+const PERMISSIONS = {
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false }
+};
+
+// Frozen JSON snapshot of code defaults (copied verbatim from erp.html)
+const PERMISSIONS_CODE_DEFAULTS_JSON = JSON.stringify(PERMISSIONS);
+function codeDefaultsPermissions() { return JSON.parse(PERMISSIONS_CODE_DEFAULTS_JSON); }
+
+// Fetch role_permissions from Supabase and merge into PERMISSIONS.
+// Admin rows are IGNORED on read (copied verbatim from erp.html)
+async function loadRolePermissions() {
+  try {
+    const { data, error } = await sb.from('role_permissions').select('role, permission_key, allowed');
+    if (error) throw error;
+    const fresh = codeDefaultsPermissions();
+    for (const row of (data || [])) {
+      if (row.role === 'admin') continue;
+      if (fresh[row.role] && row.permission_key in fresh[row.role]) {
+        fresh[row.role][row.permission_key] = !!row.allowed;
+      }
+    }
+    for (const role of Object.keys(fresh)) {
+      for (const key of Object.keys(fresh[role])) {
+        PERMISSIONS[role][key] = fresh[role][key];
+      }
+    }
+  } catch(e) {
+    console.warn('[loadRolePermissions] keeping code defaults:', e?.message || e);
+  }
+}
+
+function hasPermission(permission) {
+  if (!currentUser) return false;
+  const perms = PERMISSIONS[currentUser.role] || PERMISSIONS.staff;
+  return perms[permission] === true;
+}
+
+function initPINKeypad() {
+  const keypadEl = document.getElementById('pin-keypad');
+  if (!keypadEl) return;
+
+  keypadEl.innerHTML = '';
+  for (let i = 1; i <= 9; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'pin-key';
+    btn.textContent = i;
+    btn.onclick = () => addPINDigit(i);
+    keypadEl.appendChild(btn);
+  }
+
+  const emptyCell = document.createElement('div');
+  emptyCell.className = 'pin-key empty';
+  keypadEl.appendChild(emptyCell);
+
+  const zeroBtn = document.createElement('button');
+  zeroBtn.className = 'pin-key';
+  zeroBtn.textContent = '0';
+  zeroBtn.onclick = () => addPINDigit(0);
+  keypadEl.appendChild(zeroBtn);
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'pin-key backspace';
+  backBtn.textContent = '⌫';
+  backBtn.onclick = backspacePIN;
+  keypadEl.appendChild(backBtn);
+
+  if (!window._pinKbBound) {
+    window._pinKbBound = true;
+    document.addEventListener('keydown', (e) => {
+      const loginVisible = !document.getElementById('pin-login-screen')?.classList.contains('hidden');
+      if (!loginVisible) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        addPINDigit(Number(e.key));
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        backspacePIN();
+      } else if (e.key === 'Enter' && pinInput.length === 4) {
+        e.preventDefault();
+        submitPIN();
+      }
+    });
+  }
+}
+
+function addPINDigit(digit) {
+  if (pinInput.length >= 4) return;
+  pinInput += digit;
+  updatePINDots();
+  if (pinInput.length === 4) {
+    setTimeout(() => submitPIN(), 200);
+  }
+}
+
+function backspacePIN() {
+  if (pinInput.length > 0) {
+    pinInput = pinInput.slice(0, -1);
+    updatePINDots();
+  }
+}
+
+function updatePINDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`pin-dot-${i}`);
+    if (dot) {
+      if (i < pinInput.length) dot.classList.add('filled');
+      else dot.classList.remove('filled');
+    }
+  }
+}
+
+// Authenticates against the Supabase `users` table exactly like erp.html.
+async function submitPIN() {
+  const pin = pinInput;
+  pinInput = '';
+  updatePINDots();
+
+  const errEl = document.getElementById('pin-error');
+  errEl.textContent = '';
+
+  try {
+    showLoading(true);
+
+    // Query Supabase for user with matching PIN
+    const { data, error } = await sb.from('users')
+      .select('*')
+      .eq('pin', pin)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !data) {
+      errEl.textContent = '❌ PIN ไม่ถูกต้อง';
+      playShakeAnimation();
+      showLoading(false);
+      return;
+    }
+
+    // Login successful
+    currentUser = data;
+    sessionStorage.setItem('po_user_id', currentUser.id);
+
+    resetSessionTimer();
+
+    // Pull DB permission overrides BEFORE showApp so gating sees live matrix.
+    await loadRolePermissions();
+
+    await logActivity('login', 'system', { username: currentUser.username, app: 'stock' });
+
+    showApp();
+    showLoading(false);
+
+  } catch(e) {
+    console.error('[PIN Login] Error:', e);
+    errEl.textContent = '⚠️ เกิดข้อผิดพลาด';
+    showLoading(false);
+  }
+}
+
+function playShakeAnimation() {
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach(d => d.style.animation = 'none');
+  setTimeout(() => {
+    dots.forEach(d => d.style.animation = 'shake .4s ease');
+  }, 10);
+}
+
+function doLogout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  if (sessionTimer) clearTimeout(sessionTimer);
+  logActivity('logout', 'system', { app: 'stock' }).catch(e => console.warn('Logout activity log failed:', e));
+  disconnectRealtime();
+  currentUser = null;
+  sessionStorage.removeItem('po_user_id');
+  pinInput = '';
+  document.getElementById('app-wrapper').style.display = 'none';
+  document.getElementById('pin-login-screen').classList.remove('hidden');
+  updatePINDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function showApp() {
+  document.getElementById('pin-login-screen').classList.add('hidden');
+  document.getElementById('app-wrapper').style.display = 'block';
+  applyPermissions();
+  connectRealtime();
+  loadStock();
+}
+
+// applyPermissions — for the stock module: gate the "เพิ่มวัสดุ" button by
+// hiding it (display:none) when the user lacks manageDataAdd. No tab-nav here.
+function applyPermissions() {
+  if (!currentUser) return;
+  const canAdd = hasPermission('manageDataAdd');
+  document.querySelectorAll('.manage-data-add-only').forEach(el => {
+    el.style.display = canAdd ? '' : 'none';
+  });
+}
+
+async function logActivity(action, targetType, detail) {
+  if (!currentUser) return;
+  try {
+    await sb.from('activity_log').insert({
+      user_id: currentUser.id,
+      username: currentUser.username,
+      action: action,
+      target_type: targetType,
+      detail: detail
+    });
+  } catch(e) {
+    console.warn('[Activity Log]', e);
+  }
+}
+
+function goBack() {
+  window.location.href = 'erp.html';
+}
+
+// ═══════════════════════════════════════════════════
+//  STOCK STATE
+// ═══════════════════════════════════════════════════
+let stockItems = [];               // source of truth (active rows), keyed by uuid id
+let stockFilter = 'all';           // all | สี | ทินเนอร์ | ชิ้นดิบ | อื่นๆ | low
+let editingStockId = null;         // uuid when editing, null when adding
+let currentDetailId = null;        // uuid of item in the open detail sheet
+let _mvItemId = null;              // uuid of item in the open movement modal
+let _mvType = 'in';               // in | out | adjust
+
+const KNOWN_CATS = ['สี', 'ทินเนอร์', 'ชิ้นดิบ'];
+
+function isLowStock(i) {
+  const min = Number(i.qty_min) || 0;
+  return min > 0 && (Number(i.qty_current) || 0) <= min;
+}
+
+function catClass(cat) {
+  if (cat === 'สี')       return 'cat-si';
+  if (cat === 'ทินเนอร์') return 'cat-thin';
+  if (cat === 'ชิ้นดิบ')  return 'cat-raw';
+  return 'cat-other';
+}
+
+function filterMatch(item) {
+  if (stockFilter === 'all') return true;
+  if (stockFilter === 'low') return isLowStock(item);
+  if (stockFilter === 'อื่นๆ') return !KNOWN_CATS.includes(item.category);
+  return item.category === stockFilter;
+}
+
+// ═══════════════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════════════
+async function loadStock(opts = {}) {
+  try {
+    const { data, error } = await sb.from('stock_items')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+    if (error) throw error;
+    stockItems = data || [];
+  } catch(e) {
+    console.warn('[loadStock]', e);
+    toast('โหลดคลังไม่สำเร็จ');
+    return;
+  }
+  // Keep in-memory fresh, but don't yank the UI while a modal is open.
+  if (opts.skipRenderIfModal && anyModalOpen()) return;
+  renderStockList();
+}
+
+async function loadMovements(itemId) {
+  try {
+    const { data, error } = await sb.from('stock_movements')
+      .select('*')
+      .eq('item_id', itemId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (error) throw error;
+    renderMovements(data || []);
+  } catch(e) {
+    console.warn('[loadMovements]', e);
+    const el = document.getElementById('detail-mv-list');
+    if (el) el.innerHTML = '<div class="stock-empty">โหลดประวัติไม่สำเร็จ</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════
+function renderStockList() {
+  const lowItems = stockItems.filter(isLowStock);
+
+  // Banner
+  const banner = document.getElementById('stock-banner');
+  if (lowItems.length) {
+    banner.classList.remove('hidden');
+    document.getElementById('stock-banner-text').textContent =
+      `⚠️ มี ${lowItems.length} รายการใกล้หมด — ควรสั่งเพิ่ม`;
+  } else {
+    banner.classList.add('hidden');
+  }
+
+  // Chip counts + active state
+  const counts = { all: stockItems.length, low: lowItems.length, 'สี': 0, 'ทินเนอร์': 0, 'ชิ้นดิบ': 0, 'อื่นๆ': 0 };
+  stockItems.forEach(i => {
+    if (KNOWN_CATS.includes(i.category)) counts[i.category]++;
+    else counts['อื่นๆ']++;
+  });
+  document.querySelectorAll('#stock-chips .stock-chip').forEach(ch => {
+    const f = ch.dataset.filter;
+    ch.classList.toggle('active', f === stockFilter);
+    const c = ch.querySelector('.chip-count');
+    if (c) c.textContent = counts[f] !== undefined ? counts[f] : 0;
+  });
+
+  // List
+  const list = document.getElementById('stock-list');
+  const filtered = stockItems.filter(filterMatch);
+  if (!filtered.length) {
+    list.innerHTML = `<div class="stock-empty">${stockItems.length
+      ? 'ไม่มีวัสดุในหมวดนี้'
+      : 'ยังไม่มีวัสดุในคลัง<br>กดปุ่ม “เพิ่มวัสดุ” เพื่อเริ่มต้น'}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(renderStockCard).join('');
+}
+
+function renderStockCard(i) {
+  const low = isLowStock(i);
+  const cat = i.category || 'อื่นๆ';
+  return `<div class="stock-card${low ? ' is-low' : ''}">
+    <div class="stock-card-body" data-action="detail" data-id="${escapeHtml(i.id)}">
+      <div class="stock-card-info">
+        <div class="stock-card-name">${escapeHtml(i.name)} <span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span></div>
+        <div class="stock-card-min">ขั้นต่ำ ${fmtNum(i.qty_min)} ${escapeHtml(i.unit || '')}</div>
+        ${low ? '<span class="low-indicator">ใกล้หมด</span>' : ''}
+      </div>
+      <div class="stock-card-qty">
+        <div class="stock-qty-num">${fmtNum(i.qty_current)}</div>
+        <div class="stock-qty-unit">${escapeHtml(i.unit || '')}</div>
+      </div>
+    </div>
+    <div class="stock-card-actions">
+      <button class="qa-btn qa-in" data-action="in" data-id="${escapeHtml(i.id)}">➕ รับเข้า</button>
+      <button class="qa-btn qa-out" data-action="out" data-id="${escapeHtml(i.id)}">➖ เบิกออก</button>
+    </div>
+  </div>`;
+}
+
+function renderMovements(rows) {
+  const el = document.getElementById('detail-mv-list');
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = '<div class="stock-empty">ยังไม่มีประวัติการเคลื่อนไหว</div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => {
+    const t = r.movement_type;
+    const badge = t === 'in'
+      ? '<span class="mv-badge mv-in">รับเข้า</span>'
+      : t === 'out'
+        ? '<span class="mv-badge mv-out">เบิกออก</span>'
+        : '<span class="mv-badge mv-adjust">ปรับยอด</span>';
+    const sign = t === 'in' ? '+' : t === 'out' ? '−' : '=';
+    return `<div class="mv-row">
+      ${badge}
+      <div class="mv-main">
+        <div class="mv-qty">${sign}${fmtNum(r.qty)}</div>
+        <div class="mv-meta">${escapeHtml(relTime(r.created_at))} · ${escapeHtml(r.created_by || '-')}${r.note ? ' · ' + escapeHtml(r.note) : ''}</div>
+      </div>
+      <div class="mv-bal">คงเหลือ ${fmtNum(r.balance_after)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════════════════
+function anyModalOpen() {
+  return !!document.querySelector('.modal-backdrop:not(.hidden)');
+}
+
+// ── Add / Edit material modal ──
+function openAddStockModal() {
+  if (!hasPermission('manageDataAdd')) { toast('ไม่มีสิทธิ์เพิ่มวัสดุ'); return; }
+  editingStockId = null;
+  document.getElementById('stock-modal-title').textContent = 'เพิ่มวัสดุ';
+  document.getElementById('st-name').value = '';
+  document.getElementById('st-cat').value = '';
+  document.getElementById('st-unit').value = '';
+  document.getElementById('st-qty').value = '';
+  document.getElementById('st-min').value = '';
+  document.getElementById('st-cost').value = '';
+  document.getElementById('st-note').value = '';
+  document.getElementById('st-qty-field').style.display = '';   // qty only on add
+  document.getElementById('st-delete-btn').style.display = 'none';
+  document.getElementById('stock-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('st-name').focus(), 100);
+}
+
+function openEditStockModal(id) {
+  if (!hasPermission('manageDataAdd')) { toast('ไม่มีสิทธิ์แก้ไข'); return; }
+  const item = stockItems.find(i => i.id === id);
+  if (!item) { toast('ไม่พบวัสดุ'); return; }
+  editingStockId = id;
+  document.getElementById('stock-modal-title').textContent = 'แก้ไขวัสดุ';
+  document.getElementById('st-name').value = item.name || '';
+  document.getElementById('st-cat').value = item.category || '';
+  document.getElementById('st-unit').value = item.unit || '';
+  document.getElementById('st-min').value = (item.qty_min === null || item.qty_min === undefined) ? '' : item.qty_min;
+  document.getElementById('st-cost').value = (item.cost_per_unit === null || item.cost_per_unit === undefined) ? '' : item.cost_per_unit;
+  document.getElementById('st-note').value = item.note || '';
+  document.getElementById('st-qty-field').style.display = 'none';  // qty edited via movements only
+  document.getElementById('st-delete-btn').style.display =
+    hasPermission('manageDataDelete') ? '' : 'none';
+  document.getElementById('stock-modal').classList.remove('hidden');
+}
+
+function closeStockModal() {
+  document.getElementById('stock-modal').classList.add('hidden');
+}
+
+async function saveStock() {
+  const name = document.getElementById('st-name').value.trim();
+  if (!name) { toast('กรุณากรอกชื่อวัสดุ'); return; }
+  const category = document.getElementById('st-cat').value.trim() || 'อื่นๆ';
+  const unit = document.getElementById('st-unit').value.trim() || 'ชิ้น';
+  const qtyMin = parseFloat(document.getElementById('st-min').value) || 0;
+  const costRaw = document.getElementById('st-cost').value;
+  const cost = costRaw === '' ? null : (parseFloat(costRaw) || 0);
+  const note = document.getElementById('st-note').value.trim() || null;
+
+  try {
+    showLoading(true);
+    if (editingStockId) {
+      if (!hasPermission('manageDataAdd')) { showLoading(false); toast('ไม่มีสิทธิ์แก้ไข'); return; }
+      const { error } = await sb.from('stock_items').update({
+        name, category, unit, qty_min: qtyMin, cost_per_unit: cost, note,
+        updated_at: nowTS()
+      }).eq('id', editingStockId);
+      if (error) throw error;
+      await logActivity('stock_edit', 'stock_item', { item_id: editingStockId, name });
+    } else {
+      if (!hasPermission('manageDataAdd')) { showLoading(false); toast('ไม่มีสิทธิ์เพิ่มวัสดุ'); return; }
+      const qtyCur = parseFloat(document.getElementById('st-qty').value) || 0;
+      const { data, error } = await sb.from('stock_items').insert({
+        name, category, unit,
+        qty_current: qtyCur, qty_min: qtyMin,
+        cost_per_unit: cost, note, is_active: true
+      }).select().single();
+      if (error) throw error;
+      // Initial opening balance → seed a movement row so history is complete.
+      if (qtyCur > 0 && data) {
+        await sb.from('stock_movements').insert({
+          item_id: data.id, movement_type: 'in', qty: qtyCur,
+          balance_after: qtyCur, ref_type: 'initial', ref_id: null,
+          note: 'ยอดยกมาเริ่มต้น',
+          created_by: currentUser.display_name || currentUser.username
+        });
+      }
+      await logActivity('stock_add', 'stock_item', { item_id: data ? data.id : null, name, qty: qtyCur });
+    }
+  } catch(e) {
+    showLoading(false);
+    console.error('[saveStock]', e);
+    toast('บันทึกไม่สำเร็จ: ' + (e.message || e.code || ''));
+    return;   // BUG22.3 — never fall through to success cleanup on error
+  }
+
+  showLoading(false);
+  const wasEdit = !!editingStockId;
+  closeStockModal();
+  toast(wasEdit ? 'แก้ไขวัสดุแล้ว' : 'เพิ่มวัสดุแล้ว');
+  await loadStock();
+}
+
+async function deleteStock() {
+  if (!editingStockId) return;
+  if (!hasPermission('manageDataDelete')) { toast('ไม่มีสิทธิ์ลบ'); return; }
+  const item = stockItems.find(i => i.id === editingStockId);
+  if (!confirm(`ลบวัสดุ "${item ? item.name : ''}" ?`)) return;
+
+  try {
+    showLoading(true);
+    const { error } = await sb.from('stock_items')
+      .update({ is_active: false, updated_at: nowTS() })
+      .eq('id', editingStockId);
+    if (error) throw error;
+    await logActivity('stock_delete', 'stock_item', { item_id: editingStockId, name: item ? item.name : '' });
+  } catch(e) {
+    showLoading(false);
+    console.error('[deleteStock]', e);
+    toast('ลบไม่สำเร็จ: ' + (e.message || ''));
+    return;
+  }
+
+  showLoading(false);
+  closeStockModal();
+  closeDetailSheet();
+  toast('ลบวัสดุแล้ว');
+  await loadStock();
+}
+
+// ── Stock movement modal (in / out / adjust) ──
+function openMovementModal(id, type) {
+  const item = stockItems.find(i => i.id === id);
+  if (!item) { toast('ไม่พบวัสดุ'); return; }
+  _mvItemId = id;
+  _mvType = type;
+  const titles = { in: 'รับเข้า', out: 'เบิกออก', adjust: 'ปรับยอด' };
+  document.getElementById('mv-title').textContent = titles[type] || 'บันทึก';
+  document.getElementById('mv-item-label').textContent =
+    `${item.name} · คงเหลือ ${fmtNum(item.qty_current)} ${item.unit || ''}`;
+  document.getElementById('mv-qty-label').textContent =
+    (type === 'adjust') ? 'ยอดคงเหลือใหม่' : 'จำนวน';
+  document.getElementById('mv-qty').value = '';
+  document.getElementById('mv-note').value = '';
+  document.getElementById('mv-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('mv-qty').focus(), 100);
+}
+
+function closeMovementModal() {
+  document.getElementById('mv-modal').classList.add('hidden');
+}
+
+async function confirmMovement() {
+  const item = stockItems.find(i => i.id === _mvItemId);
+  if (!item) { toast('ไม่พบวัสดุ'); return; }
+
+  const qtyRaw = document.getElementById('mv-qty').value;
+  const qty = parseFloat(qtyRaw);
+  if (qtyRaw === '' || isNaN(qty) || qty < 0) { toast('กรุณากรอกจำนวนให้ถูกต้อง'); return; }
+  if (_mvType !== 'adjust' && qty <= 0) { toast('จำนวนต้องมากกว่า 0'); return; }
+
+  const note = document.getElementById('mv-note').value.trim();
+  const cur = Number(item.qty_current) || 0;
+  let newQty;
+  if (_mvType === 'in') newQty = cur + qty;
+  else if (_mvType === 'out') newQty = cur - qty;
+  else newQty = qty;   // adjust → set absolute
+
+  // Factory reality: allow negative but warn (out only).
+  if (_mvType === 'out' && newQty < 0) {
+    if (!confirm(`⚠️ ยอดจะติดลบ (${fmtNum(newQty)}) ต้องการบันทึกต่อไหม?`)) return;
+  }
+
+  try {
+    showLoading(true);
+    const { error: mErr } = await sb.from('stock_movements').insert({
+      item_id: item.id,
+      movement_type: _mvType,
+      qty: qty,
+      balance_after: newQty,
+      ref_type: 'manual',
+      ref_id: null,
+      note: note || null,
+      created_by: currentUser.display_name || currentUser.username
+    });
+    if (mErr) throw mErr;
+
+    const { error: uErr } = await sb.from('stock_items')
+      .update({ qty_current: newQty, updated_at: nowTS() })
+      .eq('id', item.id);
+    if (uErr) throw uErr;
+
+    const actionKey = _mvType === 'in' ? 'stock_in' : _mvType === 'out' ? 'stock_out' : 'stock_adjust';
+    await logActivity(actionKey, 'stock_item', {
+      item_id: item.id, name: item.name, qty: qty, balance_after: newQty, note: note || null
+    });
+  } catch(e) {
+    showLoading(false);
+    console.error('[confirmMovement]', e);
+    toast('บันทึกไม่สำเร็จ: ' + (e.message || e.code || ''));
+    return;   // BUG22.3 — stop here on error, don't run success cleanup
+  }
+
+  showLoading(false);
+  const doneType = _mvType;
+  closeMovementModal();
+  toast(doneType === 'in' ? 'รับเข้าเรียบร้อย' : doneType === 'out' ? 'เบิกออกเรียบร้อย' : 'ปรับยอดเรียบร้อย');
+  await loadStock();
+
+  // If the detail sheet is open for this item, refresh it with fresh data.
+  const detailOpen = !document.getElementById('detail-modal').classList.contains('hidden');
+  if (detailOpen && currentDetailId === item.id) {
+    openDetailSheet(item.id);
+  }
+}
+
+// ── Item detail sheet ──
+function openDetailSheet(id) {
+  const item = stockItems.find(i => i.id === id);
+  if (!item) { toast('ไม่พบวัสดุ'); return; }
+  currentDetailId = id;
+  document.getElementById('detail-title').textContent = item.name;
+
+  const low = isLowStock(item);
+  const cat = item.category || 'อื่นๆ';
+  const canEdit = hasPermission('manageDataAdd');
+  const costLine = (item.cost_per_unit !== null && item.cost_per_unit !== undefined && item.cost_per_unit !== '')
+    ? `ต้นทุน/หน่วย ${fmtNum(item.cost_per_unit)} บาท` : '';
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-summary">
+      <div>
+        <div style="margin-bottom:8px;"><span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span>${low ? ' <span class="low-indicator">ใกล้หมด</span>' : ''}</div>
+        <div class="detail-summary-meta">
+          ขั้นต่ำ ${fmtNum(item.qty_min)} ${escapeHtml(item.unit || '')}<br>
+          ${costLine ? escapeHtml(costLine) + '<br>' : ''}
+          ${item.note ? escapeHtml(item.note) : ''}
+        </div>
+      </div>
+      <div class="detail-summary-qty">
+        <div class="big">${fmtNum(item.qty_current)}</div>
+        <div class="stock-qty-unit">${escapeHtml(item.unit || '')}</div>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="qa-btn qa-in" data-mv="in">➕ รับเข้า</button>
+      <button class="qa-btn qa-out" data-mv="out">➖ เบิกออก</button>
+      <button class="qa-btn qa-adjust" data-mv="adjust">⚖️ ปรับยอด</button>
+    </div>
+    ${canEdit ? '<button class="btn-danger-ghost" style="color:var(--ink-2);border-color:var(--line);margin-top:0;" data-edit="1">✏️ แก้ไขข้อมูลวัสดุ</button>' : ''}
+    <div class="detail-history-head">ประวัติล่าสุด</div>
+    <div class="mv-list" id="detail-mv-list"><div class="stock-empty">กำลังโหลด…</div></div>
+  `;
+
+  document.getElementById('detail-modal').classList.remove('hidden');
+  loadMovements(id);
+}
+
+function closeDetailSheet() {
+  document.getElementById('detail-modal').classList.add('hidden');
+  currentDetailId = null;
+}
+
+// ═══════════════════════════════════════════════════
+//  EVENT DELEGATION (data-* attributes, stable uuid keys)
+// ═══════════════════════════════════════════════════
+document.getElementById('stock-list').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  if (action === 'detail')   openDetailSheet(id);
+  else if (action === 'in')  openMovementModal(id, 'in');
+  else if (action === 'out') openMovementModal(id, 'out');
+});
+
+// Filter chips — scoped to #stock-chips to avoid cross-view chip bleed.
+document.getElementById('stock-chips').addEventListener('click', (e) => {
+  const chip = e.target.closest('.stock-chip');
+  if (!chip) return;
+  stockFilter = chip.dataset.filter;
+  renderStockList();
+});
+
+// Low-stock banner → filter to near-empty list.
+document.getElementById('stock-banner').addEventListener('click', () => {
+  stockFilter = 'low';
+  renderStockList();
+});
+
+// Detail-sheet inner actions (movements + edit).
+document.getElementById('detail-body').addEventListener('click', (e) => {
+  const mv = e.target.closest('[data-mv]');
+  if (mv) { if (currentDetailId) openMovementModal(currentDetailId, mv.dataset.mv); return; }
+  const ed = e.target.closest('[data-edit]');
+  if (ed) { const id = currentDetailId; if (id) { closeDetailSheet(); openEditStockModal(id); } return; }
+});
+
+// Tap the dimmed backdrop (not the sheet) to close a modal.
+document.querySelectorAll('.modal-backdrop').forEach(bd => {
+  bd.addEventListener('click', (e) => {
+    if (e.target === bd) bd.classList.add('hidden');
+  });
+});
+
+// ═══════════════════════════════════════════════════
+//  REALTIME  (project pattern — invalidate-and-refetch)
+// ═══════════════════════════════════════════════════
+let _stockRtChannel = null;
+let _stockRtTimer = null;
+
+function connectRealtime() {
+  if (_stockRtChannel) return;   // guard double-subscribe on re-login
+  _stockRtChannel = sb.channel('erp-stock-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, debouncedStockReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_movements' }, debouncedStockReload)
+    .subscribe();
+}
+
+function debouncedStockReload() {
+  if (_stockRtTimer) clearTimeout(_stockRtTimer);
+  _stockRtTimer = setTimeout(() => {
+    // Refetch always so in-memory stays fresh; skip re-render while a modal
+    // is open so we don't yank the UI out from under the user.
+    loadStock({ skipRenderIfModal: true });
+  }, 300);
+}
+
+function disconnectRealtime() {
+  if (_stockRtTimer) { clearTimeout(_stockRtTimer); _stockRtTimer = null; }
+  if (_stockRtChannel) {
+    try { sb.removeChannel(_stockRtChannel); } catch(e) { /* noop */ }
+    _stockRtChannel = null;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  initPINKeypad();
+
+  // Restore session if already logged in (same pattern as erp.html).
+  const userIdFromSession = sessionStorage.getItem('po_user_id');
+  if (userIdFromSession) {
+    try {
+      const { data, error } = await sb.from('users')
+        .select('*')
+        .eq('id', userIdFromSession)
+        .eq('is_active', true)
+        .single();
+
+      if (data && !error) {
+        currentUser = data;
+        resetSessionTimer();
+        await loadRolePermissions();
+        showApp();
+      }
+    } catch(e) {
+      console.warn('[Session Recovery] Failed:', e);
+      sessionStorage.removeItem('po_user_id');
+    }
+  }
+});
+</script>
+</body>
+</html>
