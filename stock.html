@@ -498,6 +498,124 @@
     font-size: 12px; color: var(--ink-3); flex-shrink: 0;
     font-variant-numeric: tabular-nums; text-align: right;
   }
+
+  /* ── Stock value summary (both breakpoints) ── */
+  .stock-summary {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    margin-bottom: 14px;
+  }
+  .sum-tile {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-card); padding: 12px 12px;
+  }
+  .sum-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: .2px; }
+  .sum-num {
+    font-size: 21px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.5px; margin-top: 3px;
+    font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;
+  }
+  .sum-sub { font-size: 11px; color: var(--ink-3); margin-top: 1px; }
+  .sum-num.is-warn { color: var(--danger); }
+
+  /* Desktop-only chrome; the mobile card list stands in for these. */
+  #stock-table-wrap, #period-bar { display: none; }
+
+  /* ══════════════════════════════════════════════
+     Desktop / PC (≥1024px) — table layout.
+     Columns mirror the Ministry of Industry iSingleForm
+     raw-material report so the monthly filing reads 1:1.
+     ══════════════════════════════════════════════ */
+  @media (min-width: 1024px) {
+    .wrap { max-width: 1240px; padding: 24px 32px 40px; }
+    .topbar { padding: 18px 32px; }
+
+    /* Swap card list → table */
+    #stock-list { display: none; }
+    #stock-table-wrap { display: block; }
+    #period-bar { display: flex; }
+
+    .stock-summary { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .sum-tile { padding: 16px 18px; }
+    .sum-num { font-size: 26px; }
+
+    .chip-row { margin-bottom: 16px; flex-wrap: wrap; }
+
+    .table-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--r-card); overflow: hidden;
+    }
+    .table-scroll { overflow-x: auto; }
+    table.stock-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    .stock-table thead th {
+      background: var(--bg-deep); color: var(--ink-2);
+      font-size: 11.5px; font-weight: 800; letter-spacing: .3px;
+      text-align: left; padding: 11px 12px; white-space: nowrap;
+      border-bottom: 1px solid var(--line-deep);
+      position: sticky; top: 0; z-index: 2;
+    }
+    .stock-table th.num, .stock-table td.num { text-align: right; }
+    .stock-table tbody td {
+      padding: 11px 12px; border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    .stock-table tbody tr:last-child td { border-bottom: 0; }
+    .stock-table tbody tr:hover { background: var(--bg); }
+    .stock-table tbody tr.is-low { background: var(--danger-bg); }
+    .stock-table tbody tr.is-low:hover { background: var(--danger-bg); filter: brightness(.98); }
+    .stock-table td.num, .stock-table td.mono-cell {
+      font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;
+    }
+    .td-seq { color: var(--ink-3); font-size: 12px; width: 38px; }
+    .td-name { font-weight: 700; color: var(--ink); }
+    .td-bal { font-weight: 800; font-size: 15px; }
+    .td-unit { color: var(--muted); font-size: 12px; }
+    .row-low-tag {
+      display: inline-block; margin-left: 7px;
+      font-size: 10.5px; font-weight: 800; padding: 1px 7px;
+      border-radius: var(--r-pill);
+      background: var(--danger); color: #fff;
+    }
+    .stock-table tfoot td {
+      padding: 12px; font-weight: 800;
+      background: var(--bg-deep); border-top: 1px solid var(--line-deep);
+      font-variant-numeric: tabular-nums;
+    }
+    .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .row-btn {
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      padding: 6px 10px; border-radius: var(--r-sm);
+      border: 1px solid var(--line-deep); background: var(--surface-2);
+      color: var(--ink-2); cursor: pointer; white-space: nowrap;
+      transition: border-color .15s, background .15s;
+    }
+    .row-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .row-btn.rb-in:hover  { border-color: var(--success); color: var(--success); }
+    .row-btn.rb-out:hover { border-color: var(--warning); color: var(--warning); }
+
+    /* Month picker for the ministry-style period columns */
+    .period-bar {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .period-bar label { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+    .period-bar input[type="month"] {
+      font-family: inherit; font-size: 13px;
+      padding: 7px 10px; border-radius: var(--r-sm);
+      border: 1px solid var(--line-deep); background: var(--surface-2);
+      color: var(--ink);
+    }
+    .period-note { font-size: 12px; color: var(--ink-3); }
+
+    /* The mobile FAB becomes a toolbar action on PC so it never covers
+       a table row (a floating pill over tabular data reads as an overlay bug). */
+    #stock-add-btn {
+      top: 78px; right: 32px; bottom: auto; left: auto;
+      box-shadow: var(--shadow-card);
+    }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -556,14 +674,45 @@
       <span id="stock-banner-text">⚠️ มีรายการใกล้หมด</span>
     </div>
 
-    <!-- Filter chips -->
-    <div class="chip-row" id="stock-chips">
-      <button class="stock-chip active" data-filter="all">ทั้งหมด <span class="chip-count">0</span></button>
-      <button class="stock-chip" data-filter="สี">สี <span class="chip-count">0</span></button>
-      <button class="stock-chip" data-filter="ทินเนอร์">ทินเนอร์ <span class="chip-count">0</span></button>
-      <button class="stock-chip" data-filter="ชิ้นดิบ">ชิ้นดิบ <span class="chip-count">0</span></button>
-      <button class="stock-chip" data-filter="อื่นๆ">อื่นๆ <span class="chip-count">0</span></button>
-      <button class="stock-chip" data-filter="low">⚠️ ใกล้หมด <span class="chip-count">0</span></button>
+    <!-- Stock value summary -->
+    <div class="stock-summary" id="stock-summary"></div>
+
+    <!-- Period picker — drives the ยอดยกมา / รับเข้า / ใช้ไป columns -->
+    <div class="period-bar" id="period-bar">
+      <label for="period-month">รอบเดือน</label>
+      <input type="month" id="period-month">
+      <span class="period-note">ยอดยกมา · รับเข้า · ใช้ไป คำนวณจากประวัติจริงของเดือนที่เลือก (รูปแบบเดียวกับรายงานกระทรวง)</span>
+    </div>
+
+    <!-- Filter chips — rendered from the categories present in the data -->
+    <div class="chip-row" id="stock-chips"></div>
+
+    <!-- Desktop table -->
+    <div id="stock-table-wrap">
+      <div class="table-card">
+        <div class="table-scroll">
+          <table class="stock-table">
+            <thead>
+              <tr>
+                <th class="td-seq">#</th>
+                <th>ชื่อวัตถุดิบ</th>
+                <th>หมวด</th>
+                <th>หน่วย</th>
+                <th class="num">ยอดยกมา</th>
+                <th class="num">รับเข้า</th>
+                <th class="num">ใช้ไป</th>
+                <th class="num">คงเหลือ</th>
+                <th class="num">ขั้นต่ำ</th>
+                <th class="num">ราคา/หน่วย</th>
+                <th class="num">มูลค่า</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="stock-tbody"></tbody>
+            <tfoot id="stock-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Item list -->
@@ -1021,25 +1170,53 @@ let currentDetailId = null;        // uuid of item in the open detail sheet
 let _mvItemId = null;              // uuid of item in the open movement modal
 let _mvType = 'in';               // in | out | adjust
 
-const KNOWN_CATS = ['สี', 'ทินเนอร์', 'ชิ้นดิบ'];
+// Period (ministry-report style) — month whose in/out totals are shown.
+let periodMonth = todayISO().slice(0, 7);   // 'YYYY-MM', local time (never toISOString)
+let monthAgg    = {};                       // { item_id: { in, out } } for periodMonth
+
+// Categories are whatever the data actually contains — a paint shop uses far
+// more than a fixed three (สี, สีโป๊ว, แลคเกอร์, ทินเนอร์, เคมีขัด, วัสดุขัด, ...).
+function presentCats() {
+  const seen = [];
+  stockItems.forEach(i => {
+    const c = (i.category || '').trim();
+    if (c && !seen.includes(c)) seen.push(c);
+  });
+  return seen.sort((a, b) => a.localeCompare(b, 'th'));
+}
 
 function isLowStock(i) {
   const min = Number(i.qty_min) || 0;
   return min > 0 && (Number(i.qty_current) || 0) <= min;
 }
 
+// Stable per-category chip tint, derived from the name so new categories
+// get a consistent colour without touching code.
+const CAT_CLASSES = ['cat-si', 'cat-thin', 'cat-raw', 'cat-other'];
 function catClass(cat) {
   if (cat === 'สี')       return 'cat-si';
   if (cat === 'ทินเนอร์') return 'cat-thin';
   if (cat === 'ชิ้นดิบ')  return 'cat-raw';
-  return 'cat-other';
+  const s = String(cat || '');
+  let h = 0;
+  for (let n = 0; n < s.length; n++) h = (h * 31 + s.charCodeAt(n)) % 997;
+  return CAT_CLASSES[h % CAT_CLASSES.length];
 }
 
 function filterMatch(item) {
   if (stockFilter === 'all') return true;
   if (stockFilter === 'low') return isLowStock(item);
-  if (stockFilter === 'อื่นๆ') return !KNOWN_CATS.includes(item.category);
-  return item.category === stockFilter;
+  return (item.category || '') === stockFilter;
+}
+
+function itemValue(i) {
+  return (Number(i.qty_current) || 0) * (Number(i.cost_per_unit) || 0);
+}
+
+// Thai baht, no decimals for readability on the summary tiles.
+function fmtBaht(n) {
+  const v = Math.round(Number(n) || 0);
+  return v.toLocaleString('th-TH');
 }
 
 // ═══════════════════════════════════════════════════
@@ -1060,7 +1237,37 @@ async function loadStock(opts = {}) {
   }
   // Keep in-memory fresh, but don't yank the UI while a modal is open.
   if (opts.skipRenderIfModal && anyModalOpen()) return;
+  await loadMonthAggregates();
   renderStockList();
+}
+
+// Totals per item for the selected month — the ministry report's
+// "ปริมาณที่รับ/ซื้อ" and "ปริมาณที่ใช้" columns. Derived from the ledger
+// every time rather than stored, so it can never drift (BUG20/21 lesson).
+async function loadMonthAggregates() {
+  monthAgg = {};
+  const [y, m] = periodMonth.split('-').map(Number);
+  if (!y || !m) return;
+  const start = `${y}-${String(m).padStart(2, '0')}-01`;
+  const nextY = m === 12 ? y + 1 : y;
+  const nextM = m === 12 ? 1 : m + 1;
+  const end   = `${nextY}-${String(nextM).padStart(2, '0')}-01`;
+  try {
+    const { data, error } = await sb.from('stock_movements')
+      .select('item_id,movement_type,qty')
+      .gte('created_at', start)
+      .lt('created_at', end);
+    if (error) throw error;
+    (data || []).forEach(r => {
+      const a = monthAgg[r.item_id] || (monthAgg[r.item_id] = { in: 0, out: 0 });
+      const q = Number(r.qty) || 0;
+      if (r.movement_type === 'in' || r.movement_type === 'initial') a.in += q;
+      else if (r.movement_type === 'out') a.out += q;
+      else if (r.movement_type === 'adjust') { if (q >= 0) a.in += q; else a.out += -q; }
+    });
+  } catch(e) {
+    console.warn('[loadMonthAggregates]', e);
+  }
 }
 
 async function loadMovements(itemId) {
@@ -1095,29 +1302,138 @@ function renderStockList() {
     banner.classList.add('hidden');
   }
 
-  // Chip counts + active state
-  const counts = { all: stockItems.length, low: lowItems.length, 'สี': 0, 'ทินเนอร์': 0, 'ชิ้นดิบ': 0, 'อื่นๆ': 0 };
+  // Chips — one per category actually present, plus ทั้งหมด / ใกล้หมด
+  const cats = presentCats();
+  const counts = { all: stockItems.length, low: lowItems.length };
+  cats.forEach(c => { counts[c] = 0; });
   stockItems.forEach(i => {
-    if (KNOWN_CATS.includes(i.category)) counts[i.category]++;
-    else counts['อื่นๆ']++;
+    const c = (i.category || '').trim();
+    if (c && counts[c] !== undefined) counts[c]++;
   });
-  document.querySelectorAll('#stock-chips .stock-chip').forEach(ch => {
-    const f = ch.dataset.filter;
-    ch.classList.toggle('active', f === stockFilter);
-    const c = ch.querySelector('.chip-count');
-    if (c) c.textContent = counts[f] !== undefined ? counts[f] : 0;
-  });
+  // If the active filter's category disappeared, fall back to ทั้งหมด
+  if (stockFilter !== 'all' && stockFilter !== 'low' && !cats.includes(stockFilter)) stockFilter = 'all';
 
-  // List
-  const list = document.getElementById('stock-list');
+  const chipDefs = [{ f: 'all', label: 'ทั้งหมด' }]
+    .concat(cats.map(c => ({ f: c, label: c })))
+    .concat([{ f: 'low', label: '⚠️ ใกล้หมด' }]);
+  document.getElementById('stock-chips').innerHTML = chipDefs.map(d =>
+    `<button class="stock-chip${d.f === stockFilter ? ' active' : ''}" data-filter="${escapeHtml(d.f)}">${escapeHtml(d.label)} <span class="chip-count">${counts[d.f] || 0}</span></button>`
+  ).join('');
+
   const filtered = stockItems.filter(filterMatch);
+
+  // Value summary
+  renderStockSummary(lowItems);
+
+  // Mobile: cards
+  const list = document.getElementById('stock-list');
   if (!filtered.length) {
     list.innerHTML = `<div class="stock-empty">${stockItems.length
       ? 'ไม่มีวัสดุในหมวดนี้'
       : 'ยังไม่มีวัสดุในคลัง<br>กดปุ่ม “เพิ่มวัสดุ” เพื่อเริ่มต้น'}</div>`;
+  } else {
+    list.innerHTML = filtered.map(renderStockCard).join('');
+  }
+
+  // Desktop: table
+  renderStockTable(filtered);
+}
+
+function renderStockSummary(lowItems) {
+  const totalValue = stockItems.reduce((s, i) => s + itemValue(i), 0);
+  // Consumption is summed in baht, never in raw quantity — the units differ
+  // per item (กก. / ลิตร / แผ่น) so a quantity total would be meaningless.
+  let monthOutValue = 0, monthOutItems = 0;
+  stockItems.forEach(i => {
+    const out = (monthAgg[i.id] || {}).out || 0;
+    if (out > 0) { monthOutItems++; monthOutValue += out * (Number(i.cost_per_unit) || 0); }
+  });
+  const el = document.getElementById('stock-summary');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="sum-tile">
+      <div class="sum-label">รายการวัสดุ</div>
+      <div class="sum-num">${stockItems.length}</div>
+      <div class="sum-sub">${presentCats().length} หมวด</div>
+    </div>
+    <div class="sum-tile">
+      <div class="sum-label">มูลค่าคงคลัง</div>
+      <div class="sum-num">${fmtBaht(totalValue)}</div>
+      <div class="sum-sub">บาท</div>
+    </div>
+    <div class="sum-tile">
+      <div class="sum-label">ใกล้หมด</div>
+      <div class="sum-num${lowItems.length ? ' is-warn' : ''}">${lowItems.length}</div>
+      <div class="sum-sub">${lowItems.length ? 'ควรสั่งเพิ่ม' : 'ยอดปกติทุกรายการ'}</div>
+    </div>
+    <div class="sum-tile">
+      <div class="sum-label">เบิกใช้รอบนี้</div>
+      <div class="sum-num">${fmtBaht(monthOutValue)}</div>
+      <div class="sum-sub">บาท${monthOutItems ? ` · ${monthOutItems} รายการ` : ''}</div>
+    </div>`;
+}
+
+// Desktop table — column order mirrors the ministry iSingleForm report.
+// ยอดยกมา is derived backwards: คงเหลือ − รับเข้า + ใช้ไป
+function renderStockTable(filtered) {
+  const tbody = document.getElementById('stock-tbody');
+  const tfoot = document.getElementById('stock-tfoot');
+  if (!tbody) return;
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="12" style="padding:28px;text-align:center;color:var(--muted);">${
+      stockItems.length ? 'ไม่มีวัสดุในหมวดนี้' : 'ยังไม่มีวัสดุในคลัง — กดปุ่ม “เพิ่มวัสดุ” เพื่อเริ่มต้น'}</td></tr>`;
+    if (tfoot) tfoot.innerHTML = '';
     return;
   }
-  list.innerHTML = filtered.map(renderStockCard).join('');
+
+  const rows = filtered.slice().sort((a, b) => {
+    const sa = a.ministry_seq, sb2 = b.ministry_seq;
+    if (sa != null && sb2 != null) return sa - sb2;
+    if (sa != null) return -1;
+    if (sb2 != null) return 1;
+    return String(a.name).localeCompare(String(b.name), 'th');
+  });
+
+  tbody.innerHTML = rows.map((i, idx) => {
+    const low  = isLowStock(i);
+    const agg  = monthAgg[i.id] || { in: 0, out: 0 };
+    const bal  = Number(i.qty_current) || 0;
+    const open = bal - agg.in + agg.out;      // ยอดยกมา ที่ย้อนจากยอดจริง
+    const unit = escapeHtml(i.unit || '');
+    const cat  = i.category || '—';
+    return `<tr class="${low ? 'is-low' : ''}">
+      <td class="td-seq">${i.ministry_seq != null ? i.ministry_seq : idx + 1}</td>
+      <td class="td-name" data-action="detail" data-id="${escapeHtml(i.id)}" style="cursor:pointer;">
+        ${escapeHtml(i.name)}${low ? '<span class="row-low-tag">ใกล้หมด</span>' : ''}
+      </td>
+      <td><span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span></td>
+      <td class="td-unit">${unit}</td>
+      <td class="num">${fmtNum(open)}</td>
+      <td class="num" style="color:var(--success);">${agg.in ? '+' + fmtNum(agg.in) : '–'}</td>
+      <td class="num" style="color:var(--warning);">${agg.out ? '−' + fmtNum(agg.out) : '–'}</td>
+      <td class="num td-bal">${fmtNum(bal)}</td>
+      <td class="num td-unit">${fmtNum(i.qty_min)}</td>
+      <td class="num">${fmtBaht(i.cost_per_unit)}</td>
+      <td class="num">${fmtBaht(itemValue(i))}</td>
+      <td>
+        <div class="row-actions">
+          <button class="row-btn rb-in"  data-action="in"  data-id="${escapeHtml(i.id)}">รับเข้า</button>
+          <button class="row-btn rb-out" data-action="out" data-id="${escapeHtml(i.id)}">เบิกออก</button>
+          <button class="row-btn"        data-action="detail" data-id="${escapeHtml(i.id)}">ดู</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const sumValue = rows.reduce((s, i) => s + itemValue(i), 0);
+  if (tfoot) {
+    tfoot.innerHTML = `<tr>
+      <td colspan="10" style="text-align:right;">รวมมูลค่าคงคลัง (${rows.length} รายการ)</td>
+      <td class="num">${fmtBaht(sumValue)}</td>
+      <td></td>
+    </tr>`;
+  }
 }
 
 function renderStockCard(i) {
@@ -1432,7 +1748,7 @@ function closeDetailSheet() {
 // ═══════════════════════════════════════════════════
 //  EVENT DELEGATION (data-* attributes, stable uuid keys)
 // ═══════════════════════════════════════════════════
-document.getElementById('stock-list').addEventListener('click', (e) => {
+function onStockRowClick(e) {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const id = btn.dataset.id;
@@ -1440,7 +1756,21 @@ document.getElementById('stock-list').addEventListener('click', (e) => {
   if (action === 'detail')   openDetailSheet(id);
   else if (action === 'in')  openMovementModal(id, 'in');
   else if (action === 'out') openMovementModal(id, 'out');
-});
+}
+document.getElementById('stock-list').addEventListener('click', onStockRowClick);
+document.getElementById('stock-tbody').addEventListener('click', onStockRowClick);
+
+// Period picker — re-aggregate the ministry-style columns for the chosen month.
+(function initPeriodPicker() {
+  const el = document.getElementById('period-month');
+  if (!el) return;
+  el.value = periodMonth;
+  el.addEventListener('change', async () => {
+    periodMonth = el.value || todayISO().slice(0, 7);
+    await loadMonthAggregates();
+    renderStockList();
+  });
+})();
 
 // Filter chips — scoped to #stock-chips to avoid cross-view chip bleed.
 document.getElementById('stock-chips').addEventListener('click', (e) => {
