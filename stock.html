@@ -327,10 +327,35 @@
     font-size: 10.5px; font-weight: 700;
     padding: 2px 9px; border-radius: var(--r-pill);
   }
-  .cat-si    { background: var(--accent-soft); color: var(--accent-ink); }
-  .cat-thin  { background: var(--info-bg); color: var(--info); }
-  .cat-raw   { background: var(--status-prod-bg); color: var(--status-prod-fg); }
-  .cat-other { background: var(--bg-deep); color: var(--ink-3); }
+  /* One tint per category, ordered by where the material sits in the
+     paint process (สี → โป๊ว → เคลียร์ → ตัวผสม → ขัด → ขัดเงา → สิ้นเปลือง). */
+  .cat-paint    { background: var(--accent-soft);       color: var(--accent-ink); }
+  .cat-putty    { background: var(--status-partial-bg); color: var(--status-partial-fg); }
+  .cat-lacquer  { background: var(--status-qc-bg);      color: var(--status-qc-fg); }
+  .cat-thinner  { background: var(--info-bg);           color: var(--info); }
+  .cat-abrasive { background: var(--status-prod-bg);    color: var(--status-prod-fg); }
+  .cat-polish   { background: var(--success-bg);        color: var(--success); }
+  .cat-supply   { background: var(--bg-deep);           color: var(--ink-2); }
+  .cat-other    { background: var(--bg-deep);           color: var(--ink-3); }
+
+  /* Category group header inside the desktop table */
+  .cat-group-row td {
+    background: var(--bg) !important;
+    font-size: 11.5px; font-weight: 800; letter-spacing: .3px;
+    color: var(--ink-2); padding: 9px 12px !important;
+    border-bottom: 1px solid var(--line-deep) !important;
+  }
+  .cat-group-row .cgr-count { color: var(--ink-3); font-weight: 700; }
+  .cat-group-row .cgr-value { float: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  /* Mobile: category section heading above its cards */
+  .cat-section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 8px; margin: 16px 2px 8px;
+  }
+  .cat-section-head:first-child { margin-top: 4px; }
+  .csh-name { font-size: 13px; font-weight: 800; color: var(--ink-2); letter-spacing: .2px; }
+  .csh-meta { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
   .stock-card-min { font-size: 12px; color: var(--muted); }
   .stock-card-qty { text-align: right; flex-shrink: 0; }
   .stock-qty-num {
@@ -490,10 +515,16 @@
   }
   .mv-in     { background: var(--success-bg); color: var(--success); }
   .mv-out    { background: var(--warning-bg); color: var(--warning); }
-  .mv-adjust { background: var(--bg-deep);    color: var(--ink-2); }
+  .mv-adjust  { background: var(--bg-deep); color: var(--ink-2); }
+  .mv-initial { background: var(--info-bg); color: var(--info); }
   .mv-main { flex: 1; min-width: 0; }
   .mv-qty { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); }
   .mv-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .mv-po {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 1px 6px; border-radius: var(--r-pill);
+  }
   .mv-bal {
     font-size: 12px; color: var(--ink-3); flex-shrink: 0;
     font-variant-numeric: tabular-nums; text-align: right;
@@ -742,23 +773,26 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label>ประเภท</label>
-        <input id="st-cat" type="text" list="cat-list" placeholder="สี" autocomplete="off">
-        <datalist id="cat-list">
-          <option value="สี"></option>
-          <option value="ทินเนอร์"></option>
-          <option value="ชิ้นดิบ"></option>
-          <option value="อื่นๆ"></option>
-        </datalist>
+        <label>หมวดหมู่</label>
+        <!-- Options are filled from STOCK_CATEGORIES so the list can never
+             drift from the taxonomy used for grouping and colours. -->
+        <select id="st-cat"></select>
+        <input id="st-cat-custom" type="text" placeholder="พิมพ์ชื่อหมวดใหม่"
+               autocomplete="off" style="display:none;margin-top:6px;">
       </div>
       <div class="field">
         <label>หน่วย</label>
         <input id="st-unit" type="text" list="unit-list" placeholder="กก." autocomplete="off">
         <datalist id="unit-list">
           <option value="กก."></option>
+          <option value="กิโลกรัม"></option>
           <option value="ลิตร"></option>
-          <option value="กระป๋อง"></option>
+          <option value="ชุด"></option>
+          <option value="แผ่น"></option>
+          <option value="ม้วน"></option>
+          <option value="คู่"></option>
           <option value="ชิ้น"></option>
+          <option value="กระป๋อง"></option>
         </datalist>
       </div>
     </div>
@@ -798,8 +832,15 @@
       <label id="mv-qty-label">จำนวน</label>
       <input id="mv-qty" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
     </div>
+    <!-- Shown for เบิกออก only: which job the material went to. Stored as
+         ref_type='po' / ref_id=<po_number>, which is what makes per-job
+         material cost possible later. -->
+    <div class="field" id="mv-po-field" style="display:none;">
+      <label>เบิกไปงาน (PO)</label>
+      <select id="mv-po"></select>
+    </div>
     <div class="field">
-      <label>หมายเหตุ / อ้างอิง (เช่น เลข PO)</label>
+      <label>หมายเหตุ</label>
       <input id="mv-note" type="text" placeholder="ไม่ระบุ" autocomplete="off">
     </div>
     <button class="btn-primary" id="mv-confirm" onclick="confirmMovement()">ยืนยัน</button>
@@ -1173,16 +1214,40 @@ let _mvType = 'in';               // in | out | adjust
 // Period (ministry-report style) — month whose in/out totals are shown.
 let periodMonth = todayISO().slice(0, 7);   // 'YYYY-MM', local time (never toISOString)
 let monthAgg    = {};                       // { item_id: { in, out } } for periodMonth
+let openPOs     = [];                       // jobs still in progress, for the เบิกไปงาน selector
 
-// Categories are whatever the data actually contains — a paint shop uses far
-// more than a fixed three (สี, สีโป๊ว, แลคเกอร์, ทินเนอร์, เคมีขัด, วัสดุขัด, ...).
+// ── Category taxonomy ────────────────────────────────────────────────────
+// Ordered by where the material sits in the paint process, not alphabetically,
+// so the list reads the way the shop floor actually works: พ่นสี → โป๊ว →
+// เคลือบเงา → ตัวผสม → ขัด → ขัดเงา → ของสิ้นเปลือง.
+// Free-text categories outside this list still work (they sort to the end).
+const STOCK_CATEGORIES = [
+  { name: 'สี',                cls: 'cat-paint',    hint: 'สีจริง · สีพื้น' },
+  { name: 'สีโป๊ว',            cls: 'cat-putty',    hint: 'โป๊วพลาสติก · โป๊วแดง' },
+  { name: 'แลคเกอร์',          cls: 'cat-lacquer',  hint: 'เคลือบเงา' },
+  { name: 'ทินเนอร์/ตัวผสม',   cls: 'cat-thinner',  hint: 'ทินเนอร์ · กาวผสมสี · ฮาร์ดเนอร์' },
+  { name: 'วัสดุขัด',          cls: 'cat-abrasive', hint: 'กระดาษทราย · ใบปัด' },
+  { name: 'เคมีขัดเงา',        cls: 'cat-polish',   hint: 'ยาขัดหยาบ · ยาขัดชักเงา' },
+  { name: 'วัสดุสิ้นเปลือง',   cls: 'cat-supply',   hint: 'กระดาษกาว · ถุงมือ · กระดาษปิดบัง' },
+];
+const CAT_ORDER = STOCK_CATEGORIES.map(c => c.name);
+
+function catIndex(cat) {
+  const i = CAT_ORDER.indexOf((cat || '').trim());
+  return i === -1 ? CAT_ORDER.length : i;   // unknown categories sort last
+}
+
+// Categories actually present in the data, in taxonomy order.
 function presentCats() {
   const seen = [];
   stockItems.forEach(i => {
     const c = (i.category || '').trim();
     if (c && !seen.includes(c)) seen.push(c);
   });
-  return seen.sort((a, b) => a.localeCompare(b, 'th'));
+  return seen.sort((a, b) => {
+    const d = catIndex(a) - catIndex(b);
+    return d !== 0 ? d : a.localeCompare(b, 'th');
+  });
 }
 
 function isLowStock(i) {
@@ -1190,17 +1255,9 @@ function isLowStock(i) {
   return min > 0 && (Number(i.qty_current) || 0) <= min;
 }
 
-// Stable per-category chip tint, derived from the name so new categories
-// get a consistent colour without touching code.
-const CAT_CLASSES = ['cat-si', 'cat-thin', 'cat-raw', 'cat-other'];
 function catClass(cat) {
-  if (cat === 'สี')       return 'cat-si';
-  if (cat === 'ทินเนอร์') return 'cat-thin';
-  if (cat === 'ชิ้นดิบ')  return 'cat-raw';
-  const s = String(cat || '');
-  let h = 0;
-  for (let n = 0; n < s.length; n++) h = (h * 31 + s.charCodeAt(n)) % 997;
-  return CAT_CLASSES[h % CAT_CLASSES.length];
+  const def = STOCK_CATEGORIES.find(c => c.name === (cat || '').trim());
+  return def ? def.cls : 'cat-other';
 }
 
 function filterMatch(item) {
@@ -1237,8 +1294,25 @@ async function loadStock(opts = {}) {
   }
   // Keep in-memory fresh, but don't yank the UI while a modal is open.
   if (opts.skipRenderIfModal && anyModalOpen()) return;
-  await loadMonthAggregates();
+  await Promise.all([loadMonthAggregates(), loadOpenPOs()]);
   renderStockList();
+}
+
+// Open POs, for the "เบิกไปงาน" selector. Completed/archived jobs are left
+// out so the list stays short — material is issued to work in progress.
+async function loadOpenPOs() {
+  try {
+    const { data, error } = await sb.from('po_list')
+      .select('po_number,company,po_status,due_date,is_archived')
+      .order('due_date', { ascending: true });
+    if (error) throw error;
+    openPOs = (data || []).filter(p =>
+      !p.is_archived && p.po_status !== 'Complete'
+    );
+  } catch(e) {
+    console.warn('[loadOpenPOs]', e);
+    openPOs = [];
+  }
 }
 
 // Totals per item for the selected month — the ministry report's
@@ -1332,7 +1406,7 @@ function renderStockList() {
       ? 'ไม่มีวัสดุในหมวดนี้'
       : 'ยังไม่มีวัสดุในคลัง<br>กดปุ่ม “เพิ่มวัสดุ” เพื่อเริ่มต้น'}</div>`;
   } else {
-    list.innerHTML = filtered.map(renderStockCard).join('');
+    list.innerHTML = renderStockCardsGrouped(filtered);
   }
 
   // Desktop: table
@@ -1387,7 +1461,12 @@ function renderStockTable(filtered) {
     return;
   }
 
+  // Group by category (taxonomy order), then by ministry sequence inside it.
   const rows = filtered.slice().sort((a, b) => {
+    const d = catIndex(a.category) - catIndex(b.category);
+    if (d !== 0) return d;
+    const ca = (a.category || '').localeCompare(b.category || '', 'th');
+    if (catIndex(a.category) === CAT_ORDER.length && ca !== 0) return ca;
     const sa = a.ministry_seq, sb2 = b.ministry_seq;
     if (sa != null && sb2 != null) return sa - sb2;
     if (sa != null) return -1;
@@ -1395,7 +1474,68 @@ function renderStockTable(filtered) {
     return String(a.name).localeCompare(String(b.name), 'th');
   });
 
+  // Precompute per-category totals for the group header rows.
+  const groupTotals = {};
+  rows.forEach(i => {
+    const c = (i.category || '—');
+    const g = groupTotals[c] || (groupTotals[c] = { n: 0, value: 0 });
+    g.n++; g.value += itemValue(i);
+  });
+
+  let lastCat = null;
   tbody.innerHTML = rows.map((i, idx) => {
+    const thisCat = (i.category || '—');
+    let groupRow = '';
+    // Only show group headers when more than one category is on screen —
+    // a single-category filter needs no divider.
+    if (thisCat !== lastCat && Object.keys(groupTotals).length > 1) {
+      const g = groupTotals[thisCat];
+      groupRow = `<tr class="cat-group-row"><td colspan="12">
+        ${escapeHtml(thisCat)} <span class="cgr-count">· ${g.n} รายการ</span>
+        <span class="cgr-value">${fmtBaht(g.value)} บาท</span>
+      </td></tr>`;
+      lastCat = thisCat;
+    }
+    return groupRow + renderStockTableRow(i, idx);
+  }).join('');
+
+  const sumValue = rows.reduce((s, i) => s + itemValue(i), 0);
+  if (tfoot) {
+    tfoot.innerHTML = `<tr>
+      <td colspan="10" style="text-align:right;">รวมมูลค่าคงคลัง (${rows.length} รายการ)</td>
+      <td class="num">${fmtBaht(sumValue)}</td>
+      <td></td>
+    </tr>`;
+  }
+}
+
+// Mobile list, split into category sections in the same taxonomy order as
+// the desktop table so both views read identically.
+function renderStockCardsGrouped(filtered) {
+  const groups = new Map();
+  filtered.forEach(i => {
+    const c = (i.category || '—');
+    if (!groups.has(c)) groups.set(c, []);
+    groups.get(c).push(i);
+  });
+  const names = Array.from(groups.keys()).sort((a, b) => {
+    const d = catIndex(a) - catIndex(b);
+    return d !== 0 ? d : a.localeCompare(b, 'th');
+  });
+  // One category on screen needs no section heading.
+  if (names.length <= 1) return filtered.map(renderStockCard).join('');
+
+  return names.map(name => {
+    const rows  = groups.get(name);
+    const value = rows.reduce((s, i) => s + itemValue(i), 0);
+    return `<div class="cat-section-head">
+        <span class="csh-name">${escapeHtml(name)}</span>
+        <span class="csh-meta">${rows.length} รายการ · ${fmtBaht(value)} บาท</span>
+      </div>` + rows.map(renderStockCard).join('');
+  }).join('');
+}
+
+function renderStockTableRow(i, idx) {
     const low  = isLowStock(i);
     const agg  = monthAgg[i.id] || { in: 0, out: 0 };
     const bal  = Number(i.qty_current) || 0;
@@ -1424,16 +1564,6 @@ function renderStockTable(filtered) {
         </div>
       </td>
     </tr>`;
-  }).join('');
-
-  const sumValue = rows.reduce((s, i) => s + itemValue(i), 0);
-  if (tfoot) {
-    tfoot.innerHTML = `<tr>
-      <td colspan="10" style="text-align:right;">รวมมูลค่าคงคลัง (${rows.length} รายการ)</td>
-      <td class="num">${fmtBaht(sumValue)}</td>
-      <td></td>
-    </tr>`;
-  }
 }
 
 function renderStockCard(i) {
@@ -1471,13 +1601,19 @@ function renderMovements(rows) {
       ? '<span class="mv-badge mv-in">รับเข้า</span>'
       : t === 'out'
         ? '<span class="mv-badge mv-out">เบิกออก</span>'
-        : '<span class="mv-badge mv-adjust">ปรับยอด</span>';
+        : t === 'initial'
+          ? '<span class="mv-badge mv-initial">ยอดตั้งต้น</span>'
+          : '<span class="mv-badge mv-adjust">ปรับยอด</span>';
     const sign = t === 'in' ? '+' : t === 'out' ? '−' : '=';
+    // A job-linked issue shows the PO number — this is the thread that ties
+    // material consumption to a specific order.
+    const po = (r.ref_type === 'po' && r.ref_id)
+      ? ` · <span class="mv-po">${escapeHtml(r.ref_id)}</span>` : '';
     return `<div class="mv-row">
       ${badge}
       <div class="mv-main">
         <div class="mv-qty">${sign}${fmtNum(r.qty)}</div>
-        <div class="mv-meta">${escapeHtml(relTime(r.created_at))} · ${escapeHtml(r.created_by || '-')}${r.note ? ' · ' + escapeHtml(r.note) : ''}</div>
+        <div class="mv-meta">${escapeHtml(relTime(r.created_at))} · ${escapeHtml(r.created_by || '-')}${po}${r.note ? ' · ' + escapeHtml(r.note) : ''}</div>
       </div>
       <div class="mv-bal">คงเหลือ ${fmtNum(r.balance_after)}</div>
     </div>`;
@@ -1492,12 +1628,58 @@ function anyModalOpen() {
 }
 
 // ── Add / Edit material modal ──
+// ── Category select ──────────────────────────────────────────────────────
+// Options come from STOCK_CATEGORIES plus any category already in the data,
+// so the dropdown can't drift from what grouping and colours expect. Picking
+// "＋ หมวดใหม่" reveals a text box for a genuinely new one.
+const CAT_CUSTOM = '__custom__';
+
+function setCategorySelect(value) {
+  const sel    = document.getElementById('st-cat');
+  const custom = document.getElementById('st-cat-custom');
+  const extras = presentCats().filter(c => !CAT_ORDER.includes(c));
+  const names  = CAT_ORDER.concat(extras);
+
+  sel.innerHTML = names.map(n => {
+    const def  = STOCK_CATEGORIES.find(c => c.name === n);
+    const hint = def && def.hint ? `  (${def.hint})` : '';
+    return `<option value="${escapeHtml(n)}">${escapeHtml(n + hint)}</option>`;
+  }).join('') + `<option value="${CAT_CUSTOM}">＋ หมวดใหม่…</option>`;
+
+  const v = (value || '').trim();
+  if (v && !names.includes(v)) {
+    // Category exists on the row but not in the list (hand-typed earlier)
+    sel.value = CAT_CUSTOM;
+    custom.value = v;
+    custom.style.display = '';
+  } else {
+    sel.value = v || CAT_ORDER[0];
+    custom.value = '';
+    custom.style.display = 'none';
+  }
+}
+
+function readCategorySelect() {
+  const sel = document.getElementById('st-cat');
+  if (sel.value === CAT_CUSTOM) {
+    return document.getElementById('st-cat-custom').value.trim() || 'อื่นๆ';
+  }
+  return sel.value || 'อื่นๆ';
+}
+
+document.getElementById('st-cat').addEventListener('change', (e) => {
+  const custom = document.getElementById('st-cat-custom');
+  const isCustom = e.target.value === CAT_CUSTOM;
+  custom.style.display = isCustom ? '' : 'none';
+  if (isCustom) setTimeout(() => custom.focus(), 50);
+});
+
 function openAddStockModal() {
   if (!hasPermission('manageDataAdd')) { toast('ไม่มีสิทธิ์เพิ่มวัสดุ'); return; }
   editingStockId = null;
   document.getElementById('stock-modal-title').textContent = 'เพิ่มวัสดุ';
   document.getElementById('st-name').value = '';
-  document.getElementById('st-cat').value = '';
+  setCategorySelect('');
   document.getElementById('st-unit').value = '';
   document.getElementById('st-qty').value = '';
   document.getElementById('st-min').value = '';
@@ -1516,7 +1698,7 @@ function openEditStockModal(id) {
   editingStockId = id;
   document.getElementById('stock-modal-title').textContent = 'แก้ไขวัสดุ';
   document.getElementById('st-name').value = item.name || '';
-  document.getElementById('st-cat').value = item.category || '';
+  setCategorySelect(item.category || '');
   document.getElementById('st-unit').value = item.unit || '';
   document.getElementById('st-min').value = (item.qty_min === null || item.qty_min === undefined) ? '' : item.qty_min;
   document.getElementById('st-cost').value = (item.cost_per_unit === null || item.cost_per_unit === undefined) ? '' : item.cost_per_unit;
@@ -1534,7 +1716,7 @@ function closeStockModal() {
 async function saveStock() {
   const name = document.getElementById('st-name').value.trim();
   if (!name) { toast('กรุณากรอกชื่อวัสดุ'); return; }
-  const category = document.getElementById('st-cat').value.trim() || 'อื่นๆ';
+  const category = readCategorySelect();
   const unit = document.getElementById('st-unit').value.trim() || 'ชิ้น';
   const qtyMin = parseFloat(document.getElementById('st-min').value) || 0;
   const costRaw = document.getElementById('st-cost').value;
@@ -1626,6 +1808,21 @@ function openMovementModal(id, type) {
     (type === 'adjust') ? 'ยอดคงเหลือใหม่' : 'จำนวน';
   document.getElementById('mv-qty').value = '';
   document.getElementById('mv-note').value = '';
+
+  // เบิกออก asks which job the material went to; รับเข้า / ปรับยอด don't.
+  const poField = document.getElementById('mv-po-field');
+  const poSel   = document.getElementById('mv-po');
+  if (type === 'out') {
+    poSel.innerHTML = `<option value="">— ไม่ระบุงาน —</option>` + openPOs.map(p => {
+      const label = `${p.po_number}${p.company ? ' · ' + p.company : ''}`;
+      return `<option value="${escapeHtml(p.po_number)}">${escapeHtml(label)}</option>`;
+    }).join('');
+    poField.style.display = '';
+  } else {
+    poSel.innerHTML = '';
+    poField.style.display = 'none';
+  }
+
   document.getElementById('mv-modal').classList.remove('hidden');
   setTimeout(() => document.getElementById('mv-qty').focus(), 100);
 }
@@ -1644,6 +1841,10 @@ async function confirmMovement() {
   if (_mvType !== 'adjust' && qty <= 0) { toast('จำนวนต้องมากกว่า 0'); return; }
 
   const note = document.getElementById('mv-note').value.trim();
+  // PO linkage: only meaningful on เบิกออก, and only when a job was picked.
+  const poNumber = (_mvType === 'out')
+    ? (document.getElementById('mv-po').value || '').trim()
+    : '';
   const cur = Number(item.qty_current) || 0;
   let newQty;
   if (_mvType === 'in') newQty = cur + qty;
@@ -1662,8 +1863,8 @@ async function confirmMovement() {
       movement_type: _mvType,
       qty: qty,
       balance_after: newQty,
-      ref_type: 'manual',
-      ref_id: null,
+      ref_type: poNumber ? 'po' : 'manual',
+      ref_id: poNumber || null,
       note: note || null,
       created_by: currentUser.display_name || currentUser.username
     });
@@ -1676,7 +1877,8 @@ async function confirmMovement() {
 
     const actionKey = _mvType === 'in' ? 'stock_in' : _mvType === 'out' ? 'stock_out' : 'stock_adjust';
     await logActivity(actionKey, 'stock_item', {
-      item_id: item.id, name: item.name, qty: qty, balance_after: newQty, note: note || null
+      item_id: item.id, name: item.name, qty: qty, balance_after: newQty,
+      po_number: poNumber || null, note: note || null
     });
   } catch(e) {
     showLoading(false);
