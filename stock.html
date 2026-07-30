@@ -719,6 +719,53 @@
   .row-btn.rb-in:hover  { border-color: var(--success); color: var(--success); }
   .row-btn.rb-out:hover { border-color: var(--warning); color: var(--warning); }
 
+  /* ── Price change feedback ── */
+  .price-hint { font-size: 11.5px; margin-top: 5px; line-height: 1.45; }
+  .price-hint.up   { color: var(--danger); font-weight: 700; }
+  .price-hint.down { color: var(--success); font-weight: 700; }
+  .price-hint.same { color: var(--ink-3); }
+  .delta-chip {
+    display: inline-block; font-size: 10.5px; font-weight: 800;
+    padding: 1px 6px; border-radius: var(--r-pill); margin-left: 5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .delta-up   { background: var(--danger-bg);  color: var(--danger); }
+  .delta-down { background: var(--success-bg); color: var(--success); }
+
+  /* Price-movement card in the monthly view */
+  .pricelist { display: flex; flex-direction: column; }
+  .price-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .price-row:last-child { border-bottom: 0; }
+  .pr-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: var(--ink); }
+  .pr-move {
+    font-size: 12px; color: var(--ink-2); white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .pr-impact {
+    font-size: 12px; font-weight: 800; white-space: nowrap;
+    font-variant-numeric: tabular-nums; min-width: 82px; text-align: right;
+  }
+  .pr-impact.up   { color: var(--danger); }
+  .pr-impact.down { color: var(--success); }
+
+  /* Price vs volume split of a cost change */
+  .variance-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px;
+  }
+  .var-tile {
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--r-sm); padding: 11px 12px;
+  }
+  .var-label { font-size: 11px; color: var(--muted); font-weight: 700; }
+  .var-num {
+    font-size: 18px; font-weight: 800; margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .var-sub { font-size: 10.5px; color: var(--ink-3); margin-top: 1px; }
+
   /* Monthly table rows are selectable */
   #monthly-tbody tr { cursor: pointer; }
   #monthly-tbody tr.is-sel { background: var(--accent-soft); }
@@ -898,7 +945,7 @@
         <div class="chart-head">
           <div>
             <div class="chart-title">ซื้อเข้า · เบิกใช้ รายเดือน</div>
-            <div class="chart-sub">มูลค่าเป็นบาท · คิดจากราคาต้นทุนปัจจุบันของแต่ละวัสดุ</div>
+            <div class="chart-sub">มูลค่าเป็นบาท · คิดจากราคาที่บันทึกไว้ในแต่ละรายการ (แก้ราคาวันนี้ไม่กระทบเดือนก่อน)</div>
           </div>
           <div class="chart-legend">
             <span class="lg-item"><span class="lg-swatch lg-in"></span>ซื้อเข้า</span>
@@ -913,10 +960,32 @@
         <div class="chart-head">
           <div>
             <div class="chart-title">มูลค่าคงคลังปลายเดือน</div>
-            <div class="chart-sub">ของที่เหลือในคลัง ณ สิ้นเดือน คิดเป็นบาท</div>
+            <div class="chart-sub">ของที่เหลือในคลัง ณ สิ้นเดือน ตีราคาด้วยต้นทุนเฉลี่ยล่าสุด</div>
           </div>
         </div>
         <div class="chart-body" id="value-chart"></div>
+      </div>
+
+      <!-- Why the raw-material cost moved: price vs volume -->
+      <div class="chart-card" id="variance-card" style="display:none;">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">ต้นทุนวัตถุดิบเปลี่ยนไปเพราะอะไร</div>
+            <div class="chart-sub" id="variance-sub"></div>
+          </div>
+        </div>
+        <div class="variance-grid" id="variance-grid"></div>
+      </div>
+
+      <!-- Materials whose purchase price moved this month -->
+      <div class="chart-card" id="pricechange-card" style="display:none;">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">ราคาซื้อที่เปลี่ยนแปลง</div>
+            <div class="chart-sub">เทียบราคาที่ซื้อเดือนนี้ กับราคาที่ซื้อครั้งก่อน · เรียงตามผลกระทบเป็นบาท</div>
+          </div>
+        </div>
+        <div class="pricelist" id="pricechange-list"></div>
       </div>
 
       <!-- Month-by-month table (also the accessible table view of the charts) -->
@@ -950,6 +1019,7 @@
                 <th class="num">ซื้อเข้า</th>
                 <th class="num">เบิกใช้</th>
                 <th class="num">คงเหลือ</th>
+                <th class="num">ราคาซื้อ</th>
                 <th class="num">มูลค่าที่ใช้</th>
                 <th class="num">มูลค่าคงเหลือ</th>
               </tr>
@@ -1046,6 +1116,13 @@
     <!-- Shown for เบิกออก only: which job the material went to. Stored as
          ref_type='po' / ref_id=<po_number>, which is what makes per-job
          material cost possible later. -->
+    <!-- รับเข้า only: the price actually paid this time. Recorded on the
+         movement, and folded into the material's moving-average cost. -->
+    <div class="field" id="mv-price-field" style="display:none;">
+      <label>ราคา/หน่วย ที่ซื้อครั้งนี้ (บาท)</label>
+      <input id="mv-price" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+      <div class="price-hint" id="mv-price-hint"></div>
+    </div>
     <div class="field" id="mv-po-field" style="display:none;">
       <label>เบิกไปงาน (PO)</label>
       <select id="mv-po"></select>
@@ -1558,7 +1635,7 @@ function monthsBetween(fromKey, toKey) {
 async function loadAllMovements() {
   try {
     const { data, error } = await sb.from('stock_movements')
-      .select('item_id,movement_type,qty,balance_after,ref_type,ref_id,created_at')
+      .select('item_id,movement_type,qty,balance_after,unit_cost,ref_type,ref_id,created_at')
       .order('created_at', { ascending: true });
     if (error) throw error;
     allMovements = data || [];
@@ -1613,18 +1690,26 @@ function buildMonthlySeries() {
       const mk = monthKeyOf(m.created_at);
       const bucket = perMonth[mk];
       if (!bucket) return;               // outside the rendered window
-      const it = bucket.items[itemId] || (bucket.items[itemId] = { inQty: 0, outQty: 0, adjQty: 0 });
+      const it = bucket.items[itemId] || (bucket.items[itemId] =
+        { inQty: 0, outQty: 0, adjQty: 0, inValue: 0, outValue: 0 });
+
+      // Price as recorded on the row. Falling back to the material's current
+      // cost only covers rows written before unit_cost existed.
+      const uc = (m.unit_cost === null || m.unit_cost === undefined)
+        ? cost : (Number(m.unit_cost) || 0);
 
       if (m.movement_type === 'out') {
         const used = -delta;             // delta is negative on an issue
-        bucket.consume += used * cost;
+        bucket.consume += used * uc;
         it.outQty += used;
+        it.outValue += used * uc;
       } else if (m.movement_type === 'adjust') {
-        bucket.adjust += delta * cost;
+        bucket.adjust += delta * uc;
         it.adjQty += delta;
       } else {                            // in | initial
-        bucket.purchase += delta * cost;
+        bucket.purchase += delta * uc;
         it.inQty += delta;
+        it.inValue += delta * uc;
       }
     });
 
@@ -1905,8 +1990,113 @@ function renderMonthlyView() {
   renderMonthSummary();
   renderFlowChart();
   renderValueChart();
+  renderVarianceCard();
+  renderPriceChangeCard();
   renderMonthlyTable();
   renderMonthItemTable();
+}
+
+// Average purchase price per material for a month (value ÷ qty), so a month
+// with two receipts at different prices reports the blend actually paid.
+function avgBuyPrice(monthEntry, itemId) {
+  const it = monthEntry && monthEntry.items[itemId];
+  if (!it || !it.inQty) return null;
+  return it.inValue / it.inQty;
+}
+
+// Splits the change in raw-material cost into the part caused by prices and the
+// part caused by using more or less:
+//   price  effect = Q_now × (P_now − P_prev)
+//   volume effect = P_prev × (Q_now − Q_prev)
+// The two add up to the total change, so "we spent more" always resolves into
+// "because it got dearer" vs "because we used more".
+function renderVarianceCard() {
+  const card = document.getElementById('variance-card');
+  const idx  = monthlySeries.findIndex(s => s.month === selectedMonth);
+  const cur  = monthlySeries[idx];
+  const prev = idx > 0 ? monthlySeries[idx - 1] : null;
+  if (!cur || !prev) { card.style.display = 'none'; return; }
+
+  let priceEffect = 0, volumeEffect = 0;
+  stockItems.forEach(i => {
+    const c = cur.items[i.id], p = prev.items[i.id];
+    const qNow = c ? c.outQty : 0, qPrev = p ? p.outQty : 0;
+    if (!qNow && !qPrev) return;
+    // Unit cost of consumption in each month; fall back across months so a
+    // material issued in only one of them still contributes its volume effect.
+    const pNow  = (c && c.outQty) ? c.outValue / c.outQty : null;
+    const pPrev = (p && p.outQty) ? p.outValue / p.outQty : null;
+    const base  = pPrev !== null ? pPrev : (pNow !== null ? pNow : 0);
+    const now   = pNow  !== null ? pNow  : base;
+    priceEffect  += qNow * (now - base);
+    volumeEffect += base * (qNow - qPrev);
+  });
+
+  const total = cur.consume - prev.consume;
+  const sign  = v => (v > 0 ? '+' : v < 0 ? '−' : '');
+  const col   = v => (v > 0 ? 'var(--danger)' : v < 0 ? 'var(--success)' : 'var(--ink-2)');
+
+  document.getElementById('variance-sub').textContent =
+    `เทียบ ${monthLabelTH(prev.month, {long:true})} → ${monthLabelTH(cur.month, {long:true})} · ` +
+    `${total >= 0 ? 'เพิ่มขึ้น' : 'ลดลง'} ${fmtBaht(Math.abs(total))} บาท`;
+
+  document.getElementById('variance-grid').innerHTML = `
+    <div class="var-tile">
+      <div class="var-label">จากราคาที่เปลี่ยน</div>
+      <div class="var-num" style="color:${col(priceEffect)};">${sign(priceEffect)}${fmtBaht(Math.abs(priceEffect))}</div>
+      <div class="var-sub">บาท · ${priceEffect > 0 ? 'ของแพงขึ้น' : priceEffect < 0 ? 'ของถูกลง' : 'ราคาคงที่'}</div>
+    </div>
+    <div class="var-tile">
+      <div class="var-label">จากปริมาณที่ใช้</div>
+      <div class="var-num" style="color:${col(volumeEffect)};">${sign(volumeEffect)}${fmtBaht(Math.abs(volumeEffect))}</div>
+      <div class="var-sub">บาท · ${volumeEffect > 0 ? 'ใช้มากขึ้น' : volumeEffect < 0 ? 'ใช้น้อยลง' : 'ใช้เท่าเดิม'}</div>
+    </div>`;
+  card.style.display = '';
+}
+
+// Materials bought this month at a different price than the last time they were
+// bought — with the baht impact at this month's volume, so the list is ordered
+// by what it actually costs rather than by percentage drama.
+function renderPriceChangeCard() {
+  const card = document.getElementById('pricechange-card');
+  const idx  = monthlySeries.findIndex(s => s.month === selectedMonth);
+  const cur  = monthlySeries[idx];
+  if (!cur) { card.style.display = 'none'; return; }
+
+  const rows = [];
+  stockItems.forEach(i => {
+    const nowPrice = avgBuyPrice(cur, i.id);
+    if (nowPrice === null) return;               // not bought this month
+    let prevPrice = null;
+    for (let k = idx - 1; k >= 0; k--) {          // most recent earlier purchase
+      const p = avgBuyPrice(monthlySeries[k], i.id);
+      if (p !== null) { prevPrice = p; break; }
+    }
+    if (prevPrice === null || prevPrice === 0) return;
+    if (Math.abs(nowPrice - prevPrice) / prevPrice < 0.005) return;   // <0.5% is noise
+    const qty = cur.items[i.id].inQty;
+    rows.push({
+      name: i.name, unit: i.unit || '',
+      prevPrice, nowPrice,
+      pct: ((nowPrice - prevPrice) / prevPrice) * 100,
+      impact: (nowPrice - prevPrice) * qty,
+    });
+  });
+
+  if (!rows.length) { card.style.display = 'none'; return; }
+  rows.sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
+
+  document.getElementById('pricechange-list').innerHTML = rows.map(r => {
+    const up = r.impact > 0;
+    return `<div class="price-row">
+      <div class="pr-name">${escapeHtml(r.name)}
+        <span class="delta-chip ${up ? 'delta-up' : 'delta-down'}">${up ? '▲' : '▼'} ${Math.abs(r.pct).toFixed(1)}%</span>
+      </div>
+      <div class="pr-move">${fmtBaht(r.prevPrice)} → ${fmtBaht(r.nowPrice)} /${escapeHtml(r.unit)}</div>
+      <div class="pr-impact ${up ? 'up' : 'down'}">${up ? '+' : '−'}${fmtBaht(Math.abs(r.impact))}</div>
+    </div>`;
+  }).join('');
+  card.style.display = '';
 }
 
 function renderMonthSummary() {
@@ -2062,20 +2252,44 @@ function renderMonthItemTable() {
   });
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--muted);">เดือนนี้ไม่มีความเคลื่อนไหว</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--muted);">เดือนนี้ไม่มีความเคลื่อนไหว</td></tr>`;
     tfoot.innerHTML = '';
     return;
   }
 
+  const idx = monthlySeries.findIndex(x => x.month === selectedMonth);
   let sumUsed = 0, sumLeft = 0;
   tbody.innerHTML = rows.map(i => {
-    const it   = s.items[i.id] || { inQty: 0, outQty: 0, adjQty: 0 };
-    const cost = Number(i.cost_per_unit) || 0;
+    const it    = s.items[i.id] || { inQty: 0, outQty: 0, adjQty: 0, inValue: 0, outValue: 0 };
+    const cost  = Number(i.cost_per_unit) || 0;
     const close = s.closingQty[i.id] || 0;
     const open  = close - it.inQty + it.outQty - it.adjQty;
-    const usedValue = it.outQty * cost;
+    // Consumption is valued at what it was actually stamped with; only stock
+    // still on hand is valued at the current average.
+    const usedValue = it.outValue || (it.outQty * cost);
     const leftValue = close * cost;
     sumUsed += usedValue; sumLeft += leftValue;
+
+    // Purchase price this month, with the move since the previous purchase.
+    const nowPrice = avgBuyPrice(s, i.id);
+    let priceCell = '–';
+    if (nowPrice !== null) {
+      let prevPrice = null;
+      for (let k = idx - 1; k >= 0; k--) {
+        const p = avgBuyPrice(monthlySeries[k], i.id);
+        if (p !== null) { prevPrice = p; break; }
+      }
+      let chip = '';
+      if (prevPrice !== null && prevPrice > 0) {
+        const pct = ((nowPrice - prevPrice) / prevPrice) * 100;
+        if (Math.abs(pct) >= 0.5) {
+          const up = pct > 0;
+          chip = `<span class="delta-chip ${up ? 'delta-up' : 'delta-down'}">${up ? '▲' : '▼'}${Math.abs(pct).toFixed(1)}%</span>`;
+        }
+      }
+      priceCell = `${fmtBaht(nowPrice)}${chip}`;
+    }
+
     return `<tr>
       <td class="td-name">${escapeHtml(i.name)}</td>
       <td><span class="cat-chip ${catClass(i.category)}">${escapeHtml(i.category || '—')}</span></td>
@@ -2083,13 +2297,14 @@ function renderMonthItemTable() {
       <td class="num" style="color:var(--success);">${it.inQty ? '+' + fmtNum(it.inQty) : '–'}</td>
       <td class="num" style="color:var(--warning);">${it.outQty ? '−' + fmtNum(it.outQty) : '–'}</td>
       <td class="num td-bal">${fmtNum(close)} <span class="td-unit">${escapeHtml(i.unit || '')}</span></td>
+      <td class="num">${priceCell}</td>
       <td class="num">${usedValue ? fmtBaht(usedValue) : '–'}</td>
       <td class="num">${fmtBaht(leftValue)}</td>
     </tr>`;
   }).join('');
 
   tfoot.innerHTML = `<tr>
-    <td colspan="6" style="text-align:right;">รวม (${rows.length} รายการ)</td>
+    <td colspan="7" style="text-align:right;">รวม (${rows.length} รายการ)</td>
     <td class="num">${fmtBaht(sumUsed)}</td>
     <td class="num">${fmtBaht(sumLeft)}</td>
   </tr>`;
@@ -2395,6 +2610,18 @@ function openMovementModal(id, type) {
   document.getElementById('mv-qty').value = '';
   document.getElementById('mv-note').value = '';
 
+  // รับเข้า asks what was paid this time; the average follows from it.
+  const priceField = document.getElementById('mv-price-field');
+  const priceInput = document.getElementById('mv-price');
+  if (type === 'in') {
+    priceInput.value = (Number(item.cost_per_unit) || 0) || '';
+    priceField.style.display = '';
+    updatePriceHint();
+  } else {
+    priceField.style.display = 'none';
+    document.getElementById('mv-price-hint').textContent = '';
+  }
+
   // เบิกออก asks which job the material went to; รับเข้า / ปรับยอด don't.
   const poField = document.getElementById('mv-po-field');
   const poSel   = document.getElementById('mv-po');
@@ -2437,6 +2664,32 @@ async function confirmMovement() {
   else if (_mvType === 'out') newQty = cur - qty;
   else newQty = qty;   // adjust → set absolute
 
+  // Costing (moving average).
+  //   รับเข้า  → unitCost is what was paid now; the average is re-weighted by
+  //             what's already on hand, so the material carries one blended
+  //             cost instead of per-lot layers. Paint and thinner are poured
+  //             together in the same drum, so lot layers (FIFO) wouldn't
+  //             describe anything real here.
+  //   อื่น ๆ   → valued at the average standing at this moment.
+  // Either way the figure is stamped on the row, so a later price change can
+  // never rewrite what a past month cost.
+  const oldAvg = Number(item.cost_per_unit) || 0;
+  let unitCost = oldAvg;
+  let newAvg   = oldAvg;
+  if (_mvType === 'in') {
+    const priceRaw = document.getElementById('mv-price').value;
+    const price = parseFloat(priceRaw);
+    if (priceRaw !== '' && (!isFinite(price) || price < 0)) {
+      toast('ราคาไม่ถูกต้อง'); return;
+    }
+    unitCost = isFinite(price) ? price : oldAvg;
+    const base = cur > 0 ? cur : 0;          // negative on-hand can't carry cost
+    newAvg = (base + qty) > 0
+      ? (base * oldAvg + qty * unitCost) / (base + qty)
+      : unitCost;
+    newAvg = Math.round(newAvg * 10000) / 10000;
+  }
+
   // Factory reality: allow negative but warn (out only).
   if (_mvType === 'out' && newQty < 0) {
     if (!confirm(`⚠️ ยอดจะติดลบ (${fmtNum(newQty)}) ต้องการบันทึกต่อไหม?`)) return;
@@ -2451,19 +2704,25 @@ async function confirmMovement() {
       balance_after: newQty,
       ref_type: poNumber ? 'po' : 'manual',
       ref_id: poNumber || null,
+      unit_cost: unitCost,
       note: note || null,
       created_by: currentUser.display_name || currentUser.username
     });
     if (mErr) throw mErr;
 
+    const patch = { qty_current: newQty, updated_at: nowTS() };
+    if (_mvType === 'in') patch.cost_per_unit = newAvg;   // moving average
     const { error: uErr } = await sb.from('stock_items')
-      .update({ qty_current: newQty, updated_at: nowTS() })
+      .update(patch)
       .eq('id', item.id);
     if (uErr) throw uErr;
 
     const actionKey = _mvType === 'in' ? 'stock_in' : _mvType === 'out' ? 'stock_out' : 'stock_adjust';
     await logActivity(actionKey, 'stock_item', {
       item_id: item.id, name: item.name, qty: qty, balance_after: newQty,
+      unit_cost: unitCost,
+      avg_before: _mvType === 'in' ? oldAvg : undefined,
+      avg_after:  _mvType === 'in' ? newAvg : undefined,
       po_number: poNumber || null, note: note || null
     });
   } catch(e) {
@@ -2527,6 +2786,57 @@ function openDetailSheet(id) {
   document.getElementById('detail-modal').classList.remove('hidden');
   loadMovements(id);
 }
+
+// Live feedback while typing a receipt price: how it compares with the current
+// average, and where the average will land afterwards. Catching a price rise at
+// the moment of purchase is worth more than finding it in a report later.
+function updatePriceHint() {
+  const hint = document.getElementById('mv-price-hint');
+  const item = stockItems.find(i => i.id === _mvItemId);
+  if (!hint || !item) return;
+
+  const oldAvg = Number(item.cost_per_unit) || 0;
+  const price  = parseFloat(document.getElementById('mv-price').value);
+  const qtyIn  = parseFloat(document.getElementById('mv-qty').value);
+
+  if (!isFinite(price) || price <= 0) {
+    hint.className = 'price-hint same';
+    hint.textContent = oldAvg ? `ราคาเฉลี่ยเดิม ${fmtBaht(oldAvg)} บาท` : '';
+    return;
+  }
+  if (!oldAvg) {
+    hint.className = 'price-hint same';
+    hint.textContent = 'ยังไม่มีราคาเดิมให้เทียบ — ราคานี้จะเป็นราคาตั้งต้น';
+    return;
+  }
+
+  const pct = ((price - oldAvg) / oldAvg) * 100;
+  const onHand = Number(item.qty_current) || 0;
+  let newAvg = oldAvg;
+  if (isFinite(qtyIn) && qtyIn > 0 && (onHand + qtyIn) > 0) {
+    newAvg = (onHand * oldAvg + qtyIn * price) / (onHand + qtyIn);
+  }
+  const avgTxt = (newAvg !== oldAvg)
+    ? ` · เฉลี่ยใหม่จะเป็น ${fmtBaht(newAvg)}` : '';
+
+  if (Math.abs(pct) < 0.05) {
+    hint.className = 'price-hint same';
+    hint.textContent = `เท่ากับราคาเฉลี่ยเดิม (${fmtBaht(oldAvg)})${avgTxt}`;
+  } else if (pct > 0) {
+    hint.className = 'price-hint up';
+    hint.textContent = `▲ แพงกว่าเฉลี่ยเดิม ${pct.toFixed(1)}% (เดิม ${fmtBaht(oldAvg)})${avgTxt}`;
+  } else {
+    hint.className = 'price-hint down';
+    hint.textContent = `▼ ถูกกว่าเฉลี่ยเดิม ${Math.abs(pct).toFixed(1)}% (เดิม ${fmtBaht(oldAvg)})${avgTxt}`;
+  }
+}
+
+['mv-price', 'mv-qty'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => {
+    if (_mvType === 'in') updatePriceHint();
+  });
+});
 
 function closeDetailSheet() {
   document.getElementById('detail-modal').classList.add('hidden');
