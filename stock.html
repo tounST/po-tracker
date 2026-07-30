@@ -515,8 +515,31 @@
   }
   .mv-in     { background: var(--success-bg); color: var(--success); }
   .mv-out    { background: var(--warning-bg); color: var(--warning); }
-  .mv-adjust  { background: var(--bg-deep); color: var(--ink-2); }
-  .mv-initial { background: var(--info-bg); color: var(--info); }
+  .mv-adjust   { background: var(--bg-deep); color: var(--ink-2); }
+  .mv-initial  { background: var(--info-bg); color: var(--info); }
+  .mv-reversal { background: var(--danger-bg); color: var(--danger); }
+
+  /* A movement that has been undone stays visible but reads as cancelled. */
+  .mv-row.is-voided { opacity: .6; }
+  .mv-row.is-voided .mv-qty { text-decoration: line-through; }
+  .voided-tag {
+    margin-left: 7px; font-size: 10px; font-weight: 800;
+    padding: 1px 6px; border-radius: var(--r-pill);
+    background: var(--danger-bg); color: var(--danger);
+    text-decoration: none; display: inline-block; vertical-align: middle;
+  }
+  .mv-right {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 5px; flex-shrink: 0;
+  }
+  .undo-btn {
+    font-family: inherit; font-size: 11px; font-weight: 700;
+    padding: 4px 9px; border-radius: var(--r-sm);
+    border: 1px solid var(--line-deep); background: var(--surface-2);
+    color: var(--ink-3); cursor: pointer; white-space: nowrap;
+    min-height: 30px; touch-action: manipulation;
+  }
+  .undo-btn:hover { border-color: var(--danger); color: var(--danger); }
   .mv-main { flex: 1; min-width: 0; }
   .mv-qty { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); }
   .mv-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
@@ -719,6 +742,58 @@
   .row-btn.rb-in:hover  { border-color: var(--success); color: var(--success); }
   .row-btn.rb-out:hover { border-color: var(--warning); color: var(--warning); }
 
+  /* ── Permissions panel ── */
+  .perm-intro {
+    background: var(--accent-soft); border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--r-card); padding: 14px 16px; margin-bottom: 16px;
+  }
+  .perm-intro-title { font-size: 14.5px; font-weight: 800; color: var(--ink); margin-bottom: 5px; }
+  .perm-intro-text { font-size: 12.5px; color: var(--ink-2); line-height: 1.65; }
+
+  .perm-card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-card); padding: 14px 16px; margin-bottom: 12px;
+  }
+  .perm-card.is-locked { background: var(--bg-deep); }
+  .perm-card-head {
+    display: flex; align-items: center; gap: 9px;
+    padding-bottom: 11px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .perm-role-dot { width: 10px; height: 10px; border-radius: var(--r-pill); flex: none; }
+  .perm-role-name { font-size: 15px; font-weight: 800; color: var(--ink); }
+  .perm-role-note { font-size: 11.5px; color: var(--ink-3); margin-left: auto; text-align: right; }
+
+  .perm-line {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 0; border-bottom: 1px solid var(--line);
+  }
+  .perm-line:last-child { border-bottom: 0; }
+  .perm-line-text { flex: 1; min-width: 0; }
+  .perm-line-label { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+  .perm-line-hint { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+
+  /* Switch — big enough to hit with a thumb */
+  .sw {
+    position: relative; flex: none;
+    width: 50px; height: 30px; border-radius: var(--r-pill);
+    background: var(--line-deep); border: 0; cursor: pointer; padding: 0;
+    transition: background .18s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sw::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(42,37,32,.28);
+    transition: transform .18s;
+  }
+  .sw.on { background: var(--success); }
+  .sw.on::after { transform: translateX(20px); }
+  .sw:disabled { opacity: .5; cursor: not-allowed; }
+  .sw.busy { opacity: .6; pointer-events: none; }
+
   /* ── Price change feedback ── */
   .price-hint { font-size: 11.5px; margin-top: 5px; line-height: 1.45; }
   .price-hint.up   { color: var(--danger); font-weight: 700; }
@@ -872,6 +947,7 @@
     <div class="view-switch" id="stock-view-switch">
       <button class="vs-btn active" data-view="current">📦 คลังปัจจุบัน</button>
       <button class="vs-btn" data-view="monthly">📈 รายเดือน</button>
+      <button class="vs-btn role-admin-only" data-view="perms" style="display:none;">🔐 สิทธิ์</button>
     </div>
 
     <div id="view-current">
@@ -1031,6 +1107,18 @@
       </div>
 
     </div><!-- /view-monthly -->
+
+    <!-- ═══ PERMISSIONS VIEW (admin only) ═══ -->
+    <div id="view-perms" style="display:none;">
+      <div class="perm-intro">
+        <div class="perm-intro-title">ใครทำอะไรได้ในคลังสต๊อก</div>
+        <div class="perm-intro-text">
+          แตะสวิตช์เพื่อเปิด/ปิดสิทธิ์ — บันทึกทันที และมีผลกับทุกเครื่องภายในไม่กี่วินาที<br>
+          <strong>ค่าเริ่มต้น: Admin เท่านั้น</strong> — เปิดให้คนอื่นเมื่อพร้อม
+        </div>
+      </div>
+      <div id="perm-cards"></div>
+    </div>
 
   </div>
 
@@ -1267,13 +1355,32 @@ function resetSessionTimer() {
 });
 
 // Permission matrix: role -> permissions  (copied verbatim from erp.html)
+// Stock actions (stockIn / stockOut / stockAdjust / stockReverse) default to
+// admin only. They are granted from the 🔐 สิทธิ์ panel in this page, which
+// writes to role_permissions — so changing who may issue stock never needs a
+// code change.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false }
 };
+
+// Labels for the permission panel — order here is the order shown.
+const STOCK_PERMS = [
+  { key: 'stockIn',      label: 'รับเข้า',      hint: 'บันทึกของเข้าคลัง + ราคาที่ซื้อ' },
+  { key: 'stockOut',     label: 'เบิกออก',      hint: 'เบิกของไปใช้ในงาน' },
+  { key: 'stockAdjust',  label: 'ปรับยอด',      hint: 'แก้ยอดคงเหลือให้ตรงของจริง' },
+  { key: 'stockReverse', label: 'ยกเลิกรายการ', hint: 'ยกเลิกรายการที่บันทึกผิด' },
+];
+const PERM_ROLES = [
+  { role: 'admin',      label: 'Admin',      note: 'เจ้าของ — ล็อกไว้ แก้ไม่ได้' },
+  { role: 'supervisor', label: 'Supervisor', note: 'หัวหน้างาน' },
+  { role: 'office',     label: 'Office',     note: 'ออฟฟิศ' },
+  { role: 'manager',    label: 'Manager',    note: 'ผู้จัดการ' },
+  { role: 'staff',      label: 'Staff',      note: 'พนักงานหน้างาน' },
+];
 
 // Frozen JSON snapshot of code defaults (copied verbatim from erp.html)
 const PERMISSIONS_CODE_DEFAULTS_JSON = JSON.stringify(PERMISSIONS);
@@ -1468,6 +1575,14 @@ function applyPermissions() {
   document.querySelectorAll('.manage-data-add-only').forEach(el => {
     el.style.display = canAdd ? '' : 'none';
   });
+  // The 🔐 สิทธิ์ tab is the admin's own control panel — hidden, not disabled,
+  // so nobody else is invited to press something that will refuse them.
+  const isAdmin = currentUser.role === 'admin';
+  document.querySelectorAll('.role-admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+  // If a permission was just revoked while sitting on a hidden tab, fall back.
+  if (!isAdmin && stockView === 'perms') switchStockView('current');
 }
 
 async function logActivity(action, targetType, detail) {
@@ -1498,6 +1613,7 @@ let editingStockId = null;         // uuid when editing, null when adding
 let currentDetailId = null;        // uuid of item in the open detail sheet
 let _mvItemId = null;              // uuid of item in the open movement modal
 let _mvType = 'in';               // in | out | adjust
+let reversedIds = new Set();      // movement ids already undone by a reversal
 
 // Period (ministry-report style) — month whose in/out totals are shown.
 let periodMonth = todayISO().slice(0, 7);   // 'YYYY-MM', local time (never toISOString)
@@ -1789,6 +1905,11 @@ async function loadMovements(itemId) {
       .order('created_at', { ascending: false })
       .limit(20);
     if (error) throw error;
+    // Which of these rows have already been undone, so the list can mark them
+    // and hide their ยกเลิก button.
+    reversedIds = new Set(
+      (data || []).filter(r => r.reverses_id).map(r => r.reverses_id)
+    );
     renderMovements(data || []);
   } catch(e) {
     console.warn('[loadMovements]', e);
@@ -1951,16 +2072,102 @@ function renderStockTable(filtered) {
 // ══════════════════════════════════════════════════════════════════════
 
 function switchStockView(view) {
+  if (view === 'perms' && currentUser.role !== 'admin') return;   // admin-only tab
   stockView = view;
   document.querySelectorAll('#stock-view-switch .vs-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.view === view));
   document.getElementById('view-current').style.display = view === 'current' ? '' : 'none';
   document.getElementById('view-monthly').style.display = view === 'monthly' ? '' : 'none';
+  document.getElementById('view-perms').style.display   = view === 'perms'   ? '' : 'none';
   // The add-material FAB belongs to the live stock view only.
   const fab = document.getElementById('stock-add-btn');
   if (fab && hasPermission('manageDataAdd')) fab.style.display = view === 'current' ? '' : 'none';
   if (view === 'monthly') renderMonthlyView();
+  if (view === 'perms')   renderPermsView();
 }
+
+// ══════════════════════════════════════════════════════════════════════
+//  PERMISSIONS PANEL (admin only)
+//
+//  One card per role, one switch per stock action. Toggling writes a single
+//  row to role_permissions, so who may issue stock is data, not code.
+//
+//  Admin stays locked at the UI, in savePerm, AND in loadRolePermissions —
+//  the same defence-in-depth the PO app uses. If an admin could switch off
+//  their own access there'd be no way back in without opening the database.
+// ══════════════════════════════════════════════════════════════════════
+const ROLE_DOT = {
+  admin: 'var(--role-admin)', supervisor: 'var(--role-supervisor)',
+  office: 'var(--role-office)', manager: 'var(--role-manager)',
+  staff: 'var(--role-staff)',
+};
+
+function renderPermsView() {
+  document.getElementById('perm-cards').innerHTML = PERM_ROLES.map(r => {
+    const locked = r.role === 'admin';
+    const lines = STOCK_PERMS.map(p => {
+      const on = !!(PERMISSIONS[r.role] && PERMISSIONS[r.role][p.key]);
+      return `<div class="perm-line">
+        <div class="perm-line-text">
+          <div class="perm-line-label">${escapeHtml(p.label)}</div>
+          <div class="perm-line-hint">${escapeHtml(p.hint)}</div>
+        </div>
+        <button class="sw${on ? ' on' : ''}" ${locked ? 'disabled' : ''}
+                data-role="${escapeHtml(r.role)}" data-perm="${escapeHtml(p.key)}"
+                role="switch" aria-checked="${on}"
+                aria-label="${escapeHtml(r.label + ' — ' + p.label)}"></button>
+      </div>`;
+    }).join('');
+    return `<div class="perm-card${locked ? ' is-locked' : ''}">
+      <div class="perm-card-head">
+        <span class="perm-role-dot" style="background:${ROLE_DOT[r.role] || 'var(--ink-3)'}"></span>
+        <span class="perm-role-name">${escapeHtml(r.label)}</span>
+        <span class="perm-role-note">${locked ? '🔒 ' : ''}${escapeHtml(r.note)}</span>
+      </div>
+      ${lines}
+    </div>`;
+  }).join('');
+}
+
+async function savePerm(btn) {
+  const role = btn.dataset.role, key = btn.dataset.perm;
+  if (role === 'admin') { toast('สิทธิ์ของ Admin ล็อกไว้ เพื่อไม่ให้ปิดกั้นตัวเอง'); return; }
+  if (currentUser.role !== 'admin') { toast('เฉพาะ Admin เท่านั้นที่แก้สิทธิ์ได้'); return; }
+
+  const next = !btn.classList.contains('on');
+  btn.classList.add('busy');
+  try {
+    const { error } = await sb.from('role_permissions').upsert({
+      role, permission_key: key, allowed: next,
+      updated_at: nowTS(),
+      updated_by: currentUser.display_name || currentUser.username
+    }, { onConflict: 'role,permission_key' });
+    if (error) throw error;
+  } catch(e) {
+    btn.classList.remove('busy');
+    console.error('[savePerm]', e);
+    toast('บันทึกสิทธิ์ไม่สำเร็จ: ' + (e.message || e.code || ''));
+    return;                                 // leave the switch as it was
+  }
+
+  // Apply locally so the UI re-gates immediately, then log it.
+  if (!PERMISSIONS[role]) PERMISSIONS[role] = {};
+  PERMISSIONS[role][key] = next;
+  btn.classList.remove('busy');
+  btn.classList.toggle('on', next);
+  btn.setAttribute('aria-checked', String(next));
+
+  const label = (STOCK_PERMS.find(p => p.key === key) || {}).label || key;
+  toast(`${next ? 'เปิด' : 'ปิด'}สิทธิ์ "${label}" ให้ ${role}`);
+  await logActivity('permission_change', 'role_permission', { role, permission_key: key, allowed: next });
+  applyPermissions();
+  renderStockList();
+}
+
+document.getElementById('perm-cards').addEventListener('click', (e) => {
+  const btn = e.target.closest('.sw');
+  if (btn && !btn.disabled) savePerm(btn);
+});
 
 function renderMonthlyView() {
   const series = monthlySeries;
@@ -2359,8 +2566,8 @@ function renderStockTableRow(i, idx) {
       <td class="num">${fmtBaht(itemValue(i))}</td>
       <td>
         <div class="row-actions">
-          <button class="row-btn rb-in"  data-action="in"  data-id="${escapeHtml(i.id)}">รับเข้า</button>
-          <button class="row-btn rb-out" data-action="out" data-id="${escapeHtml(i.id)}">เบิกออก</button>
+          ${canMove('in')  ? `<button class="row-btn rb-in"  data-action="in"  data-id="${escapeHtml(i.id)}">รับเข้า</button>` : ''}
+          ${canMove('out') ? `<button class="row-btn rb-out" data-action="out" data-id="${escapeHtml(i.id)}">เบิกออก</button>` : ''}
           <button class="row-btn"        data-action="detail" data-id="${escapeHtml(i.id)}">ดู</button>
         </div>
       </td>
@@ -2383,8 +2590,8 @@ function renderStockCard(i) {
       </div>
     </div>
     <div class="stock-card-actions">
-      <button class="qa-btn qa-in" data-action="in" data-id="${escapeHtml(i.id)}">➕ รับเข้า</button>
-      <button class="qa-btn qa-out" data-action="out" data-id="${escapeHtml(i.id)}">➖ เบิกออก</button>
+      ${canMove('in')  ? `<button class="qa-btn qa-in" data-action="in" data-id="${escapeHtml(i.id)}">➕ รับเข้า</button>` : ''}
+      ${canMove('out') ? `<button class="qa-btn qa-out" data-action="out" data-id="${escapeHtml(i.id)}">➖ เบิกออก</button>` : ''}
     </div>
   </div>`;
 }
@@ -2410,13 +2617,22 @@ function renderMovements(rows) {
     // material consumption to a specific order.
     const po = (r.ref_type === 'po' && r.ref_id)
       ? ` · <span class="mv-po">${escapeHtml(r.ref_id)}</span>` : '';
-    return `<div class="mv-row">
-      ${badge}
+
+    const isReversal = !!r.reverses_id;
+    const wasReversed = reversedIds.has(r.id);
+    // A row can be undone once, and a reversal itself is never undone.
+    const canUndo = hasPermission('stockReverse') && !isReversal && !wasReversed;
+
+    return `<div class="mv-row${wasReversed ? ' is-voided' : ''}">
+      ${isReversal ? '<span class="mv-badge mv-reversal">ยกเลิกรายการ</span>' : badge}
       <div class="mv-main">
-        <div class="mv-qty">${sign}${fmtNum(r.qty)}</div>
+        <div class="mv-qty">${sign}${fmtNum(r.qty)}${wasReversed ? '<span class="voided-tag">ถูกยกเลิกแล้ว</span>' : ''}</div>
         <div class="mv-meta">${escapeHtml(relTime(r.created_at))} · ${escapeHtml(r.created_by || '-')}${po}${r.note ? ' · ' + escapeHtml(r.note) : ''}</div>
       </div>
-      <div class="mv-bal">คงเหลือ ${fmtNum(r.balance_after)}</div>
+      <div class="mv-right">
+        <div class="mv-bal">คงเหลือ ${fmtNum(r.balance_after)}</div>
+        ${canUndo ? `<button class="undo-btn" data-undo="${escapeHtml(r.id)}">ยกเลิก</button>` : ''}
+      </div>
     </div>`;
   }).join('');
 }
@@ -2596,9 +2812,17 @@ async function deleteStock() {
 }
 
 // ── Stock movement modal (in / out / adjust) ──
+// Which permission each action needs, so the check reads the same everywhere.
+const MOVE_PERM = { in: 'stockIn', out: 'stockOut', adjust: 'stockAdjust' };
+function canMove(type) { return hasPermission(MOVE_PERM[type] || 'stockAdjust'); }
+
 function openMovementModal(id, type) {
   const item = stockItems.find(i => i.id === id);
   if (!item) { toast('ไม่พบวัสดุ'); return; }
+  if (!canMove(type)) {
+    toast(`ไม่มีสิทธิ์${type === 'in' ? 'รับเข้า' : type === 'out' ? 'เบิกออก' : 'ปรับยอด'} — ให้ Admin เปิดสิทธิ์ให้ก่อน`);
+    return;
+  }
   _mvItemId = id;
   _mvType = type;
   const titles = { in: 'รับเข้า', out: 'เบิกออก', adjust: 'ปรับยอด' };
@@ -2658,71 +2882,52 @@ async function confirmMovement() {
   const poNumber = (_mvType === 'out')
     ? (document.getElementById('mv-po').value || '').trim()
     : '';
-  const cur = Number(item.qty_current) || 0;
-  let newQty;
-  if (_mvType === 'in') newQty = cur + qty;
-  else if (_mvType === 'out') newQty = cur - qty;
-  else newQty = qty;   // adjust → set absolute
+  if (!canMove(_mvType)) { toast('ไม่มีสิทธิ์ทำรายการนี้'); return; }
 
-  // Costing (moving average).
-  //   รับเข้า  → unitCost is what was paid now; the average is re-weighted by
-  //             what's already on hand, so the material carries one blended
-  //             cost instead of per-lot layers. Paint and thinner are poured
-  //             together in the same drum, so lot layers (FIFO) wouldn't
-  //             describe anything real here.
-  //   อื่น ๆ   → valued at the average standing at this moment.
-  // Either way the figure is stamped on the row, so a later price change can
-  // never rewrite what a past month cost.
-  const oldAvg = Number(item.cost_per_unit) || 0;
-  let unitCost = oldAvg;
-  let newAvg   = oldAvg;
+  // Price paid, for รับเข้า. The server blends it into the moving average.
+  let unitCost = null;
   if (_mvType === 'in') {
     const priceRaw = document.getElementById('mv-price').value;
     const price = parseFloat(priceRaw);
     if (priceRaw !== '' && (!isFinite(price) || price < 0)) {
       toast('ราคาไม่ถูกต้อง'); return;
     }
-    unitCost = isFinite(price) ? price : oldAvg;
-    const base = cur > 0 ? cur : 0;          // negative on-hand can't carry cost
-    newAvg = (base + qty) > 0
-      ? (base * oldAvg + qty * unitCost) / (base + qty)
-      : unitCost;
-    newAvg = Math.round(newAvg * 10000) / 10000;
+    if (isFinite(price)) unitCost = price;
   }
 
-  // Factory reality: allow negative but warn (out only).
-  if (_mvType === 'out' && newQty < 0) {
-    if (!confirm(`⚠️ ยอดจะติดลบ (${fmtNum(newQty)}) ต้องการบันทึกต่อไหม?`)) return;
+  // Warn on going negative, using the balance we currently know about. The
+  // authoritative check happens server-side anyway; this is just a heads-up.
+  const cur = Number(item.qty_current) || 0;
+  if (_mvType === 'out' && (cur - qty) < 0) {
+    if (!confirm(`⚠️ ยอดจะติดลบ (${fmtNum(cur - qty)}) ต้องการบันทึกต่อไหม?`)) return;
   }
 
+  let result;
   try {
     showLoading(true);
-    const { error: mErr } = await sb.from('stock_movements').insert({
-      item_id: item.id,
-      movement_type: _mvType,
-      qty: qty,
-      balance_after: newQty,
-      ref_type: poNumber ? 'po' : 'manual',
-      ref_id: poNumber || null,
-      unit_cost: unitCost,
-      note: note || null,
-      created_by: currentUser.display_name || currentUser.username
+    // One atomic call: the function takes a row lock on the material, so it
+    // reads the balance, writes the ledger row, re-blends the average and
+    // updates the item without another session slipping in between. Doing
+    // this client-side lost an entire issue whenever two people tapped at
+    // the same moment.
+    const { data, error } = await sb.rpc('apply_stock_movement', {
+      p_item_id:    item.id,
+      p_type:       _mvType,
+      p_qty:        qty,
+      p_unit_cost:  unitCost,
+      p_po_number:  poNumber || null,
+      p_note:       note || null,
+      p_created_by: currentUser.display_name || currentUser.username
     });
-    if (mErr) throw mErr;
-
-    const patch = { qty_current: newQty, updated_at: nowTS() };
-    if (_mvType === 'in') patch.cost_per_unit = newAvg;   // moving average
-    const { error: uErr } = await sb.from('stock_items')
-      .update(patch)
-      .eq('id', item.id);
-    if (uErr) throw uErr;
+    if (error) throw error;
+    result = data || {};
 
     const actionKey = _mvType === 'in' ? 'stock_in' : _mvType === 'out' ? 'stock_out' : 'stock_adjust';
     await logActivity(actionKey, 'stock_item', {
-      item_id: item.id, name: item.name, qty: qty, balance_after: newQty,
-      unit_cost: unitCost,
-      avg_before: _mvType === 'in' ? oldAvg : undefined,
-      avg_after:  _mvType === 'in' ? newAvg : undefined,
+      item_id: item.id, name: item.name, qty: qty,
+      balance_after: result.balance_after,
+      unit_cost: result.unit_cost,
+      avg_after: result.avg_cost,
       po_number: poNumber || null, note: note || null
     });
   } catch(e) {
@@ -2774,9 +2979,9 @@ function openDetailSheet(id) {
       </div>
     </div>
     <div class="detail-actions">
-      <button class="qa-btn qa-in" data-mv="in">➕ รับเข้า</button>
-      <button class="qa-btn qa-out" data-mv="out">➖ เบิกออก</button>
-      <button class="qa-btn qa-adjust" data-mv="adjust">⚖️ ปรับยอด</button>
+      ${canMove('in')     ? '<button class="qa-btn qa-in" data-mv="in">➕ รับเข้า</button>' : ''}
+      ${canMove('out')    ? '<button class="qa-btn qa-out" data-mv="out">➖ เบิกออก</button>' : ''}
+      ${canMove('adjust') ? '<button class="qa-btn qa-adjust" data-mv="adjust">⚖️ ปรับยอด</button>' : ''}
     </div>
     ${canEdit ? '<button class="btn-danger-ghost" style="color:var(--ink-2);border-color:var(--line);margin-top:0;" data-edit="1">✏️ แก้ไขข้อมูลวัสดุ</button>' : ''}
     <div class="detail-history-head">ประวัติล่าสุด</div>
@@ -2836,6 +3041,56 @@ function updatePriceHint() {
   if (el) el.addEventListener('input', () => {
     if (_mvType === 'in') updatePriceHint();
   });
+});
+
+// Undo a mis-entered movement. The ledger row is never edited or deleted — the
+// server posts a counter-entry linked back to it, so the history shows both the
+// mistake and the correction.
+async function undoMovement(movementId) {
+  if (!hasPermission('stockReverse')) { toast('ไม่มีสิทธิ์ยกเลิกรายการ'); return; }
+  const reason = prompt('ยกเลิกรายการนี้ — ระบุเหตุผล (เช่น กรอกจำนวนผิด)');
+  if (reason === null) return;                       // cancelled
+  const note = (reason || '').trim() || 'ยกเลิกรายการ';
+
+  try {
+    showLoading(true);
+    const { data, error } = await sb.rpc('reverse_stock_movement', {
+      p_movement_id: movementId,
+      p_note:        'ยกเลิก: ' + note,
+      p_created_by:  currentUser.display_name || currentUser.username
+    });
+    if (error) throw error;
+    await logActivity('stock_reverse', 'stock_movement', {
+      movement_id: movementId, reason: note,
+      balance_after: (data || {}).balance_after
+    });
+  } catch(e) {
+    showLoading(false);
+    console.error('[undoMovement]', e);
+    const msg = String(e.message || '');
+    toast(
+      msg.includes('ALREADY_REVERSED')          ? 'รายการนี้ถูกยกเลิกไปแล้ว' :
+      msg.includes('CANNOT_REVERSE_A_REVERSAL') ? 'ยกเลิกรายการยกเลิกไม่ได้' :
+      msg.includes('NOTHING_TO_REVERSE')        ? 'รายการนี้ไม่มีผลต่อยอด จึงไม่ต้องยกเลิก' :
+      'ยกเลิกไม่สำเร็จ: ' + (msg || e.code || '')
+    );
+    return;                                          // don't run success cleanup
+  }
+
+  showLoading(false);
+  toast('ยกเลิกรายการเรียบร้อย');
+  const openId = currentDetailId;
+  await loadStock();
+  if (openId && !document.getElementById('detail-modal').classList.contains('hidden')) {
+    openDetailSheet(openId);
+  }
+}
+
+// Delegated from the modal, not the list: #detail-mv-list is rebuilt every
+// time the sheet opens, so a listener bound to it would not survive.
+document.getElementById('detail-modal').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-undo]');
+  if (btn) undoMovement(btn.dataset.undo);
 });
 
 function closeDetailSheet() {
@@ -2954,6 +3209,14 @@ function disconnectRealtime() {
 //  BOOT
 // ═══════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
+  // Offline support — the SW scope is /po-tracker/, so registering here means
+  // an office user who only ever opens this page still gets it.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/po-tracker/sw.js')
+      .then(() => console.log('✅ SW registered'))
+      .catch(e => console.warn('SW registration failed:', e));
+  }
+
   initPINKeypad();
 
   // Restore session if already logged in (same pattern as erp.html).

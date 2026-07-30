@@ -138,3 +138,41 @@ UPDATE public.stock_movements m
 SET unit_cost = i.cost_per_unit
 FROM public.stock_items i
 WHERE m.item_id = i.id AND m.unit_cost IS NULL;
+
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  รอบที่ 2 (2026-07-25) — แก้ยอดเพี้ยน + สิทธิ์ + ยกเลิกรายการ
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- ── A) ยอดเพี้ยนเมื่อสองคนทำพร้อมกัน (lost update) ────────────────────
+-- เดิม client อ่าน qty_current เข้าหน่วยความจำ คำนวณยอดใหม่ แล้วเขียนทับ
+-- สองคนเบิกวัสดุเดียวกันในวินาทีเดียว ทั้งคู่อ่านยอดเดิม ทั้งคู่เขียนค่าเดียวกัน
+-- → การเบิกครั้งหนึ่งหายไปเงียบ ๆ. โรงงานหลายจุดงานเจอแน่ ไม่ใช่แค่ความเสี่ยง
+--
+-- ย้ายทุกอย่างเข้า function เดียวที่ล็อกแถววัสดุ (FOR UPDATE) → รายการที่เข้ามา
+-- พร้อมกันจะเข้าคิว ไม่ทับกัน  (ดู apply_stock_movement)
+ALTER TABLE public.stock_movements
+  ADD COLUMN IF NOT EXISTS reverses_id uuid REFERENCES public.stock_movements(id);
+CREATE INDEX IF NOT EXISTS stock_movements_reverses_idx
+  ON public.stock_movements (reverses_id) WHERE reverses_id IS NOT NULL;
+
+-- function apply_stock_movement(item, type, qty, unit_cost, po, note, by)
+-- function reverse_stock_movement(movement_id, note, by)
+--   → ดูตัวเต็มใน Supabase (migration: stock_atomic_movement_and_reversal)
+--   ทดสอบแล้ว: 100 − 10 − 10 + 80(@60) = 160 คงเหลือ, เฉลี่ย 55 ถูกต้อง
+
+-- ── B) สิทธิ์เฉพาะของคลังสต๊อก — ค่าเริ่มต้น Admin เท่านั้น ─────────────
+-- เดิมยืม manageDataAdd / manageDataDelete ของ master data มาใช้ และปุ่ม
+-- รับเข้า/เบิกออก/ปรับยอด ไม่เช็คสิทธิ์เลย — ใครล็อกอินได้ก็แก้สต๊อกได้
+-- รวมถึงปรับยอด ซึ่งเป็นจุดที่ของหายได้โดยไม่มีใครรู้
+INSERT INTO public.role_permissions (role, permission_key, allowed, updated_by)
+SELECT r.role, k.key, (r.role = 'admin'), 'ระบบ (ตั้งค่าเริ่มต้น)'
+FROM (VALUES ('admin'),('supervisor'),('office'),('manager'),('staff')) AS r(role)
+CROSS JOIN (VALUES ('stockIn'),('stockOut'),('stockAdjust'),('stockReverse')) AS k(key)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.role_permissions p
+  WHERE p.role = r.role AND p.permission_key = k.key
+);
+-- Admin เปิด/ปิดให้ role อื่นได้เองจากแท็บ 🔐 สิทธิ์ ในหน้าคลังสต๊อก
+-- แถว admin ถูกล็อก 3 ชั้น (UI disabled + savePerm ปฏิเสธ + loadRolePermissions
+-- ไม่สนใจแถว admin) กันปิดกั้นตัวเองแล้วเข้าไปแก้ไม่ได้ — แบบเดียวกับ PO app

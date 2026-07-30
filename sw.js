@@ -3,13 +3,16 @@
 //  Version: v1.0 — 2026-03-20
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME = 'po-tracker-v35';
+// v36 — เพิ่ม erp.html + stock.html เข้า cache (โมดูล ERP/คลังสต๊อก)
+const CACHE_NAME = 'po-tracker-v36';
 
 // ไฟล์ที่จะ cache ไว้ใช้ offline
 const CACHE_FILES = [
   '/po-tracker/index.html',
   '/po-tracker/po-mobile.html',
   '/po-tracker/po-desktop.html',
+  '/po-tracker/erp.html',
+  '/po-tracker/stock.html',
   '/po-tracker/manifest.json',
   'https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap'
 ];
@@ -22,7 +25,9 @@ self.addEventListener('install', (event) => {
       return cache.addAll([
         '/po-tracker/index.html',
         '/po-tracker/po-mobile.html',
-        '/po-tracker/po-desktop.html'
+        '/po-tracker/po-desktop.html',
+        '/po-tracker/erp.html',
+        '/po-tracker/stock.html'
       ]).catch(() => {});
     })
   );
