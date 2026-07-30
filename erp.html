@@ -1028,6 +1028,14 @@ document.getElementById('module-grid').addEventListener('click', (e) => {
 //  BOOT
 // ═══════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
+  // Offline support — the SW scope is /po-tracker/, so registering here means
+  // an office user who only ever opens this page still gets it.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/po-tracker/sw.js')
+      .then(() => console.log('✅ SW registered'))
+      .catch(e => console.warn('SW registration failed:', e));
+  }
+
   initPINKeypad();
 
   // Restore session if already logged in (same pattern as po-mobile.html).
