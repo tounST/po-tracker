@@ -176,3 +176,42 @@ WHERE NOT EXISTS (
 -- Admin เปิด/ปิดให้ role อื่นได้เองจากแท็บ 🔐 สิทธิ์ ในหน้าคลังสต๊อก
 -- แถว admin ถูกล็อก 3 ชั้น (UI disabled + savePerm ปฏิเสธ + loadRolePermissions
 -- ไม่สนใจแถว admin) กันปิดกั้นตัวเองแล้วเข้าไปแก้ไม่ได้ — แบบเดียวกับ PO app
+
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  รอบที่ 3 — เอกสารรับเข้า · ค่ากลาง · รายงานกระทรวง
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- ข้อ 9: ค่ากลาง — ระดับที่ควรเติมกลับถึง
+--   qty_min    = ห้ามต่ำกว่านี้ (จุดเตือน)
+--   qty_target = ค่ากลาง
+--   จำนวนที่ควรสั่ง = qty_target − qty_current (คำนวณสด ไม่เก็บ)
+ALTER TABLE public.stock_items
+  ADD COLUMN IF NOT EXISTS qty_target numeric;
+
+-- ข้อ 6: เอกสารประกอบการรับเข้า — เก็บที่ระดับ movement เพราะใบส่งของผูกกับ
+-- "การรับของครั้งนั้น" ไม่ใช่ผูกกับตัววัสดุ
+ALTER TABLE public.stock_movements
+  ADD COLUMN IF NOT EXISTS doc_no    text,
+  ADD COLUMN IF NOT EXISTS supplier  text,
+  ADD COLUMN IF NOT EXISTS photo_url text;
+CREATE INDEX IF NOT EXISTS stock_movements_doc_idx
+  ON public.stock_movements (doc_no) WHERE doc_no IS NOT NULL;
+CREATE INDEX IF NOT EXISTS stock_movements_supplier_idx
+  ON public.stock_movements (supplier) WHERE supplier IS NOT NULL;
+
+-- apply_stock_movement รับพารามิเตอร์เอกสารเพิ่ม 3 ตัว (default NULL)
+--   → ดูตัวเต็มใน Supabase (migration: stock_docs_target_and_photo)
+
+-- สิทธิ์ดูเอกสาร/ราคา — ค่าเริ่มต้น Admin เท่านั้น เปิดให้คนอื่นได้จากแท็บ 🔐 สิทธิ์
+INSERT INTO public.role_permissions (role, permission_key, allowed, updated_by)
+SELECT r.role, 'viewStockDocs', (r.role = 'admin'), 'ระบบ (ตั้งค่าเริ่มต้น)'
+FROM (VALUES ('admin'),('supervisor'),('office'),('manager'),('staff')) AS r(role)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.role_permissions p
+  WHERE p.role = r.role AND p.permission_key = 'viewStockDocs'
+);
+
+-- ที่เก็บรูปใบส่งของ (bucket 'stock-docs', public read, จำกัด 5 MB, เฉพาะรูป)
+-- รูปถูกย่อเหลือด้านยาว 1400px + JPEG q0.72 ที่ฝั่ง client ก่อนอัปโหลด
+-- ~150-300 KB ต่อใบ ทำให้ Storage ไม่บวมและอัปโหลดผ่าน 4G ได้เร็ว

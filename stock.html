@@ -742,6 +742,112 @@
   .row-btn.rb-in:hover  { border-color: var(--success); color: var(--success); }
   .row-btn.rb-out:hover { border-color: var(--warning); color: var(--warning); }
 
+  /* ── Search ── */
+  .search-bar {
+    position: relative; display: flex; align-items: center;
+    margin-bottom: 12px;
+  }
+  .search-icon {
+    position: absolute; left: 12px; font-size: 14px;
+    pointer-events: none; opacity: .65;
+  }
+  .search-bar input {
+    width: 100%; font-family: inherit; font-size: 14px;
+    padding: 11px 38px 11px 36px;
+    border: 1px solid var(--line-deep); border-radius: var(--r-md);
+    background: var(--surface-2); color: var(--ink);
+    min-height: var(--touch-min);
+    -webkit-appearance: none;
+  }
+  .search-bar input:focus { outline: none; border-color: var(--accent); }
+  .search-bar input::-webkit-search-cancel-button { display: none; }
+  .search-clear {
+    position: absolute; right: 8px;
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 0; background: var(--bg-deep); color: var(--ink-2);
+    cursor: pointer; font-size: 12px; line-height: 1;
+    touch-action: manipulation;
+  }
+
+  /* ── Live calculator under the qty field ── */
+  .calc-line { font-size: 12px; margin-top: 6px; line-height: 1.5; }
+  .calc-line .calc-eq {
+    font-variant-numeric: tabular-nums; color: var(--ink-2); font-weight: 700;
+  }
+  .calc-line .calc-result { color: var(--accent); font-weight: 800; }
+  .calc-line.warn .calc-result { color: var(--danger); }
+  .field-hint { font-size: 11.5px; color: var(--ink-3); margin-top: 5px; line-height: 1.5; }
+
+  /* ── Delivery-note photo ── */
+  .photo-drop {
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px; border: 1.5px dashed var(--line-deep);
+    border-radius: var(--r-md); background: var(--bg);
+    font-size: 13.5px; font-weight: 700; color: var(--ink-2);
+    cursor: pointer; min-height: var(--touch-min);
+    touch-action: manipulation;
+  }
+  .photo-drop:hover { border-color: var(--accent); color: var(--accent); }
+  .photo-preview-wrap { margin-top: 8px; position: relative; }
+  .photo-preview-wrap img {
+    width: 100%; max-height: 220px; object-fit: contain;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--bg);
+  }
+  .photo-remove {
+    position: absolute; top: 8px; right: 8px;
+    font-family: inherit; font-size: 11.5px; font-weight: 700;
+    padding: 5px 10px; border-radius: var(--r-pill);
+    border: 0; background: rgba(42,37,32,.8); color: #fff;
+    cursor: pointer; touch-action: manipulation;
+  }
+  /* Document details shown in the movement history */
+  .mv-doc {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin-top: 5px;
+  }
+  .doc-chip {
+    font-size: 10.5px; font-weight: 700;
+    padding: 2px 7px; border-radius: var(--r-pill);
+    background: var(--bg-deep); color: var(--ink-2);
+  }
+  .doc-photo-link {
+    font-size: 10.5px; font-weight: 800; color: var(--info);
+    text-decoration: none; padding: 2px 7px;
+    border-radius: var(--r-pill); background: var(--info-bg);
+  }
+
+  /* ── Reorder suggestion ── */
+  .reorder-tag {
+    display: inline-block; margin-left: 6px;
+    font-size: 10.5px; font-weight: 800; padding: 1px 7px;
+    border-radius: var(--r-pill);
+    background: var(--warning-bg); color: var(--warning);
+  }
+
+  /* ── Ministry report ── */
+  .btn-ministry {
+    font-family: inherit; font-size: 12.5px; font-weight: 700;
+    padding: 8px 14px; border-radius: var(--r-sm);
+    border: 1px solid var(--accent); background: var(--accent-soft);
+    color: var(--accent-ink); cursor: pointer; white-space: nowrap;
+    min-height: var(--touch-min); touch-action: manipulation;
+  }
+  .btn-ministry:hover { background: var(--accent); color: #fff; }
+  .modal-wide { max-width: 1100px; width: 100%; }
+  .ministry-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ministry-note {
+    font-size: 11.5px; color: var(--ink-3); line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  /* ── Sortable table headers ── */
+  .stock-table thead th.sortable { cursor: pointer; user-select: none; }
+  .stock-table thead th.sortable:hover { color: var(--accent); }
+  .sort-caret { opacity: .45; margin-left: 3px; font-size: 9px; }
+  .stock-table thead th.is-sorted { color: var(--accent); }
+  .stock-table thead th.is-sorted .sort-caret { opacity: 1; }
+
   /* ── Permissions panel ── */
   .perm-intro {
     background: var(--accent-soft); border: 1px solid var(--line);
@@ -967,6 +1073,14 @@
       <span class="period-note">ยอดยกมา · รับเข้า · ใช้ไป คำนวณจากประวัติจริงของเดือนที่เลือก (รูปแบบเดียวกับรายงานกระทรวง)</span>
     </div>
 
+    <!-- Search — name, category, unit and note all match -->
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input id="stock-search" type="search" autocomplete="off"
+             placeholder="ค้นหาวัสดุ · หมวด · หมายเหตุ">
+      <button class="search-clear" id="search-clear" style="display:none;" aria-label="ล้างคำค้น">✕</button>
+    </div>
+
     <!-- Filter chips — rendered from the categories present in the data -->
     <div class="chip-row" id="stock-chips"></div>
 
@@ -978,16 +1092,16 @@
             <thead>
               <tr>
                 <th class="td-seq">#</th>
-                <th>ชื่อวัตถุดิบ</th>
-                <th>หมวด</th>
+                <th class="sortable" data-sort="name">ชื่อวัตถุดิบ<span class="sort-caret">▲▼</span></th>
+                <th class="sortable" data-sort="category">หมวด<span class="sort-caret">▲▼</span></th>
                 <th>หน่วย</th>
                 <th class="num">ยอดยกมา</th>
                 <th class="num">รับเข้า</th>
                 <th class="num">ใช้ไป</th>
-                <th class="num">คงเหลือ</th>
-                <th class="num">ขั้นต่ำ</th>
-                <th class="num">ราคา/หน่วย</th>
-                <th class="num">มูลค่า</th>
+                <th class="num sortable" data-sort="qty">คงเหลือ<span class="sort-caret">▲▼</span></th>
+                <th class="num">ห้ามต่ำกว่า</th>
+                <th class="num sortable" data-sort="cost">ราคา/หน่วย<span class="sort-caret">▲▼</span></th>
+                <th class="num sortable" data-sort="value">มูลค่า<span class="sort-caret">▲▼</span></th>
                 <th></th>
               </tr>
             </thead>
@@ -1011,6 +1125,7 @@
       <div class="month-picker-bar">
         <label for="month-select">เดือน</label>
         <select id="month-select"></select>
+        <button class="btn-ministry" id="btn-ministry">📤 รายงานกระทรวง</button>
         <span class="period-note" id="month-range-note"></span>
       </div>
 
@@ -1171,8 +1286,15 @@
         <input id="st-qty" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
       </div>
       <div class="field">
-        <label>จุดเตือน (ขั้นต่ำ)</label>
+        <label>ห้ามต่ำกว่า (จุดเตือน)</label>
         <input id="st-min" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+      </div>
+    </div>
+    <div class="field">
+      <label>ค่ากลาง — เติมกลับให้ถึงระดับนี้</label>
+      <input id="st-target" type="number" inputmode="decimal" min="0" step="any" placeholder="ไม่ระบุ">
+      <div class="field-hint" id="st-target-hint">
+        ใช้คำนวณว่า “ควรสั่งเพิ่มเท่าไหร่” = ค่ากลาง − คงเหลือ
       </div>
     </div>
     <div class="field">
@@ -1190,6 +1312,27 @@
 
 <!-- ═══ STOCK MOVEMENT MODAL (in / out / adjust) ═══ -->
 <!-- z-index above detail-modal (500) so it stacks on top when opened from the detail sheet -->
+<!-- ═══ MINISTRY REPORT (iSingleForm วัตถุดิบ) ═══ -->
+<div class="modal-backdrop hidden" id="ministry-modal" style="z-index:650;">
+  <div class="modal-sheet modal-wide">
+    <div class="modal-head">
+      <div class="modal-title" id="ministry-title">รายงานกระทรวง — วัตถุดิบ</div>
+      <button class="modal-close" onclick="closeMinistryModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="ministry-actions">
+      <button class="row-btn" id="ministry-copy">📋 คัดลอกตาราง</button>
+      <button class="row-btn" id="ministry-csv">⬇️ ดาวน์โหลด Excel (CSV)</button>
+    </div>
+    <div class="ministry-note">
+      คอลัมน์ตรงกับฟอร์ม iSingleForm · ตัวเลขคำนวณจากประวัติจริงของเดือนที่เลือก<br>
+      คัดลอกแล้ววางในเว็บกระทรวงได้ หรือดาวน์โหลดเปิดด้วย Excel
+    </div>
+    <div class="table-scroll">
+      <table class="stock-table" id="ministry-table"></table>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop hidden" id="mv-modal" style="z-index:600;">
   <div class="modal-sheet">
     <div class="modal-head">
@@ -1199,7 +1342,9 @@
     <div class="mv-item-label" id="mv-item-label"></div>
     <div class="field">
       <label id="mv-qty-label">จำนวน</label>
-      <input id="mv-qty" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+      <!-- text, not number: the field accepts arithmetic like 3*5 or 20-2 -->
+      <input id="mv-qty" type="text" inputmode="decimal" autocomplete="off" placeholder="0  (พิมพ์ 3*5 ได้)">
+      <div class="calc-line" id="mv-calc"></div>
     </div>
     <!-- Shown for เบิกออก only: which job the material went to. Stored as
          ref_type='po' / ref_id=<po_number>, which is what makes per-job
@@ -1214,6 +1359,32 @@
     <div class="field" id="mv-po-field" style="display:none;">
       <label>เบิกไปงาน (PO)</label>
       <select id="mv-po"></select>
+    </div>
+    <!-- รับเข้า only: paperwork for the delivery. Shown to everyone who may
+         record a receipt; reading it back is gated by viewStockDocs. -->
+    <div id="mv-doc-fields" style="display:none;">
+      <div class="field-row">
+        <div class="field">
+          <label>เลขใบส่งของ</label>
+          <input id="mv-doc-no" type="text" placeholder="เช่น INV-2569/0142" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>ผู้ขาย</label>
+          <input id="mv-supplier" type="text" list="supplier-list" placeholder="เช่น Nippon" autocomplete="off">
+          <datalist id="supplier-list"></datalist>
+        </div>
+      </div>
+      <div class="field">
+        <label>รูปใบส่งของ</label>
+        <label class="photo-drop" for="mv-photo" id="mv-photo-drop">
+          <span id="mv-photo-text">📷 ถ่ายรูป / เลือกไฟล์</span>
+          <input id="mv-photo" type="file" accept="image/*" capture="environment" hidden>
+        </label>
+        <div class="photo-preview-wrap" id="mv-photo-wrap" style="display:none;">
+          <img id="mv-photo-preview" alt="ตัวอย่างรูปใบส่งของ">
+          <button type="button" class="photo-remove" id="mv-photo-remove">ลบรูป</button>
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>หมายเหตุ</label>
@@ -1360,11 +1531,11 @@ function resetSessionTimer() {
 // writes to role_permissions — so changing who may issue stock never needs a
 // code change.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false }
 };
 
 // Labels for the permission panel — order here is the order shown.
@@ -1373,6 +1544,7 @@ const STOCK_PERMS = [
   { key: 'stockOut',     label: 'เบิกออก',      hint: 'เบิกของไปใช้ในงาน' },
   { key: 'stockAdjust',  label: 'ปรับยอด',      hint: 'แก้ยอดคงเหลือให้ตรงของจริง' },
   { key: 'stockReverse', label: 'ยกเลิกรายการ', hint: 'ยกเลิกรายการที่บันทึกผิด' },
+  { key: 'viewStockDocs', label: 'ดูเอกสาร/ราคา', hint: 'เห็นเลขใบส่งของ ผู้ขาย รูป และราคาที่ซื้อ' },
 ];
 const PERM_ROLES = [
   { role: 'admin',      label: 'Admin',      note: 'เจ้าของ — ล็อกไว้ แก้ไม่ได้' },
@@ -1614,6 +1786,9 @@ let currentDetailId = null;        // uuid of item in the open detail sheet
 let _mvItemId = null;              // uuid of item in the open movement modal
 let _mvType = 'in';               // in | out | adjust
 let reversedIds = new Set();      // movement ids already undone by a reversal
+let stockSearch = '';             // free-text filter over name/category/unit/note
+let tableSort   = { key: null, dir: 1 };   // desktop table sort; null = ministry order
+let _mvPhotoFile = null;          // resized delivery-note photo awaiting upload
 
 // Period (ministry-report style) — month whose in/out totals are shown.
 let periodMonth = todayISO().slice(0, 7);   // 'YYYY-MM', local time (never toISOString)
@@ -1669,6 +1844,7 @@ function catClass(cat) {
 }
 
 function filterMatch(item) {
+  if (!searchMatch(item)) return false;
   if (stockFilter === 'all') return true;
   if (stockFilter === 'low') return isLowStock(item);
   return (item.category || '') === stockFilter;
@@ -1676,6 +1852,42 @@ function filterMatch(item) {
 
 function itemValue(i) {
   return (Number(i.qty_current) || 0) * (Number(i.cost_per_unit) || 0);
+}
+
+// ── ข้อ 9: how much to order ────────────────────────────────────────────
+// qty_min is the line you must not fall below; qty_target is where you top
+// back up to. Suggested order is the gap between them, computed live.
+function reorderQty(i) {
+  const target = Number(i.qty_target);
+  if (!isFinite(target) || target <= 0) return 0;
+  const gap = target - (Number(i.qty_current) || 0);
+  return gap > 0 ? Math.round(gap * 100) / 100 : 0;
+}
+
+// ── ข้อ 8: arithmetic in a quantity field ──────────────────────────────
+// Workers count in cans and boxes: "3*5" for three 5kg cans, "20-2" for a
+// drum minus what went back. Only digits and + - * / ( ) . are evaluated,
+// so nothing else can be smuggled through.
+function evalQty(raw) {
+  const s = String(raw || '').trim().replace(/[,\s]/g, '');
+  if (!s) return { ok: false, value: NaN, isExpr: false };
+  if (/^-?\d*\.?\d+$/.test(s)) return { ok: true, value: parseFloat(s), isExpr: false };
+  if (!/^[0-9+\-*/().]+$/.test(s)) return { ok: false, value: NaN, isExpr: true };
+  try {
+    const v = Function('"use strict";return (' + s + ')')();
+    if (typeof v !== 'number' || !isFinite(v)) return { ok: false, value: NaN, isExpr: true };
+    return { ok: true, value: Math.round(v * 10000) / 10000, isExpr: true };
+  } catch(e) {
+    return { ok: false, value: NaN, isExpr: true };
+  }
+}
+
+// ── ข้อ 7: search ──────────────────────────────────────────────────────
+function searchMatch(item) {
+  const q = (stockSearch || '').trim().toLowerCase();
+  if (!q) return true;
+  return [item.name, item.category, item.unit, item.note]
+    .filter(Boolean).join(' ').toLowerCase().includes(q);
 }
 
 // Thai baht, no decimals for readability on the summary tiles.
@@ -2019,10 +2231,22 @@ function renderStockTable(filtered) {
     return;
   }
 
-  // Group by category (taxonomy order), then by ministry sequence inside it.
+  // Sorted by a column when one is chosen; otherwise grouped by category in
+  // taxonomy order, which is how the ministry form reads.
+  const sorting = !!tableSort.key;
   const rows = filtered.slice().sort((a, b) => {
-    const d = catIndex(a.category) - catIndex(b.category);
-    if (d !== 0) return d;
+    if (sorting) {
+      const d = tableSort.dir;
+      switch (tableSort.key) {
+        case 'name':     return d * String(a.name || '').localeCompare(String(b.name || ''), 'th');
+        case 'category': return d * String(a.category || '').localeCompare(String(b.category || ''), 'th');
+        case 'qty':      return d * ((Number(a.qty_current) || 0) - (Number(b.qty_current) || 0));
+        case 'cost':     return d * ((Number(a.cost_per_unit) || 0) - (Number(b.cost_per_unit) || 0));
+        case 'value':    return d * (itemValue(a) - itemValue(b));
+      }
+    }
+    const dc = catIndex(a.category) - catIndex(b.category);
+    if (dc !== 0) return dc;
     const ca = (a.category || '').localeCompare(b.category || '', 'th');
     if (catIndex(a.category) === CAT_ORDER.length && ca !== 0) return ca;
     const sa = a.ministry_seq, sb2 = b.ministry_seq;
@@ -2030,6 +2254,14 @@ function renderStockTable(filtered) {
     if (sa != null) return -1;
     if (sb2 != null) return 1;
     return String(a.name).localeCompare(String(b.name), 'th');
+  });
+
+  // Reflect the active sort in the header
+  document.querySelectorAll('.stock-table thead th[data-sort]').forEach(th => {
+    const on = th.dataset.sort === tableSort.key;
+    th.classList.toggle('is-sorted', on);
+    const caret = th.querySelector('.sort-caret');
+    if (caret) caret.textContent = on ? (tableSort.dir === 1 ? '▲' : '▼') : '▲▼';
   });
 
   // Precompute per-category totals for the group header rows.
@@ -2046,7 +2278,7 @@ function renderStockTable(filtered) {
     let groupRow = '';
     // Only show group headers when more than one category is on screen —
     // a single-category filter needs no divider.
-    if (thisCat !== lastCat && Object.keys(groupTotals).length > 1) {
+    if (!sorting && thisCat !== lastCat && Object.keys(groupTotals).length > 1) {
       const g = groupTotals[thisCat];
       groupRow = `<tr class="cat-group-row"><td colspan="12">
         ${escapeHtml(thisCat)} <span class="cgr-count">· ${g.n} รายการ</span>
@@ -2428,6 +2660,116 @@ function attachBarHover(barsId, tipId, buildHTML) {
   });
 }
 
+// ══════════════════════════════════════════════════════════════════════
+//  ข้อ 10: MINISTRY REPORT (iSingleForm — วัตถุดิบทั่วไป)
+//
+//  Columns mirror the form exactly, in its own order, so the numbers can be
+//  copied straight across. Everything is derived from the ledger for the
+//  selected month; the form's identity ยอดยกมา + รับ − ใช้ = คงเหลือ holds
+//  by construction because all four come from the same movement rows.
+// ══════════════════════════════════════════════════════════════════════
+const MINISTRY_COLS = [
+  'ลำดับ', 'ชื่อวัตถุดิบ', 'หน่วย', 'ยอดยกมา', 'ปริมาณที่ใช้', 'คงเหลือ',
+  'แหล่งการนำเข้า', 'ปริมาณที่รับ/ซื้อ', 'ราคาเฉลี่ยต่อหน่วย (บาท)', 'หมายเหตุ'
+];
+
+function buildMinistryRows() {
+  const s = monthlySeries.find(x => x.month === selectedMonth);
+  if (!s) return [];
+  return stockItems
+    .slice()
+    .sort((a, b) => (a.ministry_seq || 9999) - (b.ministry_seq || 9999)
+                 || String(a.name).localeCompare(String(b.name), 'th'))
+    .map((i, idx) => {
+      const it    = s.items[i.id] || { inQty: 0, outQty: 0, adjQty: 0, inValue: 0 };
+      const close = s.closingQty[i.id] || 0;
+      const open  = close - it.inQty + it.outQty - it.adjQty;
+
+      // The form has no column for a stocktake correction, and it must satisfy
+      // ยอดยกมา + รับ − ใช้ = คงเหลือ or the site rejects it. So a shortfall is
+      // reported as consumption and a surplus as received — which is what they
+      // physically were — and the note says what really happened.
+      const outQty = it.outQty + Math.max(0, -it.adjQty);
+      const inQty  = it.inQty  + Math.max(0,  it.adjQty);
+
+      // Price the ministry asks for is what was paid this month; fall back to
+      // the running average for a material not bought in the period.
+      const price = it.inQty ? (it.inValue / it.inQty) : (Number(i.cost_per_unit) || 0);
+      return [
+        String(i.ministry_seq || idx + 1),
+        i.name,
+        i.unit || '',
+        fmtNum(open),
+        fmtNum(outQty),
+        fmtNum(close),
+        i.source_country || 'ไทย',
+        fmtNum(inQty),
+        String(Math.round(price * 100) / 100),
+        it.adjQty ? `รวมปรับยอดจากการนับ ${fmtNum(it.adjQty)}` : ''
+      ];
+    });
+}
+
+function openMinistryModal() {
+  const rows = buildMinistryRows();
+  document.getElementById('ministry-title').textContent =
+    `รายงานกระทรวง — วัตถุดิบ · ${monthLabelTH(selectedMonth, {long:true})}`;
+  const table = document.getElementById('ministry-table');
+  if (!rows.length) {
+    table.innerHTML = `<tbody><tr><td style="padding:24px;text-align:center;color:var(--muted);">ยังไม่มีข้อมูลของเดือนนี้</td></tr></tbody>`;
+  } else {
+    table.innerHTML =
+      `<thead><tr>${MINISTRY_COLS.map((c, n) =>
+        `<th class="${n >= 3 && n <= 8 && n !== 6 ? 'num' : ''}">${escapeHtml(c)}</th>`).join('')}</tr></thead>` +
+      `<tbody>${rows.map(r => `<tr>${r.map((c, n) =>
+        `<td class="${n >= 3 && n <= 8 && n !== 6 ? 'num' : ''}${n === 1 ? ' td-name' : ''}">${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  }
+  document.getElementById('ministry-modal').classList.remove('hidden');
+}
+function closeMinistryModal() {
+  document.getElementById('ministry-modal').classList.add('hidden');
+}
+
+function ministryTSV() {
+  return [MINISTRY_COLS].concat(buildMinistryRows())
+    .map(r => r.join('\t')).join('\n');
+}
+
+document.getElementById('btn-ministry').addEventListener('click', openMinistryModal);
+
+document.getElementById('ministry-copy').addEventListener('click', async () => {
+  const text = ministryTSV();
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('คัดลอกแล้ว — วางในเว็บกระทรวงหรือ Excel ได้เลย');
+  } catch(e) {
+    // Clipboard API needs a secure context and permission; fall back to a
+    // hidden textarea so copy still works over plain http or on older phones.
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast(ok ? 'คัดลอกแล้ว' : 'คัดลอกไม่สำเร็จ — ลองเลือกข้อความในตารางแล้วคัดลอกเอง');
+  }
+});
+
+document.getElementById('ministry-csv').addEventListener('click', () => {
+  const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = [MINISTRY_COLS].concat(buildMinistryRows())
+    .map(r => r.map(esc).join(',')).join('\r\n');
+  // BOM first, or Excel reads Thai as mojibake.
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `รายงานกระทรวง-วัตถุดิบ-${selectedMonth}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('ดาวน์โหลดแล้ว — เปิดด้วย Excel ได้เลย');
+});
+
 function renderMonthlyTable() {
   const tbody = document.getElementById('monthly-tbody');
   tbody.innerHTML = monthlySeries.slice().reverse().map(s => `
@@ -2553,7 +2895,8 @@ function renderStockTableRow(i, idx) {
     return `<tr class="${low ? 'is-low' : ''}">
       <td class="td-seq">${i.ministry_seq != null ? i.ministry_seq : idx + 1}</td>
       <td class="td-name" data-action="detail" data-id="${escapeHtml(i.id)}" style="cursor:pointer;">
-        ${escapeHtml(i.name)}${low ? '<span class="row-low-tag">ใกล้หมด</span>' : ''}
+        ${escapeHtml(i.name)}${low ? '<span class="row-low-tag">ใกล้หมด</span>' : ''}${
+          reorderQty(i) ? `<span class="reorder-tag">ควรสั่ง ${fmtNum(reorderQty(i))}</span>` : ''}
       </td>
       <td><span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span></td>
       <td class="td-unit">${unit}</td>
@@ -2581,8 +2924,10 @@ function renderStockCard(i) {
     <div class="stock-card-body" data-action="detail" data-id="${escapeHtml(i.id)}">
       <div class="stock-card-info">
         <div class="stock-card-name">${escapeHtml(i.name)} <span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span></div>
-        <div class="stock-card-min">ขั้นต่ำ ${fmtNum(i.qty_min)} ${escapeHtml(i.unit || '')}</div>
-        ${low ? '<span class="low-indicator">ใกล้หมด</span>' : ''}
+        <div class="stock-card-min">ห้ามต่ำกว่า ${fmtNum(i.qty_min)}${
+          i.qty_target ? ` · ค่ากลาง ${fmtNum(i.qty_target)}` : ''} ${escapeHtml(i.unit || '')}</div>
+        ${low ? '<span class="low-indicator">ใกล้หมด</span>' : ''}${
+          reorderQty(i) ? `<span class="reorder-tag">ควรสั่ง ${fmtNum(reorderQty(i))} ${escapeHtml(i.unit || '')}</span>` : ''}
       </div>
       <div class="stock-card-qty">
         <div class="stock-qty-num">${fmtNum(i.qty_current)}</div>
@@ -2603,6 +2948,7 @@ function renderMovements(rows) {
     el.innerHTML = '<div class="stock-empty">ยังไม่มีประวัติการเคลื่อนไหว</div>';
     return;
   }
+  const canSeeDocs = hasPermission('viewStockDocs');
   el.innerHTML = rows.map(r => {
     const t = r.movement_type;
     const badge = t === 'in'
@@ -2623,11 +2969,26 @@ function renderMovements(rows) {
     // A row can be undone once, and a reversal itself is never undone.
     const canUndo = hasPermission('stockReverse') && !isReversal && !wasReversed;
 
+    // Delivery-note details and the price paid are commercial information —
+    // shown only to roles granted viewStockDocs.
+    let docs = '';
+    if (canSeeDocs && (r.doc_no || r.supplier || r.photo_url || (r.movement_type === 'in' && r.unit_cost))) {
+      const bits = [];
+      if (r.supplier)  bits.push(`<span class="doc-chip">🏭 ${escapeHtml(r.supplier)}</span>`);
+      if (r.doc_no)    bits.push(`<span class="doc-chip">🧾 ${escapeHtml(r.doc_no)}</span>`);
+      if (r.movement_type === 'in' && r.unit_cost)
+        bits.push(`<span class="doc-chip">${fmtBaht(r.unit_cost)} บาท/หน่วย</span>`);
+      if (r.photo_url)
+        bits.push(`<a class="doc-photo-link" href="${escapeHtml(r.photo_url)}" target="_blank" rel="noopener">📷 ดูรูป</a>`);
+      docs = `<div class="mv-doc">${bits.join('')}</div>`;
+    }
+
     return `<div class="mv-row${wasReversed ? ' is-voided' : ''}">
       ${isReversal ? '<span class="mv-badge mv-reversal">ยกเลิกรายการ</span>' : badge}
       <div class="mv-main">
         <div class="mv-qty">${sign}${fmtNum(r.qty)}${wasReversed ? '<span class="voided-tag">ถูกยกเลิกแล้ว</span>' : ''}</div>
         <div class="mv-meta">${escapeHtml(relTime(r.created_at))} · ${escapeHtml(r.created_by || '-')}${po}${r.note ? ' · ' + escapeHtml(r.note) : ''}</div>
+        ${docs}
       </div>
       <div class="mv-right">
         <div class="mv-bal">คงเหลือ ${fmtNum(r.balance_after)}</div>
@@ -2700,6 +3061,7 @@ function openAddStockModal() {
   document.getElementById('st-unit').value = '';
   document.getElementById('st-qty').value = '';
   document.getElementById('st-min').value = '';
+  document.getElementById('st-target').value = '';
   document.getElementById('st-cost').value = '';
   document.getElementById('st-note').value = '';
   document.getElementById('st-qty-field').style.display = '';   // qty only on add
@@ -2718,6 +3080,7 @@ function openEditStockModal(id) {
   setCategorySelect(item.category || '');
   document.getElementById('st-unit').value = item.unit || '';
   document.getElementById('st-min').value = (item.qty_min === null || item.qty_min === undefined) ? '' : item.qty_min;
+  document.getElementById('st-target').value = (item.qty_target === null || item.qty_target === undefined) ? '' : item.qty_target;
   document.getElementById('st-cost').value = (item.cost_per_unit === null || item.cost_per_unit === undefined) ? '' : item.cost_per_unit;
   document.getElementById('st-note').value = item.note || '';
   document.getElementById('st-qty-field').style.display = 'none';  // qty edited via movements only
@@ -2736,6 +3099,8 @@ async function saveStock() {
   const category = readCategorySelect();
   const unit = document.getElementById('st-unit').value.trim() || 'ชิ้น';
   const qtyMin = parseFloat(document.getElementById('st-min').value) || 0;
+  const targetRaw = document.getElementById('st-target').value;
+  const qtyTarget = targetRaw === '' ? null : (parseFloat(targetRaw) || 0);
   const costRaw = document.getElementById('st-cost').value;
   const cost = costRaw === '' ? null : (parseFloat(costRaw) || 0);
   const note = document.getElementById('st-note').value.trim() || null;
@@ -2745,8 +3110,8 @@ async function saveStock() {
     if (editingStockId) {
       if (!hasPermission('manageDataAdd')) { showLoading(false); toast('ไม่มีสิทธิ์แก้ไข'); return; }
       const { error } = await sb.from('stock_items').update({
-        name, category, unit, qty_min: qtyMin, cost_per_unit: cost, note,
-        updated_at: nowTS()
+        name, category, unit, qty_min: qtyMin, qty_target: qtyTarget,
+        cost_per_unit: cost, note, updated_at: nowTS()
       }).eq('id', editingStockId);
       if (error) throw error;
       await logActivity('stock_edit', 'stock_item', { item_id: editingStockId, name });
@@ -2755,15 +3120,16 @@ async function saveStock() {
       const qtyCur = parseFloat(document.getElementById('st-qty').value) || 0;
       const { data, error } = await sb.from('stock_items').insert({
         name, category, unit,
-        qty_current: qtyCur, qty_min: qtyMin,
+        qty_current: qtyCur, qty_min: qtyMin, qty_target: qtyTarget,
         cost_per_unit: cost, note, is_active: true
       }).select().single();
       if (error) throw error;
       // Initial opening balance → seed a movement row so history is complete.
       if (qtyCur > 0 && data) {
         await sb.from('stock_movements').insert({
-          item_id: data.id, movement_type: 'in', qty: qtyCur,
-          balance_after: qtyCur, ref_type: 'initial', ref_id: null,
+          item_id: data.id, movement_type: 'initial', qty: qtyCur,
+          balance_after: qtyCur, unit_cost: cost,
+          ref_type: 'manual', ref_id: null,
           note: 'ยอดยกมาเริ่มต้น',
           created_by: currentUser.display_name || currentUser.username
         });
@@ -2846,6 +3212,14 @@ function openMovementModal(id, type) {
     document.getElementById('mv-price-hint').textContent = '';
   }
 
+  // Paperwork for a receipt: delivery-note number, supplier, photo.
+  document.getElementById('mv-doc-fields').style.display = (type === 'in') ? '' : 'none';
+  document.getElementById('mv-doc-no').value = '';
+  document.getElementById('mv-supplier').value = '';
+  clearPhoto();
+  if (type === 'in') refreshSupplierList();
+  document.getElementById('mv-calc').innerHTML = '';
+
   // เบิกออก asks which job the material went to; รับเข้า / ปรับยอด don't.
   const poField = document.getElementById('mv-po-field');
   const poSel   = document.getElementById('mv-po');
@@ -2872,9 +3246,11 @@ async function confirmMovement() {
   const item = stockItems.find(i => i.id === _mvItemId);
   if (!item) { toast('ไม่พบวัสดุ'); return; }
 
+  // The field accepts arithmetic (3*5), so resolve it before validating.
   const qtyRaw = document.getElementById('mv-qty').value;
-  const qty = parseFloat(qtyRaw);
-  if (qtyRaw === '' || isNaN(qty) || qty < 0) { toast('กรุณากรอกจำนวนให้ถูกต้อง'); return; }
+  const parsed = evalQty(qtyRaw);
+  const qty = parsed.value;
+  if (!parsed.ok || qty < 0) { toast('กรุณากรอกจำนวนให้ถูกต้อง (ใส่ตัวเลข หรือ 3*5)'); return; }
   if (_mvType !== 'adjust' && qty <= 0) { toast('จำนวนต้องมากกว่า 0'); return; }
 
   const note = document.getElementById('mv-note').value.trim();
@@ -2902,9 +3278,16 @@ async function confirmMovement() {
     if (!confirm(`⚠️ ยอดจะติดลบ (${fmtNum(cur - qty)}) ต้องการบันทึกต่อไหม?`)) return;
   }
 
+  const docNo    = (_mvType === 'in') ? document.getElementById('mv-doc-no').value.trim()    : '';
+  const supplier = (_mvType === 'in') ? document.getElementById('mv-supplier').value.trim() : '';
+
   let result;
   try {
     showLoading(true);
+    // Upload the delivery-note photo first: if it fails, nothing has been
+    // written to the ledger yet, so the user can simply retry.
+    let photoUrl = null;
+    if (_mvType === 'in' && _mvPhotoFile) photoUrl = await uploadPhoto(item.id);
     // One atomic call: the function takes a row lock on the material, so it
     // reads the balance, writes the ledger row, re-blends the average and
     // updates the item without another session slipping in between. Doing
@@ -2917,7 +3300,10 @@ async function confirmMovement() {
       p_unit_cost:  unitCost,
       p_po_number:  poNumber || null,
       p_note:       note || null,
-      p_created_by: currentUser.display_name || currentUser.username
+      p_created_by: currentUser.display_name || currentUser.username,
+      p_doc_no:     docNo || null,
+      p_supplier:   supplier || null,
+      p_photo_url:  photoUrl
     });
     if (error) throw error;
     result = data || {};
@@ -3040,8 +3426,92 @@ function updatePriceHint() {
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', () => {
     if (_mvType === 'in') updatePriceHint();
+    updateCalcLine();
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════
+//  ข้อ 6: DELIVERY-NOTE PHOTO
+//
+//  A phone camera produces 3-6 MB per shot. Resized to 1400px and re-encoded
+//  as JPEG it lands around 150-300 KB, which keeps Storage small and uploads
+//  quick on 4G — and a delivery note only has to be readable, not sharp.
+// ══════════════════════════════════════════════════════════════════════
+const PHOTO_MAX_EDGE = 1400;
+
+function clearPhoto() {
+  _mvPhotoFile = null;
+  const wrap = document.getElementById('mv-photo-wrap');
+  const img  = document.getElementById('mv-photo-preview');
+  if (img && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  if (wrap) wrap.style.display = 'none';
+  if (img) img.removeAttribute('src');
+  const input = document.getElementById('mv-photo');
+  if (input) input.value = '';
+  const txt = document.getElementById('mv-photo-text');
+  if (txt) txt.textContent = '📷 ถ่ายรูป / เลือกไฟล์';
+}
+
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('encode failed')), 'image/jpeg', 0.72);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
+    img.src = url;
+  });
+}
+
+document.getElementById('mv-photo').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const blob = await resizeImage(file);
+    _mvPhotoFile = blob;
+    const img = document.getElementById('mv-photo-preview');
+    img.src = URL.createObjectURL(blob);
+    document.getElementById('mv-photo-wrap').style.display = '';
+    document.getElementById('mv-photo-text').textContent =
+      `📷 เปลี่ยนรูป (${Math.round(blob.size / 1024)} KB)`;
+  } catch(err) {
+    console.warn('[photo]', err);
+    toast('อ่านรูปไม่สำเร็จ ลองใหม่อีกครั้ง');
+    clearPhoto();
+  }
+});
+document.getElementById('mv-photo-remove').addEventListener('click', clearPhoto);
+
+async function uploadPhoto(itemId) {
+  if (!_mvPhotoFile) return null;
+  const stamp = todayISO().replace(/-/g, '');
+  const rand  = Math.random().toString(36).slice(2, 8);
+  const path  = `${stamp}/${itemId}-${rand}.jpg`;
+  const { error } = await sb.storage.from('stock-docs')
+    .upload(path, _mvPhotoFile, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw error;
+  const { data } = sb.storage.from('stock-docs').getPublicUrl(path);
+  return (data && data.publicUrl) || null;
+}
+
+// Suppliers already used, so the same name isn't retyped three ways.
+function refreshSupplierList() {
+  const seen = [];
+  allMovements.forEach(m => {
+    const sup = (m.supplier || '').trim();
+    if (sup && !seen.includes(sup)) seen.push(sup);
+  });
+  document.getElementById('supplier-list').innerHTML =
+    seen.sort((a, b) => a.localeCompare(b, 'th'))
+        .map(x => `<option value="${escapeHtml(x)}"></option>`).join('');
+}
 
 // Undo a mis-entered movement. The ledger row is never edited or deleted — the
 // server posts a counter-entry linked back to it, so the history shows both the
@@ -3124,6 +3594,66 @@ document.getElementById('stock-tbody').addEventListener('click', onStockRowClick
     renderStockList();
   });
 })();
+
+// ── ข้อ 7: search + sort ────────────────────────────────────────────────
+(function initSearch() {
+  const input = document.getElementById('stock-search');
+  const clear = document.getElementById('search-clear');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    stockSearch = input.value;
+    clear.style.display = stockSearch ? '' : 'none';
+    renderStockList();
+  });
+  clear.addEventListener('click', () => {
+    input.value = ''; stockSearch = '';
+    clear.style.display = 'none';
+    renderStockList();
+    input.focus();
+  });
+})();
+
+// Clicking a column header sorts by it; clicking again flips direction, and a
+// third click returns to the ministry sequence the table opens in.
+document.querySelector('.stock-table thead').addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-sort]');
+  if (!th) return;
+  const key = th.dataset.sort;
+  if (tableSort.key !== key)      tableSort = { key, dir: 1 };
+  else if (tableSort.dir === 1)   tableSort = { key, dir: -1 };
+  else                            tableSort = { key: null, dir: 1 };
+  renderStockList();
+});
+
+// ── ข้อ 8: live calculation under the quantity field ───────────────────
+function updateCalcLine() {
+  const el = document.getElementById('mv-calc');
+  const item = stockItems.find(i => i.id === _mvItemId);
+  if (!el || !item) return;
+
+  const raw = document.getElementById('mv-qty').value;
+  const r = evalQty(raw);
+  const unit = escapeHtml(item.unit || '');
+  const cur  = Number(item.qty_current) || 0;
+
+  if (!raw.trim()) { el.className = 'calc-line'; el.innerHTML = ''; return; }
+  if (!r.ok) {
+    el.className = 'calc-line warn';
+    el.innerHTML = '<span class="calc-result">คำนวณไม่ได้ — ใส่ตัวเลข หรือ 3*5</span>';
+    return;
+  }
+
+  const expr = r.isExpr ? `<span class="calc-eq">${escapeHtml(raw.trim())} = ${fmtNum(r.value)}</span> · ` : '';
+  let after, label;
+  if (_mvType === 'in')       { after = cur + r.value; label = `${fmtNum(cur)} + ${fmtNum(r.value)}`; }
+  else if (_mvType === 'out') { after = cur - r.value; label = `${fmtNum(cur)} − ${fmtNum(r.value)}`; }
+  else                        { after = r.value;       label = `ยอดใหม่`; }
+
+  el.className = 'calc-line' + (after < 0 ? ' warn' : '');
+  el.innerHTML = `${expr}<span class="calc-eq">${label} =</span> ` +
+    `<span class="calc-result">${fmtNum(after)} ${unit}</span>` +
+    (after < 0 ? ' <span class="calc-result">⚠️ ติดลบ</span>' : '');
+}
 
 // View switch: live stock ↔ monthly history
 document.getElementById('stock-view-switch').addEventListener('click', (e) => {
