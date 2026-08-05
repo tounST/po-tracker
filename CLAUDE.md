@@ -36,9 +36,10 @@
 - **⚠️ ห้าม push fix ไปแค่ branch เดียวแล้วจบ** — หลัง commit ต้อง merge ครบทั้ง 3 branches:
   ```
   main   = production (GitHub Pages serves จากตรงนี้)
-  Dev    = mobile bug fixes + stable feature work
-  Dev-PC = desktop active development
+  ERP    = ERP umbrella (erp.html)
+  stock  = โมดูลคลังสต๊อก (stock.html)
   ```
+  ⚠️ **branch `Dev` / `Dev-PC` ไม่มีอยู่ใน clone ปัจจุบันแล้ว** (2026-08-05) — โครงสร้างที่ใช้จริงคือ 3 อันข้างบน
   Fix ที่อยู่แค่ branch เดียว = user ยังเจอบัคใน production (BUG22 Android fix ติดอยู่ใน Dev 2 ชั่วโมงก่อนจะได้ไป main)
 - **หลัง merge ทุก branch ต้องอยู่ที่ commit เดียวกัน** — verify ด้วย `git rev-parse main Dev Dev-PC origin/main origin/Dev origin/Dev-PC` ทั้ง 6 ต้องเท่ากัน
 - **ห้ามสร้าง branch ใหม่โดยไม่จำเป็น** — ถ้าแก้ bug/feature ใช้ branch ที่มีอยู่แล้ว
@@ -46,7 +47,7 @@
 
 ### 📦 PWA / Cache Management
 - **ห้าม commit code ที่แก้ `po-mobile.html` / `po-desktop.html` / `manifest.json` โดยไม่ bump `sw.js` CACHE_NAME** — ถ้าไม่ bump → installed PWA จะเสิร์ฟ cached version เก่า → user ไม่ได้รับ fix เลย. BUG22 CLI fix ติดปัญหานี้จนต้องตาม bump เอง (v11→v12)
-- **Cache version ปัจจุบัน**: `po-tracker-v12` — bump ทุกครั้งที่ modify cached files
+- **Cache version ปัจจุบัน**: `po-tracker-v36` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
 
 ### 🛠️ Development Discipline
 - **ถ้าไม่แน่ใจ → ถามก่อนเสมอ อย่าสร้างอะไรใหม่เอง**
@@ -89,6 +90,14 @@
 | `users` | ผู้ใช้ + จุดงาน (role: admin/staff, station: all/receiving/production/shipping) | ใหม่ |
 | `activity_log` | บันทึกว่าใครทำอะไรเมื่อไหร่ (action, target_type, detail JSONB) | ใหม่ |
 | `role_permissions` | Editable permission matrix (role, permission_key, allowed, updated_at, updated_by) — PK (role, permission_key) — seeded 50 rows = 5 roles × 10 flags | ใหม่ 2026-04-23 |
+| `stock_items` | วัสดุในคลัง — qty_current, **qty_min** (ห้ามต่ำกว่า), **qty_target** (ค่ากลาง), cost_per_unit (เฉลี่ยเคลื่อนที่), ministry_seq | ใหม่ 2026-08-05 |
+| `stock_movements` | **ประวัติทุกการเคลื่อนไหว** — type (in/out/adjust/initial), qty, balance_after, **unit_cost**, ref_type/ref_id (ผูก PO), doc_no/supplier/photo_url, reverses_id | ใหม่ 2026-08-05 |
+
+**⚠️ กฎของ stock (สำคัญ):**
+- **ห้ามเขียน stock ตรง ๆ จาก client** — ต้องผ่าน `apply_stock_movement()` / `reverse_stock_movement()` ที่ล็อกแถว (`FOR UPDATE`) ไม่งั้นยอดหายเมื่อสองคนกดพร้อมกัน (BUG32)
+- **`qty` ของ `adjust` = ยอดใหม่แบบสัมบูรณ์ ไม่ใช่ส่วนต่าง** — อ่านย้อนหลังต้องคำนวณจาก `balance_after` chain (BUG34)
+- Storage bucket `stock-docs` เก็บรูปใบส่งของ (ย่อ 1400px/JPEG q0.72 ฝั่ง client)
+- **Supabase free tier หลับเองเมื่อไม่มีคนใช้** — เจอจริง 2026-07-30 หลังเงียบ 3 เดือน ถ้าต่อไม่ติดให้เช็ค `status` ว่าเป็น `RESTORING` ไหม
 
 ### Supabase Connection Code (ใช้ใน po-mobile.html)
 ```javascript
@@ -100,6 +109,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 ## ไฟล์สำคัญ (อยู่ใน repo root)
 | ไฟล์ | หน้าที่ |
 |---|---|
+| `erp.html` | 🆕 **ERP Dashboard** — เมนูใหญ่ครอบทุกหมวด (ออฟฟิศใช้) มือถือ + PC |
+| `stock.html` | 🆕 **คลังสต๊อก** — ledger, ต้นทุน, รายเดือน, สิทธิ์, รายงานกระทรวง |
+| `docs/ERP-STOCK.md` | 🆕 **บันทึกบริบท ERP/สต๊อกฉบับเต็ม — session ใหม่อ่านไฟล์นี้ก่อน** |
+| `db/*.sql` | 🆕 บันทึก migration ที่ apply เข้า Supabase จริง |
 | `po-mobile.html` | แอปหลัก — single-file PWA ทั้ง HTML/CSS/JS |
 | `sw.js` | Service Worker — cache v5 + offline |
 | `manifest.json` | PWA — install เป็นแอปบนมือถือได้ |
@@ -162,6 +175,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG28 (Mobile): หน้าเด้งไปมาตอน auto-refresh ทุก 30 วิ + ปุ่ม + Add PO กดไม่ค่อยติดบน Android | ✅ Fixed (2026-04-24) → **Auto-refresh (Option B smart re-render)**: เพิ่ม `isUserBusy()` guard check 7 เงื่อนไข (selectedItems > 0 / dropdown open / focused input / stackedItems > 0 / editPoId set / save bar up / modal open) — ถ้า busy skip tick ทั้งหมด. เพิ่ม `getActiveTabName()` → renderDashboard/renderUpdatePoList ทำเฉพาะ tab ที่ user เห็น. ก่อนหน้านี้รันทุกตัวทุกรอบ → layout shift ใต้นิ้ว user. **Touch fix**: `.tabnav button` ไม่มี `touch-action: manipulation` → Android เสีย 300ms รอ double-tap-zoom ตัดสิน → ปุ่ม + รู้สึกหน่วง. เพิ่ม `touch-action` + `-webkit-tap-highlight-color` terracotta tint เป็น feedback |
 | BUG29 (Mobile): Add PO tab ต้องรอ network จบก่อนเห็นฟอร์มเริ่มใหม่ (Android 4G 1-2s) | ✅ Fixed (2026-04-24) → `initAddPOTab()` เดิม `await loadFromSupabase()` **ก่อน** reset form → ช่วง network user เห็น form ของ PO ก่อน → tap + ซ้ำเพราะนึกว่าไม่ติด. แก้โดย paint form ทันทีจาก cached db, ยิง refresh เป็น IIFE background, ถ้า PO# ที่ auto-gen เปลี่ยน + ยังเป็น format อัตโนมัติ (regex `/^PO-(?:\d{2}\/\d{2}\/\d{2}|\d{6})-\d+$/`) ค่อย patch. BUG23 collision ยังกัน 2 ชั้น: savePO มี pre-INSERT re-fetch + auto-regen ถ้าซ้ำ |
 | BUG30 (PC): กดสร้าง PO ใหม่บน desktop แล้ว toast "PO Number ต้องขึ้นต้นด้วย PO-" ทั้งที่ field มีค่า `PO-DD/MM/YY-NN` ถูกต้อง | ✅ Fixed (2026-04-24) → `submitCreate` ใช้ regex `/^PO-[\w-]+$/i` ที่ `\w` = `[A-Za-z0-9_]` — **ไม่อนุญาต `/`**. PO format ปัจจุบันเป็น Buddhist year `PO-27/04/69-01` มี slash → regex fails → toast warning + return ไม่ save. drift ตั้งแต่ 2026-04-23 (commit `9ec93f5` เปลี่ยน format) แต่ลืม update validation. แก้: เปลี่ยนเป็น `/^PO-.+$/` รองรับ slash + custom format ลูกค้า (เช่น `PO-CUST/2025-Q1`) + เพิ่ม `.trim()` กัน paste มี whitespace. Mobile ไม่เจอเพราะ `savePO` ไม่ได้เช็ค format regex (เช็คแค่ non-empty). บทเรียน: เวลาเปลี่ยน format ของ field ต้อง grep validation regex ทุกที่ที่ใช้ field นั้นด้วย — schema/format มี 2 layer (DB + client validation) ต้อง sync เหมือน BUG17/19 (DB CHECK constraint vs code values) |
+| BUG31 (Stock): CHECK constraint `stock_movements_movement_type_check` ไม่มี `'initial'` → เปิดวัสดุใหม่พร้อมยอดตั้งต้น insert ล้มเงียบ | ✅ Fixed (2026-08-05) → ขยาย constraint เป็น in/out/adjust/**initial**. **ซ้ำรอย BUG17 + BUG19 เป็นครั้งที่ 3** — เพิ่มค่า enum-like ใน code ต้อง migrate DB CHECK ทุกครั้ง |
+| BUG32 (Stock): **ยอดหายเมื่อสองคนเบิกพร้อมกัน** (lost update) | ✅ Fixed (2026-08-05) → เดิม client อ่าน `qty_current` เข้าหน่วยความจำ คำนวณยอดใหม่ แล้วเขียนทับ สองคนกดในวินาทีเดียว = อ่านยอดเดิมทั้งคู่ เขียนค่าเดียวกันทั้งคู่ → การเบิกครั้งหนึ่งหายไปเงียบ ๆ. แก้โดยย้ายทั้งหมดเข้า `apply_stock_movement()` ที่ล็อกแถว `FOR UPDATE` → อ่าน+เขียน ledger+เฉลี่ยราคา+อัปเดตยอด ในทรานแซกชันเดียว. ทดสอบ: 100−10−10+80@60 = 160 คงเหลือ เฉลี่ย 55 ✅ |
+| BUG33 (Stock): ปุ่มรับเข้า/เบิกออก/**ปรับยอด** ไม่เช็คสิทธิ์เลย ใครล็อกอินได้ก็แก้สต๊อกได้ | ✅ Fixed (2026-08-05) → เพิ่ม flag `stockIn`/`stockOut`/`stockAdjust`/`stockReverse`/`viewStockDocs` ค่าเริ่มต้น admin เท่านั้น + แท็บ 🔐 สิทธิ์ ให้ toun เปิดให้คนอื่นเองได้. ปรับยอดคือจุดที่ของหายได้โดยไม่มีใครรู้ จึงควรจำกัด |
+| BUG34 (Stock): อ่าน `qty` ของรายการ `adjust` เป็นส่วนต่าง ทั้งที่มันเก็บ**ยอดใหม่แบบสัมบูรณ์** → การนับสต๊อกกลายเป็นการซื้อเข้า | ✅ Fixed (2026-08-05) → นับสต๊อกจาก 170→140 เคยขึ้นเป็น **+1,400 บาท** แทนที่จะเป็น **−300**. แก้โดยคำนวณส่วนต่างจาก `balance_after` chain ซึ่งเป็นฟิลด์เดียวที่มีความหมายเหมือนกันทุกแถว + ตัด query ซ้ำออก 1 ตัว |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)
@@ -372,6 +389,32 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 
 ---
 
+### 🏭 Phase 2E — ERP + คลังสต๊อก (2026-07/08) ⭐ ล่าสุด
+
+> 📖 **รายละเอียดฉบับเต็มอยู่ที่ `docs/ERP-STOCK.md` — session ใหม่อ่านไฟล์นั้นก่อน**
+
+**สิ่งที่เกิดขึ้น:** toun ตัดสินใจขยายจาก PO Tracker → **ERP** โดย PO เป็น 1 หมวดในนั้น
+สร้าง 2 ไฟล์ใหม่ (`erp.html`, `stock.html`) โดย**ไม่แตะไฟล์ PO เดิมเลยแม้แต่บรรทัดเดียว**
+ขึ้น production แล้ว commit `4513a46`
+
+| หัวข้อ | สรุป |
+|---|---|
+| **erp.html** | Dashboard กลาง — login PIN ชุดเดียวกับ PO, KPI จาก po_list, การ์ด 6 โมดูล, รองรับ PC (login แบบ 2 ฝั่ง + ตาราง 3 คอลัมน์) |
+| **stock.html** | คลังสต๊อกเต็มรูปแบบ 3 แท็บ: คลังปัจจุบัน / รายเดือน / 🔐 สิทธิ์ |
+| **ข้อมูลจริง** | วัตถุดิบ **15 รายการ**จากรายงานกระทรวง (iSingleForm) พ.ค. 2569 · มูลค่ารวม **135,406.80 บาท** |
+| **ABC** | 5 รายการ = **75%** ของต้นทุนวัตถุดิบ (~157,600 บาท/เดือน) → กลุ่ม A บันทึกทุกครั้ง / กลุ่ม B-C นับเดือนละหน |
+| **งานวิจัย** | ทำ deep research เรื่อง inventory best practice + ส่อง Odoo ก่อนออกแบบ (ผลอยู่ใน `docs/ERP-STOCK.md`) |
+
+**ฟีเจอร์ stock.html:** movement ledger · ตาราง PC ตรงฟอร์มกระทรวง · เบิกผูก PO · ต้นทุนเฉลี่ยเคลื่อนที่ + ตีตราราคาทุกแถว · รายเดือนย้อนหลัง + แยกราคา/ปริมาณ · เอกสารรับเข้า (เลขใบส่งของ/ผู้ขาย/รูป) + จำกัดสิทธิ์ดู · ค้นหา+เรียง · เครื่องคิดเลขในช่องจำนวน (`3*5`) · ค่ากลาง→"ควรสั่ง N" · ยกเลิกรายการ · รายงานกระทรวง (คัดลอก/CSV) · Realtime + offline
+
+**⏸️ ค้างอยู่ 2 เรื่อง:**
+1. **นับสต๊อก (stocktake)** — toun สั่งพักไว้ · งานวิจัยจัดเป็น must-have · ตอนนี้ปรับยอดได้ทีละรายการเท่านั้น
+2. **Design ใหม่** — toun ส่งลิงก์ Claude Design มา (`ERP Home v2.dc.html`) แต่ **`DesignSync` ต้องการ `/design-login` ซึ่งใช้ได้เฉพาะเทอร์มินัลจริง session เว็บทำไม่ได้** → ต้องให้ toun กด **"Send to Claude Code Web"** หรือก๊อปไฟล์มาวาง
+
+**❓ คำถามค้างที่ควรถาม toun:** รายการวัตถุดิบไม่มีแม่สี (tinter) แยกตัว → **ผสมสีเอง หรือสั่งสีผสมสำเร็จตามเบอร์?** ถ้าสั่งสำเร็จ เรื่องเครื่องชั่งผสมสีตกไปทั้งหมด
+
+---
+
 ### 🔨 กำลังทำอยู่ตอนนี้ (As of 2026-04-24 end of day)
 
 **ไม่มีงาน active** — PC Realtime + isUserBusy + viewActivityLog parity เสร็จ (2026-04-24 late). ทุก feature ของ mobile วันนี้ port มา PC ครบแล้ว รอ toun สั่งงานต่อ
@@ -526,6 +569,16 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - **ทำไมเก็บ polling 60s เป็น fallback แทน drop เลย**: Realtime WebSocket มี failure modes ที่ hard to diagnose จาก client (RLS policy misconfig, Supabase outage, network firewall block WebSocket). ถ้าขาด event silently → user เห็นข้อมูลค้างโดยไม่รู้ตัว. Polling fallback = ป้องกันโดย definition: ทุก 60s ยิง fetch ถ้าไม่ได้ event มาใน 45s → ถ้า Realtime ตาย user จะ sync กลับมาใน 60s (เหมือน pre-Realtime). Extra bandwidth = ~1-2% ของ Free tier (ไม่ significant). **Rule**: production feature สำคัญต้องมี fallback — Realtime เป็น optimization, ไม่ใช่ source of truth
 - **ทำไม beta URL (beta file) คือ safer testing pattern กว่า feature flag**: feature flag = 1 file + runtime switch (`if (USE_REALTIME)`) — production จะใช้ code ชุดเดียวกับ beta → risk ของ beta code ไปโดน production user โดยไม่ตั้งใจ (misconfiguration, typo). Beta URL = 2 ไฟล์แยก → beta มี banner สีต่างชัดเจน + ลูกน้อง production ไม่เคย navigate ไป URL beta → 100% isolation. Trade-off: เก็บ 2 ไฟล์ copy กันชั่วคราว (~10K บรรทัด duplicate). หลังจาก promote → delete beta file = back to single source of truth. **Rule**: testing ของ production feature ที่กระทบ multiple devices ควร physical separation ไม่ใช่ logical branch ใน code เดียวกัน
 - **ทำไม RLS policy ต้อง permissive `using (true)` ไม่ใช่ strict user-based policy**: toun's PIN login ไม่ใช่ Supabase Auth (ใช้ client-side localStorage + `users` table match). `auth.uid()` ใน RLS policy จะ return NULL เพราะไม่มี JWT token → strict policy `using (auth.uid() = user_id)` จะ block ทุกคน → app พัง. Permissive policy = match current behavior ของ anon key (เปิดให้ทุกอย่าง) — ไม่ downgrade security เพราะ baseline เดิมก็ permissive อยู่แล้ว. **ถ้าอนาคต toun ต้องการ proper per-user authorization** → ต้อง migrate ไป Supabase Auth ก่อน (Phase 4 scale-up) แล้วค่อยเขียน strict policies. **Rule**: RLS policy strictness ต้อง match authentication architecture — mismatch = lockout
+
+- **ทำไม stock ใช้ต้นทุนเฉลี่ยเคลื่อนที่ ไม่ใช่ FIFO**: สี/ทินเนอร์เทรวมถังกัน แยกไม่ออกว่าลิตรไหนมาจากล็อตไหน — FIFO layers จึงไม่ตรงกับของจริงในโรงงานพ่นสี และซับซ้อนกว่ามากโดยไม่ได้ประโยชน์เพิ่ม. เฉลี่ยเคลื่อนที่: `(คงเหลือ×เฉลี่ยเดิม + จำนวนรับ×ราคาใหม่) ÷ รวม` คำนวณที่ server ตอนรับเข้า
+- **ทำไมต้องตีตราราคาลงทุก movement (`unit_cost`)**: เดิมมูลค่าทุกรายงานคิดจาก `qty × stock_items.cost_per_unit` ซึ่งเป็น**ช่องเดียวที่แก้ได้** → พอซื้อของแพงขึ้นแล้วอัปเดตราคา **มูลค่าของเดือนที่ผ่านไปแล้วเปลี่ยนตามด้วย** ประวัติจึงเชื่อถือไม่ได้. พอตีตราแล้ว เดือนหนึ่ง = ผลรวมของแถวตัวเอง อ่านย้อนหลังแค่บวกเลข ไม่ต้องคำนวณใหม่ = **ถูกต้องขึ้นและเร็วขึ้นพร้อมกัน**. บทเรียนทั่วไป: ถ้าตัวเลขในอดีตเปลี่ยนได้เพราะแก้ค่าปัจจุบัน แปลว่าเก็บผิดที่
+- **ทำไม stock ต้องเขียนผ่าน DB function ไม่ใช่ insert+update จาก client**: client อ่านยอดเข้าหน่วยความจำ คำนวณ แล้วเขียนทับ = **lost update** สองคนกดในวินาทีเดียวได้ผลลัพธ์เดียวกัน การเบิกครั้งหนึ่งหายเงียบ (BUG32). `apply_stock_movement()` ล็อกแถวด้วย `FOR UPDATE` → รายการที่เข้ามาพร้อมกันเข้าคิวแทนที่จะทับกัน. **โรงงานหลายจุดงานเจอแน่ ไม่ใช่แค่ความเสี่ยงทฤษฎี**
+- **ทำไม `adjust` เก็บยอดสัมบูรณ์ แต่ `in`/`out` เก็บส่วนต่าง — และทำไมต้องอ่านจาก `balance_after`**: UI ของปรับยอดถามว่า "ยอดคงเหลือใหม่" เท่าไหร่ จึงเก็บค่าสัมบูรณ์เป็นธรรมชาติ แต่ทำให้ `qty` มีความหมายไม่เหมือนกันข้ามแถว. ถ้าเผลออ่านเป็นส่วนต่าง **การนับสต๊อกจะกลายเป็นการซื้อเข้า** (นับ 170→140 ขึ้น +1,400 แทน −300, BUG34). `balance_after` เป็นฟิลด์เดียวที่มีความหมายเหมือนกันทุกแถว → derive ส่วนต่างจาก chain นี้เสมอ
+- **ทำไมยกเลิกรายการต้องออก counter-entry ไม่ใช่ลบแถว**: ledger ที่ลบได้ = ตรวจย้อนไม่ได้. `reverse_stock_movement()` ออกรายการกลับผูก `reverses_id` แถวเดิมยังอยู่ (ขีดฆ่า + ป้าย "ถูกยกเลิกแล้ว") → ประวัติแสดงทั้ง**ความผิดพลาดและการแก้ไข**. ข้อจำกัดที่ยอมรับ: ยกเลิกการรับเข้าคืนจำนวนได้ แต่ย้อนค่าเฉลี่ยไม่ได้ (ค่าเฉลี่ย un-blend จากแถวเดียวไม่ได้) — จะปรับตัวเองตอนรับเข้าครั้งถัดไป เหมือนระบบใหญ่ ๆ ทำกัน
+- **ทำไมปรับยอดถูกรวมเข้า "ปริมาณที่ใช้" ในรายงานกระทรวง**: ฟอร์ม iSingleForm ไม่มีช่องปรับยอด แต่บังคับ `ยอดยกมา + รับ − ใช้ = คงเหลือ` ถ้าไม่รวมจะส่งไม่ผ่าน. ของที่นับขาด = ของหายไปจริง จึงรายงานเป็นการใช้ (ซึ่งตรงกับความจริงทางกายภาพ) แล้วเขียนกำกับในช่องหมายเหตุ. บทเรียน: เวลา export ไปฟอร์มภายนอก ต้องเคารพ**กติกาของฟอร์มนั้น** ไม่ใช่ยัดโครงสร้างภายในของเราลงไป
+- **ทำไมไม่แนะนำเครื่องยิงบาร์โค้ดให้โรงงานนี้**: SKU แค่ 15 รายการ · ถังสีไม่มีบาร์โค้ดที่ใช้ได้ (ต้องพิมพ์สติกเกอร์แปะเอง = งานเพิ่ม) · สีเบิกแบบ "ตัก" ไม่ใช่ "หยิบชิ้น" → ยิงแล้ว**ยังต้องพิมพ์จำนวนอยู่ดี** บาร์โค้ดช่วยแค่ครึ่งเดียว. ทางที่ดีกว่าคือ **QR ติดที่ชั้นวาง** (ไม่ใช่ที่ถัง — ถังหมดแล้วทิ้ง QR หายไปด้วย) ส่องด้วยมือถือที่มีอยู่ ต้นทุน ~50 บาท. **หลักการ: ระบบสต๊อกไม่ล้มเพราะบันทึกช้า แต่ล้มเพราะคนไม่บันทึก** — ทุกการออกแบบต้องตอบว่า "ทำให้การบันทึกง่ายกว่าการไม่บันทึก" ยังไง
+- **ทำไม OCR ควรเริ่มที่ใบส่งของ ไม่ใช่ลายมือช่าง**: เอกสารพิมพ์อ่านแม่นกว่าลายมือเปื้อนสีมาก และความเสี่ยงหลักของ OCR คือ **"ผิดแบบเงียบ"** — อ่าน `-13` เป็น `-18` ไม่มีอะไรดูผิดแต่สต๊อกเพี้ยนไป 6,500 บาท จึงต้องมีหน้าจอยืนยันทุกครั้ง ซึ่งกินเวลาไปส่วนหนึ่ง → **บันทึกทีละรายการ กดปุ่มเร็วกว่า OCR** OCR คุ้มเมื่ออ่านทีเดียวหลายแถว. เคล็ดลับที่เปลี่ยนเกม: **ออกแบบฟอร์มกระดาษเองแล้วพิมพ์แจก** (พิมพ์ชื่อวัสดุไว้ล่วงหน้า ช่างเขียนแค่ตัวเลขในช่อง) ความแม่นกระโดดขึ้นมาก
+- **ทำไม ERP เป็นไฟล์แยก ไม่ใช่แก้ po-mobile/po-desktop**: คนงานใช้ PO อยู่ทุกวันบน production — การเพิ่มโมดูลใหม่เข้าไปในไฟล์เดิมเสี่ยงพังของที่ใช้งานอยู่. `erp.html`/`stock.html` เป็นไฟล์ใหม่ล้วน merge เข้า main ได้โดย `git diff` ของไฟล์ PO เดิม**ว่างเปล่า** = พิสูจน์ได้ว่าไม่กระทบ. `index.html` ก็ไม่แตะ คนงานเปิด URL เดิมเข้า PO เหมือนเดิม. ต่อยอด decision เดิม "PC/Mobile แยกไฟล์เพื่อ isolation" ไปอีกขั้น
 
 ## Context ธุรกิจ
 - โรงงานพ่นสี ABS/PP ชิ้นส่วนยานยนต์
