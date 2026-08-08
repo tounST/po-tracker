@@ -186,13 +186,41 @@ UI disabled + `savePerm` ปฏิเสธ + `loadRolePermissions` ไม่ส
 ### ⏸️ พักไว้ (toun สั่งพัก)
 - **ข้อ 4: นับสต๊อก (stocktake)** — ตอนนี้ปรับยอดได้ทีละรายการ แต่ยังไม่มีโหมดนับทั้งชุดเทียบยอด **งานวิจัยจัดเป็น must-have**
 
-### 🎨 ค้างอยู่ — Design ใหม่
-toun ส่งลิงก์ Claude Design มา:
-`https://claude.ai/design/p/faaac68b-e7ad-460f-b37a-4555be32b099?file=ERP+Home+v2.dc.html`
-ไฟล์ที่ต้องอ่าน: `ERP Home v2.dc.html`, `_ds/modernist-c199803c-.../\_ds_bundle.js`, `_ds/.../styles.css`, `support.js`
+### 🎨 ค้างอยู่ — Design ใหม่ (พร้อม push แล้ว รอ toun ตอบ)
 
-**❌ ยังทำไม่ได้** — `DesignSync` ต้องการ `/design-login` ซึ่งใช้ได้เฉพาะเทอร์มินัลจริง session เว็บทำไม่ได้
-**ทางแก้:** ให้ toun กดปุ่ม **"Send to Claude Code Web"** ใน Claude Design (จะ seed ไฟล์เข้ามาใน workspace) หรือก๊อป `ERP Home v2.dc.html` + `styles.css` มาวาง
+**Session ที่ทำ:** `session_018bMyBUYL3d7grhzZZCAubA` — "Design: ERP หน้าแรกสไตล์ Modernist"
+สถานะ: **IDLE / BLOCKED** · tag `omelette-handoff` · env `env_011111111111111111111114`
+
+**สถานะที่ session นั้นรายงานเอง:**
+> `repo ready for push; awaiting GitHub URL + method (A/B)`
+> ต้องการ: URL ของ repo + เลือก **A (branch ใหม่)** หรือ **B (merge เข้าโครงสร้างเดิม)**
+
+**Artifact ที่ทำไว้แล้ว 7 หน้า** — สังเกตว่า**ไม่ใช่แค่ ERP Home** แต่ redesign ทั้งระบบรวม PO app ด้วย:
+
+| # | หน้า | URL |
+|---|---|---|
+| 1 | ERP Home v2 — ระบบจัดการโรงงาน | `claude.ai/code/artifact/4f69c309-e4f1-411e-b5ab-f0c48be98f09` |
+| 2 | ERP โรงงานพ่นสี — ภาพรวมทุกหน้า | `.../0bb82683-7e55-4f55-a03c-021d95650203` |
+| 3 | PO Tracker Dashboard | `.../c07fda43-4748-4c4e-b4a4-137d35774abd` |
+| 4 | PO ทั้งหมด | `.../365d7586-0590-436a-a9d6-3b4516b68932` |
+| 5 | สร้าง PO | `.../a60d4d2f-e9a1-47db-8ce8-8c1832e9d71b` |
+| 6 | QC Inspection | `.../33c29153-2961-4ab3-a70a-0edbb4ba9f17` |
+| 7 | Archive | `.../396bc96b-7dbf-41f6-aaab-09b5a91903eb` |
+
+**⚠️ ข้อควรระวัง:** ดีไซน์ครอบคลุมหน้าของ PO app (Dashboard/PO ทั้งหมด/สร้าง PO/QC/Archive) ซึ่งเป็นไฟล์ที่**คนงานใช้ production อยู่ทุกวัน** → ต้อง review diff ก่อนแตะ ไม่ใช่ merge ตรงเข้า main
+
+**คำแนะนำ: เลือก A (branch ใหม่)** เพราะ main = production คนงานใช้อยู่ · ดีไซน์กินหน้า PO ด้วย · ตรงกับวินัย branch ที่ใช้อยู่แล้ว (ERP/stock)
+ชื่อ branch ที่เสนอ: `design`
+
+**สิ่งที่ session นี้ (ERP/stock) ทำไม่ได้ — ลองครบ 3 ทางแล้ว:**
+| วิธี | ผล |
+|---|---|
+| `DesignSync` MCP | ❌ ต้องการ `/design-login` ซึ่งใช้ได้เฉพาะเทอร์มินัลจริง |
+| `WebFetch` artifact | ❌ network allowlist ของ sandbox บล็อก `*.frame.claudeusercontent.com` (ตัว artifact auth ผ่าน แต่โหลดเนื้อหาไม่ได้) |
+| `SendMessage` ข้าม session | ❌ `ListAgents` = "No reachable agents" — cross-session messaging ไม่เปิดใน environment นี้ |
+
+→ **ทางเดียวที่ได้ผล: ให้ toun ไปตอบใน session ดีไซน์เอง** แล้ว session นั้น push เข้า repo ตรง ๆ
+จากนั้น session ฝั่งนี้แค่ `git fetch` ก็เห็นไฟล์
 
 ### 🔮 อนาคต (ตาม flowchart ERP)
 🛒 จัดซื้อ · 👥 CRM ลูกค้า · 🏭 ซัพพลายเออร์ · 📊 รายงาน&วิเคราะห์
