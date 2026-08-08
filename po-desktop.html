@@ -2373,8 +2373,16 @@ async function onLoginSuccess() {
   initShell();
   resetSessionTimer();
 
-  // Default route by role — Staff goes to Dashboard too (same)
-  goTo('dashboard');
+  // Default route by role — Staff goes to Dashboard too (same).
+  // A "#route" fragment (set by the ERP home's shortcut tiles, erp.html)
+  // deep-links straight into that screen. Permission is taken from the
+  // sidebar item initShell() just gated, so a deep link can never open a
+  // page the role can't reach. No fragment → dashboard, exactly as before.
+  const raw = (location.hash || '').replace(/^#\/?/, '');
+  const wanted = /^[a-z]+$/.test(raw) ? raw : '';   // keep it a safe selector literal
+  const navEl = wanted ? document.querySelector(`.sidebar-item[data-page="${wanted}"]`) : null;
+  const allowed = !!navEl && !navEl.classList.contains('hidden-item');
+  goTo(allowed ? wanted : 'dashboard');
   showLoading(false);
 
   // Open the WebSocket channel after the UI is up so the first
