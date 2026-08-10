@@ -47,7 +47,7 @@
 
 ### 📦 PWA / Cache Management
 - **ห้าม commit code ที่แก้ `po-mobile.html` / `po-desktop.html` / `manifest.json` โดยไม่ bump `sw.js` CACHE_NAME** — ถ้าไม่ bump → installed PWA จะเสิร์ฟ cached version เก่า → user ไม่ได้รับ fix เลย. BUG22 CLI fix ติดปัญหานี้จนต้องตาม bump เอง (v11→v12)
-- **Cache version ปัจจุบัน**: `po-tracker-v37` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
+- **Cache version ปัจจุบัน**: `po-tracker-v38` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
 
 ### 🛠️ Development Discipline
 - **ถ้าไม่แน่ใจ → ถามก่อนเสมอ อย่าสร้างอะไรใหม่เอง**

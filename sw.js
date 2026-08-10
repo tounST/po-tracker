@@ -3,8 +3,8 @@
 //  Version: v1.0 — 2026-03-20
 // ═══════════════════════════════════════════════════
 
-// v37 — ERP หน้าแรกฝั่ง PC ดีไซน์ใหม่ (erp.html) + deep link เข้า po-desktop.html
-const CACHE_NAME = 'po-tracker-v37';
+// v38 — รอบ A: ปุ่มลัด + การ์ดสถิติใหม่ + เลือกการเรียง + ชิปบริษัท + รายการตรวจสด + แถบสรุป Archive
+const CACHE_NAME = 'po-tracker-v38';
 
 // ไฟล์ที่จะ cache ไว้ใช้ offline
 const CACHE_FILES = [
