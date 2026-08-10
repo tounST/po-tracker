@@ -415,6 +415,58 @@ a:hover { color: var(--accent); }
 .check-text { color: var(--ink); line-height: 1.45; }
 .check-note { color: var(--ink-3); }
 
+/* ═══ ROUND C — QC rebuild ═══ */
+.qc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.qc-stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.qc-stat.is-accent { background: var(--accent-soft); border-color: #FFC4B8; }
+.qc-stat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.qc-stat-label { font-size: 12.5px; color: var(--ink-2); }
+.qc-stat-pill { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 9px; background: var(--bg); color: var(--ink-2); white-space: nowrap; }
+.qc-stat.is-accent .qc-stat-pill { background: var(--accent); color: #fff; }
+.qc-stat-row { display: flex; align-items: baseline; gap: 7px; margin-top: 8px; }
+.qc-stat-value { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.qc-stat.is-accent .qc-stat-value { color: var(--accent-ink); }
+.qc-stat-unit { font-size: 12px; color: var(--ink-3); }
+
+.qc-thumb {
+  width: 100%; aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden;
+  background: var(--bg); display: grid; place-items: center;
+  border: 1px dashed var(--line-deep); color: var(--ink-3);
+  font-size: 10px; letter-spacing: 0.08em; text-align: center;
+}
+.qc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.qc-thumb.has-photo { border-style: solid; border-color: var(--line); }
+
+.qc-photo-frame {
+  width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden;
+  background: var(--bg); border: 1px dashed var(--line-deep);
+  display: grid; place-items: center; color: var(--ink-3); font-size: 12px; text-align: center; padding: 10px;
+}
+.qc-photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.qc-photo-frame.has-photo { border-style: solid; border-color: var(--line); }
+.qc-photo-actions { display: flex; gap: 8px; margin-top: 8px; }
+.qc-photo-actions .btn { flex: 1; justify-content: center; height: 34px; font-size: 12.5px; padding: 0 10px; }
+.qc-photo-hint { font-size: 11px; color: var(--ink-3); margin-top: 6px; line-height: 1.5; }
+
+.qc-reason-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0 8px; }
+.qc-reason-title { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.qc-reason-count { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 9px; background: var(--accent-soft); color: var(--accent-ink); }
+.qc-reason-count.zero { background: var(--bg); color: var(--ink-3); }
+.qc-note-label { font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin: 16px 0 6px; }
+.qc-note-input {
+  width: 100%; min-height: 62px; resize: vertical; font: inherit; font-size: 13px;
+  color: var(--ink); background: var(--surface); padding: 9px 11px;
+  border: 1px solid var(--line); border-radius: 10px; outline: none;
+}
+.qc-note-input:focus { border-color: var(--accent); }
+
+.qc-top { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-top: 14px; }
+.qc-top-row { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; align-items: center; margin-top: 11px; }
+.qc-top-label { font-size: 12.5px; }
+.qc-top-count { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink-3); }
+.qc-top-track { grid-column: 1 / -1; height: 6px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.qc-top-track > i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+
 /* ═══ ROUND B — preview rail beside the PO list ═══
    The full detail PAGE is untouched. This is a read-mostly summary that
    saves a round trip for the common "which one is this again?" question,
@@ -1852,7 +1904,12 @@ let listSelectedPo = null;   // Round B: which PO the preview rail is showing
 let pinInput = '';
 let sessionTimer = null;
 let createState = null;  // holds in-progress new-PO draft while on Create page
-let qcState = { selectedItemId: null, defectReason: '' };
+// One shape, one reset. The route-change reset used to re-declare this
+// literal by hand, which is exactly how a new field goes missing.
+function freshQcState() {
+  return { selectedItemId: null, defectReason: '', reasons: [], note: '', photoBlob: null, photoPreview: '' };
+}
+let qcState = freshQcState();
 let archiveState = { months: [], currentMonth: null, currentMonthPOs: [] };
 let manageState = { tab: 'users' };
 let detailState = {
@@ -1869,11 +1926,11 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 // Permissions — mirrored from po-mobile.html so both clients enforce the same rules.
 // See po-mobile.html for flag definitions.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, qcPhoto: false },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, qcPhoto: true  },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, qcPhoto: false }
 };
 const ROLE_LABELS = { admin: 'Admin', supervisor: 'Supervisor', office: 'Office', manager: 'Manager', staff: 'Staff' };
 const ROLE_COLORS = { admin: '#A33B2E', supervisor: '#B8832A', office: '#2C6E70', manager: '#3F5AA6', staff: '#4A7F3F' };
@@ -2181,6 +2238,13 @@ async function loadFromSupabase() {
       remark: i.remark || '',
       qcPassed: i.qc_passed,
       qcDefectReason: i.qc_defect_reason || '',
+      // Round C. qcReasons falls back to the singular column so items
+      // inspected from po-mobile (which writes only that one) still show.
+      qcReasons: Array.isArray(i.qc_defect_reasons) && i.qc_defect_reasons.length
+        ? i.qc_defect_reasons
+        : (i.qc_defect_reason ? [i.qc_defect_reason] : []),
+      qcNote: i.qc_note || '',
+      qcPhotoUrl: i.qc_photo_url || '',
       qcCheckedBy: i.qc_checked_by || ''
     })).filter(i => i.po && i.part);
 
@@ -2295,7 +2359,7 @@ async function createPOInSupabase(po, items) {
 }
 
 // Auto-generate next PO number for today: PO-DD/MM/YY-NN (Buddhist year)
-function nextPONumber() {
+function nextPONumber(extraNumbers) {
   const d = new Date();
   const mm = pad2(d.getMonth() + 1);
   const dd = pad2(d.getDate());
@@ -2310,9 +2374,15 @@ function nextPONumber() {
 
   // Count POs created today in EITHER format so "-NN" keeps advancing
   // through the transition window (mirrors po-mobile.html autoNextPO).
-  const todayNums = (db.pos || [])
-    .filter(p => p.id && (p.id.startsWith(newPrefix) || p.id.startsWith(legacyPrefix)))
-    .map(p => parseInt(p.id.split('-').pop(), 10))
+  // BUG37: extraNumbers lets submitCreate pass the FULL po_number list from
+  // the DB (archived included) — db.pos alone only holds non-archived rows,
+  // so a PO completed and archived earlier the same day became invisible
+  // here and its number got re-suggested, which the UNIQUE constraint then
+  // rejected over and over.
+  const candidates = (db.pos || []).map(p => p.id).concat(extraNumbers || []);
+  const todayNums = candidates
+    .filter(id => id && (id.startsWith(newPrefix) || id.startsWith(legacyPrefix)))
+    .map(id => parseInt(id.split('-').pop(), 10))
     .filter(n => !isNaN(n));
   const next = (todayNums.length ? Math.max(...todayNums) : 0) + 1;
   return newPrefix + pad2(next);
@@ -2482,7 +2552,7 @@ function goTo(route, params = {}) {
   if (!ROUTES[route]) route = 'dashboard';
   // Clean up page-specific state when leaving
   if (currentRoute === 'create'  && route !== 'create')  createState = null;
-  if (currentRoute === 'qc'      && route !== 'qc')      qcState = { selectedItemId: null, defectReason: '' };
+  if (currentRoute === 'qc'      && route !== 'qc')      qcState = freshQcState();
   if (currentRoute === 'archive' && route !== 'archive') archiveState.currentMonth = null;
   if (currentRoute === 'detail'  && route !== 'detail')  resetDetailState();
   const cfg = ROUTES[route];
@@ -4248,12 +4318,26 @@ async function submitCreate() {
   }
   showLoading(false);
 
-  if (db.pos.some(p => p.id === s.id)) {
+  // BUG37: check against every number the UNIQUE constraint spans --
+  // db.pos omits archived POs, so a same-day archived PO's number looked
+  // free here, the insert bounced, and the regen kept proposing the same
+  // taken number. One extra single-column query closes the blind spot.
+  let takenNumbers = null;
+  try {
+    const { data: allNums } = await sb.from('po_list').select('po_number');
+    takenNumbers = (allNums || []).map(r => r.po_number);
+  } catch(e) {
+    console.warn('[submitCreate] full-number check skipped, using db.pos only:', e);
+  }
+  const isTaken = takenNumbers
+    ? takenNumbers.includes(s.id)
+    : db.pos.some(p => p.id === s.id);
+  if (isTaken) {
     const originalId = s.id;
-    const suggested = nextPONumber();
+    const suggested = nextPONumber(takenNumbers || []);
     s.id = suggested;
     renderCreate();  // re-render with the new id shown in the field
-    toast(`⚠️ PO "${originalId}" ถูกใช้ไปแล้วในอีกเครื่อง — เปลี่ยนเป็น "${suggested}" ให้แล้ว กด "สร้าง PO" อีกครั้ง`, 5500);
+    toast(`⚠️ PO "${originalId}" ถูกใช้ไปแล้ว (อาจอยู่ใน archive) — เปลี่ยนเป็น "${suggested}" ให้แล้ว กด "สร้าง PO" อีกครั้ง`, 5500);
     return;
   }
 
@@ -4317,7 +4401,45 @@ function renderQC() {
   const queue = db.items.filter(i => i.status === 'QC/เตรียมส่ง' && !i.qcPassed);
   const selected = queue.find(i => i._sbId === qcState.selectedItemId) || null;
 
+  // Round C — counted from the items themselves, no extra query and no
+  // stored aggregate that could drift out of step with the rows.
+  const inspected = db.items.filter(i => i.qcPassed !== null && i.qcPassed !== undefined);
+  const failed    = db.items.filter(i => i.qcPassed === false);
+  const reworking = db.items.filter(i => i.rework || i.status === 'กลับมาแก้ไข');
+  const passRate  = inspected.length
+    ? Math.round(inspected.filter(i => i.qcPassed === true).length / inspected.length * 100) : null;
+
+  const qcStats = [
+    { label: 'รอตรวจ',   value: queue.length,     unit: 'ชิ้น', pill: queue.length ? 'มีคิว' : 'ว่าง',
+      accent: queue.length > 0 },
+    { label: 'ตรวจแล้ว', value: inspected.length, unit: 'ชิ้น', pill: 'สะสม' },
+    { label: 'ผ่าน',     value: passRate === null ? '—' : passRate + '%', unit: passRate === null ? '' : 'ของที่ตรวจ',
+      pill: passRate === null ? 'ยังไม่มีข้อมูล' : 'Pass rate' },
+    { label: 'กำลังแก้', value: reworking.length, unit: 'ชิ้น', pill: reworking.length ? 'ค้างอยู่' : 'ไม่มี' },
+  ];
+
+  // Defects seen most often — straight off qcReasons, which already falls
+  // back to the singular column for items inspected on the phone.
+  const tally = {};
+  failed.forEach(i => (i.qcReasons || []).forEach(r => { const k = (r || '').trim(); if (k) tally[k] = (tally[k] || 0) + 1; }));
+  const topDefects = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topMax = topDefects.length ? topDefects[0][1] : 1;
+
   el.innerHTML = `
+    <div class="qc-stats">
+      ${qcStats.map(st => `
+        <div class="qc-stat${st.accent ? ' is-accent' : ''}">
+          <div class="qc-stat-head">
+            <span class="qc-stat-label">${escapeHtml(st.label)}</span>
+            <span class="qc-stat-pill">${escapeHtml(st.pill)}</span>
+          </div>
+          <div class="qc-stat-row">
+            <span class="qc-stat-value">${st.value}</span>
+            <span class="qc-stat-unit">${escapeHtml(st.unit)}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+
     <div class="qc-split">
       <div>
         <div class="section-header">
@@ -4334,27 +4456,82 @@ function renderQC() {
         }
       </div>
 
-      <aside class="qc-inspect">
-        ${selected ? renderQCInspectPanel(selected) : renderQCEmptyInspect()}
+      <aside>
+        <div class="qc-inspect">
+          ${selected ? renderQCInspectPanel(selected) : renderQCEmptyInspect()}
+        </div>
+        ${topDefects.length ? `
+          <div class="qc-top">
+            <div class="section-title-wrap">
+              <h2 class="section-title-th" style="font-size:15px;">defect ที่เจอบ่อย</h2>
+              <div class="section-title-en">Top defects · จาก ${failed.length} ชิ้นที่ไม่ผ่าน</div>
+            </div>
+            ${topDefects.map(([name, n]) => `
+              <div class="qc-top-row">
+                <span class="qc-top-label">${escapeHtml(name)}</span>
+                <span class="qc-top-count">${n}</span>
+                <span class="qc-top-track"><i style="width:${Math.round(n / topMax * 100)}%"></i></span>
+              </div>`).join('')}
+          </div>` : ''}
       </aside>
     </div>
   `;
 
-  // Wire card clicks
+  // Wire card clicks — switching pieces drops the half-finished verdict
+  // with it, so a reason picked for one part can't follow to the next.
   el.querySelectorAll('.qc-card[data-item]').forEach(card => {
     card.onclick = () => {
-      qcState.selectedItemId = card.dataset.item;
-      qcState.defectReason = '';
+      const id = card.dataset.item;
+      qcState = freshQcState();
+      qcState.selectedItemId = id;
       renderQC();
     };
   });
-  // Wire defect options
+
+  // Round C: reasons are multi-select. Real defects rarely come one at a
+  // time -- a piece is dusty AND the shade is off -- and the top-defects
+  // tally is only honest if every reason gets counted.
   el.querySelectorAll('.defect-opt[data-reason]').forEach(btn => {
     btn.onclick = () => {
-      qcState.defectReason = btn.dataset.reason;
-      el.querySelectorAll('.defect-opt').forEach(b => b.classList.toggle('selected', b === btn));
+      const r = btn.dataset.reason;
+      const at = qcState.reasons.indexOf(r);
+      if (at >= 0) qcState.reasons.splice(at, 1); else qcState.reasons.push(r);
+      qcState.defectReason = qcState.reasons.join(' · ');   // legacy single column
+      btn.classList.toggle('selected', at < 0);
+      const badge = el.querySelector('#qc-reason-count');
+      if (badge) {
+        badge.textContent = qcState.reasons.length ? `เลือกแล้ว ${qcState.reasons.length}` : 'ยังไม่เลือก';
+        badge.classList.toggle('zero', qcState.reasons.length === 0);
+      }
     };
   });
+
+  const noteEl = el.querySelector('#qc-note');
+  if (noteEl) noteEl.oninput = e => { qcState.note = e.target.value; };
+
+  const fileEl = el.querySelector('#qc-photo-file');
+  if (fileEl) fileEl.onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const blob = await qcResizeImage(file);
+      qcState.photoBlob = blob;
+      if (qcState.photoPreview) URL.revokeObjectURL(qcState.photoPreview);
+      qcState.photoPreview = URL.createObjectURL(blob);
+      renderQC();
+    } catch(err) {
+      console.warn('[qc photo]', err);
+      toast('อ่านรูปไม่สำเร็จ ลองใหม่อีกครั้ง');
+    }
+  };
+  const pickBtn = el.querySelector('#qc-photo-pick');
+  if (pickBtn) pickBtn.onclick = () => fileEl && fileEl.click();
+  const dropBtn = el.querySelector('#qc-photo-clear');
+  if (dropBtn) dropBtn.onclick = () => {
+    if (qcState.photoPreview) URL.revokeObjectURL(qcState.photoPreview);
+    qcState.photoBlob = null; qcState.photoPreview = '';
+    renderQC();
+  };
   // Wire Pass/Fail
   const passBtn = el.querySelector('#btn-qc-pass');
   const failBtn = el.querySelector('#btn-qc-fail');
@@ -4367,11 +4544,10 @@ function renderQCCard(it) {
   const po = db.pos.find(p => p.id === it.po);
   return `
     <div class="qc-card ${isSelected ? 'selected' : ''}" data-item="${escapeHtml(it._sbId)}">
-      <div class="qc-card-head">
-        <div>
-          <div class="qc-card-placeholder">PART PHOTO</div>
-          <div style="font-size: 10px; margin-top: 6px; color: var(--ink-3);">ยังไม่รองรับภาพ</div>
-        </div>
+      <div class="qc-thumb ${it.qcPhotoUrl ? 'has-photo' : ''}">
+        ${it.qcPhotoUrl
+          ? `<img src="${escapeHtml(it.qcPhotoUrl)}" alt="รูปชิ้นงาน ${escapeHtml(it.part)}" loading="lazy">`
+          : 'ยังไม่มีรูป'}
       </div>
       <div class="qc-card-pono">${escapeHtml(it.po)}</div>
       <div class="qc-card-part">${escapeHtml(it.part)}</div>
@@ -4401,21 +4577,45 @@ function renderQCInspectPanel(it) {
       </div>
     </div>
 
-    <div class="qc-inspect-photo">
-      <div class="qc-inspect-photo-label">${escapeHtml(it.part.toUpperCase())} · ${escapeHtml((it.color || '').toUpperCase())}</div>
-    </div>
+    ${(() => {
+      const canPhoto = hasPermission('qcPhoto');
+      const src = qcState.photoPreview || it.qcPhotoUrl || '';
+      return `
+      <div class="qc-photo-frame ${src ? 'has-photo' : ''}">
+        ${src ? `<img src="${escapeHtml(src)}" alt="รูปชิ้นงาน ${escapeHtml(it.part)}">`
+              : `${escapeHtml(it.part)} · ${escapeHtml(it.color || '')}<br>ยังไม่มีรูป`}
+      </div>
+      ${canPhoto ? `
+        <input type="file" id="qc-photo-file" accept="image/*" capture="environment" style="display:none;">
+        <div class="qc-photo-actions">
+          <button class="btn btn-ghost" id="qc-photo-pick">${qcState.photoBlob ? '📷 เปลี่ยนรูป' : '📷 ถ่าย / เลือกรูป'}</button>
+          ${qcState.photoBlob ? `<button class="btn btn-ghost" id="qc-photo-clear">เอาออก</button>` : ''}
+        </div>
+        <div class="qc-photo-hint">${qcState.photoBlob
+          ? `จะอัปโหลดตอนกดผ่าน/ไม่ผ่าน (${Math.round(qcState.photoBlob.size / 1024)} KB)`
+          : 'ย่อให้อัตโนมัติก่อนอัปโหลด · แนบหรือไม่แนบก็บันทึกได้'}</div>`
+        : `<div class="qc-photo-hint">บทบาทของคุณดูรูปได้ แต่แนบรูปไม่ได้</div>`}
+      `;
+    })()}
 
     <div class="qc-card-pono" style="font-size: 14px;">${escapeHtml(it.po)}</div>
     <div class="qc-card-part" style="font-size: 14px;">${escapeHtml(it.part)}${it.color ? ' · ' + escapeHtml(it.color) : ''}</div>
     ${po ? (() => { const m = getPoDisplayModel(po); return `<div class="qc-card-color">${escapeHtml(po.company || '')}${m ? ' · ' + escapeHtml(m) : ''}</div>`; })() : ''}
 
-    <div style="font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin-top: 18px; margin-bottom: 8px;">เหตุผลตีกลับ (เลือกถ้าไม่ผ่าน)</div>
+    <div class="qc-reason-head">
+      <span class="qc-reason-title">เหตุผลตีกลับ (เลือกได้หลายข้อ)</span>
+      <span class="qc-reason-count ${qcState.reasons.length ? '' : 'zero'}" id="qc-reason-count">${
+        qcState.reasons.length ? `เลือกแล้ว ${qcState.reasons.length}` : 'ยังไม่เลือก'}</span>
+    </div>
     ${defects.length === 0
       ? `<div style="font-size: 12px; color: var(--ink-3); padding: 10px; background: var(--bg); border-radius: 8px;">ยังไม่มีสาเหตุ defect — เพิ่มได้ในหน้า "จัดการ" → tab สาเหตุ defect</div>`
       : `<div class="defect-grid">${defects.map(d => `
-          <button class="defect-opt ${qcState.defectReason === d ? 'selected' : ''}" data-reason="${escapeHtml(d)}">${escapeHtml(d)}</button>
+          <button class="defect-opt ${qcState.reasons.includes(d) ? 'selected' : ''}" data-reason="${escapeHtml(d)}">${escapeHtml(d)}</button>
         `).join('')}</div>`
     }
+
+    <div class="qc-note-label">หมายเหตุ (ไม่บังคับ)</div>
+    <textarea class="qc-note-input" id="qc-note" placeholder="เช่น เจอเฉพาะขอบล่าง · ลูกค้ายอมรับได้ถ้าขัดใหม่">${escapeHtml(qcState.note)}</textarea>
 
     <div class="qc-cta-row">
       <button class="btn-success" id="btn-qc-pass" style="flex: 1;">
@@ -4430,46 +4630,101 @@ function renderQCInspectPanel(it) {
   `;
 }
 
+// Round C — shrink before upload. 1400px on the long edge at JPEG 0.72 is
+// the same setting the stock module already runs in production; a phone
+// photo lands around 150-250 KB, well under the bucket's 5 MB ceiling.
+const QC_PHOTO_MAX_EDGE = 1400;
+function qcResizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, QC_PHOTO_MAX_EDGE / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('encode failed')), 'image/jpeg', 0.72);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
+    img.src = url;
+  });
+}
+
+async function qcUploadPhoto(itemId) {
+  if (!qcState.photoBlob) return null;
+  const stamp = todayISO().replace(/-/g, '');
+  const rand  = Math.random().toString(36).slice(2, 8);
+  const path  = `${stamp}/${itemId}-${rand}.jpg`;
+  const { error } = await sb.storage.from('qc-photos')
+    .upload(path, qcState.photoBlob, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw error;
+  const { data } = sb.storage.from('qc-photos').getPublicUrl(path);
+  return (data && data.publicUrl) || null;
+}
+
 async function qcCommit(decision, item) {
   if (!item) return;
-  if (decision === 'fail' && !qcState.defectReason) {
+  if (decision === 'fail' && qcState.reasons.length === 0) {
     toast('⚠️ กรุณาเลือกสาเหตุตีกลับก่อน'); return;
   }
 
-  const payload = decision === 'pass'
-    ? {
-        qc_passed: true,
-        qc_defect_reason: null,
-        qc_checked_at: new Date().toISOString(),
-        qc_checked_by: currentUser.username
-      }
-    : {
-        status: 'กำลังผลิต',
-        qc_passed: false,
-        qc_defect_reason: qcState.defectReason,
-        qc_checked_at: new Date().toISOString(),
-        qc_checked_by: currentUser.username,
-        rework: true
-      };
-
   showLoading(true);
   try {
+    // Upload first. If storage refuses, the verdict is not written at all,
+    // so nothing ends up recorded as inspected with the evidence missing.
+    let photoUrl = null;
+    if (qcState.photoBlob) {
+      try {
+        photoUrl = await qcUploadPhoto(item._sbId);
+      } catch(up) {
+        console.error('[qc photo upload]', up);
+        toast('❌ อัปโหลดรูปไม่สำเร็จ — ยังไม่บันทึกผลตรวจ: ' + (up.message || up), 4200);
+        showLoading(false);
+        return;
+      }
+    }
+
+    const joined = qcState.reasons.join(' · ');
+    const base = {
+      qc_checked_at: new Date().toISOString(),
+      qc_checked_by: currentUser.username,
+      qc_note: qcState.note ? qcState.note.trim() : null,
+    };
+    // qc_defect_reason (singular) is kept in step with the array because
+    // po-mobile still reads only that column.
+    if (photoUrl) base.qc_photo_url = photoUrl;
+
+    const payload = decision === 'pass'
+      ? { ...base, qc_passed: true,  qc_defect_reason: null,   qc_defect_reasons: null }
+      : { ...base, qc_passed: false, qc_defect_reason: joined, qc_defect_reasons: qcState.reasons,
+          status: 'กำลังผลิต', rework: true };
+
     const { error } = await sb.from('po_items').update(payload).eq('id', item._sbId);
     if (error) throw error;
 
     await logActivity(decision === 'pass' ? 'qc_pass' : 'qc_fail', 'po_item', {
       po_number: item.po,
       part_name: item.part,
-      reason: decision === 'fail' ? qcState.defectReason : null
+      reason: decision === 'fail' ? joined : null,
+      reasons: decision === 'fail' ? qcState.reasons : null,
+      has_photo: !!photoUrl
     });
 
     toast(decision === 'pass'
-      ? `✅ ผ่าน QC: ${item.part}`
-      : `🔄 ส่งกลับผลิตใหม่: ${item.part} (${qcState.defectReason})`, 2600);
+      ? `✅ ผ่าน QC: ${item.part}${photoUrl ? ' (แนบรูปแล้ว)' : ''}`
+      : `🔄 ส่งกลับผลิตใหม่: ${item.part} (${joined})`, 2600);
 
-    qcState.selectedItemId = null;
-    qcState.defectReason = '';
+    if (qcState.photoPreview) URL.revokeObjectURL(qcState.photoPreview);
+    qcState = freshQcState();
+    // The note field is usually still focused here, which makes isUserBusy()
+    // true and refreshData() skip its repaint -- leaving the verdict you just
+    // saved sitting on screen as if nothing happened. Committing is a user
+    // action, not a background poll, so drop focus and repaint unconditionally.
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     await refreshData();
+    renderQC();
   } catch(e) {
     console.error('[qcCommit]', e);
     toast('❌ ไม่สำเร็จ: ' + e.message, 3500);
