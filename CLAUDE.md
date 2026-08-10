@@ -44,10 +44,12 @@
 - **หลัง merge ทุก branch ต้องอยู่ที่ commit เดียวกัน** — verify ด้วย `git rev-parse main Dev Dev-PC origin/main origin/Dev origin/Dev-PC` ทั้ง 6 ต้องเท่ากัน
 - **ห้ามสร้าง branch ใหม่โดยไม่จำเป็น** — ถ้าแก้ bug/feature ใช้ branch ที่มีอยู่แล้ว
 - **ห้าม force push หรือ rewrite history บน main/Dev/Dev-PC** — ใช้ merge commit ปกติเท่านั้น
+- **มี git hook กันไว้แล้ว** (`.githooks/pre-commit`, เปิดด้วย `git config core.hooksPath .githooks`) — commit ตรงบน `main`/`ERP`/`stock` จะถูกบล็อก ยกเว้น merge commit. เกิดจากเหตุจริง 2 ครั้งใน session 2026-08-10 ที่ commit หลุดลง main เพราะ branch drift ระหว่างขั้นตอน ครั้งหนึ่งขึ้น production โดยยังไม่ได้รีวิว
+- **ก่อน commit ทุกครั้งให้ `git branch --show-current` ก่อน** และเวลาตรวจว่า "ไฟล์เดิมไม่ถูกแตะ" ต้องเทียบกับ commit ฐานก่อนเริ่มงาน ไม่ใช่ `HEAD~1` (ครั้งนั้น `HEAD~1..HEAD` เป็นคู่ที่มีแต่ไฟล์พรีวิว เลยขึ้นว่างเปล่าทั้งที่ commit ก่อนหน้าแตะไฟล์จริงไปแล้ว)
 
 ### 📦 PWA / Cache Management
 - **ห้าม commit code ที่แก้ `po-mobile.html` / `po-desktop.html` / `manifest.json` โดยไม่ bump `sw.js` CACHE_NAME** — ถ้าไม่ bump → installed PWA จะเสิร์ฟ cached version เก่า → user ไม่ได้รับ fix เลย. BUG22 CLI fix ติดปัญหานี้จนต้องตาม bump เอง (v11→v12)
-- **Cache version ปัจจุบัน**: `po-tracker-v39` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
+- **Cache version ปัจจุบัน**: `po-tracker-v40` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
 
 ### 🛠️ Development Discipline
 - **ถ้าไม่แน่ใจ → ถามก่อนเสมอ อย่าสร้างอะไรใหม่เอง**
@@ -182,7 +184,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 | BUG34 (Stock): อ่าน `qty` ของรายการ `adjust` เป็นส่วนต่าง ทั้งที่มันเก็บ**ยอดใหม่แบบสัมบูรณ์** → การนับสต๊อกกลายเป็นการซื้อเข้า | ✅ Fixed (2026-08-05) → นับสต๊อกจาก 170→140 เคยขึ้นเป็น **+1,400 บาท** แทนที่จะเป็น **−300**. แก้โดยคำนวณส่วนต่างจาก `balance_after` chain ซึ่งเป็นฟิลด์เดียวที่มีความหมายเหมือนกันทุกแถว + ตัด query ซ้ำออก 1 ตัว |
 | BUG35 (Stock): ช่อง "รับเข้า"/"ใช้ไป" รายเดือน เติมเครื่องหมายลบดื้อ ๆ → ยอดติดลบแสดงเป็น `−-12` | ✅ Fixed (2026-08-10) → ยอดสุทธิรายเดือนติดลบได้จริงเมื่อ**ยกเลิกรายการข้ามเดือน** (เบิกเดือนนี้ ยกเลิกเดือนหน้า). เดิมโค้ดเขียน `'−' + fmtNum(v)` โดยไม่ดูเครื่องหมายของ `v`. แก้ด้วย `signedIn()` / `signedOut()` — เดือนที่คืนของมากกว่าเบิกจะขึ้นเป็น `+` ตามความจริง |
 | BUG36 (PC, ตัวเอง): คอมเมนต์ CSS ที่ผมเขียนมี `*/` อยู่ข้างใน (จากชื่อ path `modernist-*/styles.css`) → คอมเมนต์ปิดก่อนกำหนด กลืน declaration ถัดไปหายทั้งบรรทัด | ✅ Fixed (2026-08-10) → `--m-n100` (สีพื้นการ์ด) หายไปตัวเดียว ทำให้**ทุกแผงใน ERP หน้าแรกกลายเป็นโปร่งใส** จับได้ตอน probe `getPropertyValue()` คืนค่าว่าง ทั้งที่บรรทัดประกาศอยู่ครบ. บทเรียน: อย่าใส่ glob path ที่มี `*/` ลงในคอมเมนต์ CSS — และเวลาสงสัยว่า CSS ไม่ทำงาน ให้ probe ค่า computed จริง อย่าเชื่อว่าเห็นบรรทัดแล้วแปลว่ามันถูก parse |
-| BUG37 (PC): สร้าง PO ใหม่ไม่ได้ ถ้าวันเดียวกันมี PO ที่ archive ไปแล้ว — เลข auto ชนกับใบที่ archive แล้ววนเสนอเลขเดิมซ้ำ | ✅ Fixed (2026-08-10) → `nextPONumber()` + ตัวเช็คซ้ำก่อน INSERT อ่านจาก `db.pos` ซึ่งโหลดเฉพาะ `is_archived=false` → PO ที่ปิด+archive วันเดียวกันเป็นจุดบอด, DB มี `UNIQUE (po_number)` เลย reject ตลอด และ regen ก็เสนอเลขเดิมอีก = ทางตัน. แก้: ก่อน INSERT ยิง query `select po_number` ทั้งตาราง (รวม archive) แล้วส่งเข้า `nextPONumber(extraNumbers)` → เสนอเลขถัดไปที่ว่างจริง. **เจอจากการจำลองใช้งาน 2 ลูปเต็ม (สร้าง→ผลิต→QC→ส่ง→archive→สร้างใหม่) ไม่ใช่จากอ่านโค้ด** — ⚠️ po-mobile มีบั๊กเดียวกัน (`autoNextPO` + `savePO` ใช้ `db.pos` เหมือนกัน) ต้องแก้ตอนทำรอบมือถือ |
+| BUG37 (PC): สร้าง PO ใหม่ไม่ได้ ถ้าวันเดียวกันมี PO ที่ archive ไปแล้ว — เลข auto ชนกับใบที่ archive แล้ววนเสนอเลขเดิมซ้ำ | ✅ Fixed (2026-08-10) → `nextPONumber()` + ตัวเช็คซ้ำก่อน INSERT อ่านจาก `db.pos` ซึ่งโหลดเฉพาะ `is_archived=false` → PO ที่ปิด+archive วันเดียวกันเป็นจุดบอด, DB มี `UNIQUE (po_number)` เลย reject ตลอด และ regen ก็เสนอเลขเดิมอีก = ทางตัน. แก้: ก่อน INSERT ยิง query `select po_number` ทั้งตาราง (รวม archive) แล้วส่งเข้า `nextPONumber(extraNumbers)` → เสนอเลขถัดไปที่ว่างจริง. **เจอจากการจำลองใช้งาน 2 ลูปเต็ม (สร้าง→ผลิต→QC→ส่ง→archive→สร้างใหม่) ไม่ใช่จากอ่านโค้ด** — ✅ แก้ฝั่งมือถือแล้ว (2026-08-10 รอบมือถือ) — ทั้ง `savePO` (ตอนบันทึก) และ `initAddPOTab` (ตอนเสนอเลข ผ่าน background refresh เดิมของ BUG29 เพื่อไม่ให้ฟอร์มค้างรอเน็ต) · desktop ก็เพิ่มให้เสนอเลขถูกตั้งแต่แรกเหมือนกัน |
 
 ## สิ่งที่ทำเสร็จแล้ว
 - ✅ ระบบ Archive ปิดรอบรายเดือน (GAS + UI ครบ)

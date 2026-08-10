@@ -3972,9 +3972,9 @@ function renderDetailTimeline(events, po) {
 // ═══════════════════════════════════════════════════
 //  RENDER: CREATE PO (Round 2)
 // ═══════════════════════════════════════════════════
-function initCreateState() {
+function initCreateState(takenNumbers) {
   createState = {
-    id:      nextPONumber(),
+    id:      nextPONumber(takenNumbers),
     company: '',
     // `model` at the PO header level is retained as an empty placeholder
     // for backward compat with po_list.car_model, but the real model now
@@ -4002,13 +4002,20 @@ async function renderCreate() {
   // Only refresh when starting fresh (no createState yet) so we don't
   // wipe the user's in-progress form on a route bounce.
   if (!createState) {
+    let takenNumbers = [];
     try {
       const fresh = await loadFromSupabase();
       if (fresh) db = { ...db, ...fresh };
+      // BUG37 parity with mobile: suggest a number that is free against the
+      // FULL table, archived rows included. Without this the first suggestion
+      // can be a number the UNIQUE constraint already holds, and the user
+      // only finds out after filling the form.
+      const { data: allNums } = await sb.from('po_list').select('po_number');
+      takenNumbers = (allNums || []).map(r => r.po_number);
     } catch(e) {
       console.warn('[renderCreate] refresh skipped, using cached db:', e);
     }
-    initCreateState();
+    initCreateState(takenNumbers);
   }
   const s = createState;
   const masters = db.masters || { companies: [], models: [], parts: [] };

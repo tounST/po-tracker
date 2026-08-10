@@ -3,8 +3,8 @@
 //  Version: v1.0 — 2026-03-20
 // ═══════════════════════════════════════════════════
 
-// v39 — รอบ B (แผงขวาในหน้า PO) + รอบ C (QC ยกเครื่อง: รูป · หมายเหตุ · เหตุผลหลายข้อ · สถิติ)
-const CACHE_NAME = 'po-tracker-v39';
+// v40 — ฝั่งมือถือ: ธีมใหม่ทั้ง po-mobile/erp/stock + แก้ BUG37 เวอร์ชันมือถือ
+const CACHE_NAME = 'po-tracker-v40';
 
 // ไฟล์ที่จะ cache ไว้ใช้ offline
 const CACHE_FILES = [

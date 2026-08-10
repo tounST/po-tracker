@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#B85C3C">
+<meta name="theme-color" content="#EC3013">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="PO Tracker">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23B85C3C'/%3E%3Ctext x='96' y='128' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='86' fill='white' letter-spacing='-4'%3EPO%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23EC3013'/%3E%3Ctext x='96' y='128' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='86' fill='white' letter-spacing='-4'%3EPO%3C/text%3E%3C/svg%3E">
 <meta name="apple-touch-fullscreen" content="yes">
 <title>🔩 PO Tracker — ร้านพ่นสี</title>
 <style>
@@ -17,50 +17,52 @@
        Standard tokens (from tokens.css — official design system)
        ══════════════════════════════════════════════ */
 
-    /* Base — warm neutrals */
-    --bg:        #F6F1EA;
-    --bg-deep:   #EDE5DA;
-    --surface:   #FCFAF6;
+    /* Base — Modernist neutrals (matches the PC app) */
+    --bg:        #EAE7E7;
+    --bg-deep:   #DDD9D9;
+    --surface:   #F8F4F4;
     --surface-2: #FFFFFF;
-    --ink:       #2A2520;
-    --ink-2:     #5A4F42;
-    --ink-3:     #8A7F72;
-    --line:      #E5DDD0;
-    --line-deep: #D6CCBD;
+    --ink:       #201E1D;
+    --ink-2:     #605D5D;
+    --ink-3:     #7D7979;
+    --line:      #D7D3D3;
+    --line-deep: #BAB6B6;
 
-    /* Semantic */
-    --success:    #4A7F3F;  --success-bg: #E0EBD8;
-    --warning:    #B8832A;  --warning-bg: #F3E6CB;
-    --danger:     #A33B2E;  --danger-bg:  #F4D9D4;
-    --info:       #3F6E8C;  --info-bg:    #D9E6EE;
+    /* Semantic. The handoff is mono, but a phone on the shop floor is where
+       these get read all day, so hue stays as the encoding — only the tints
+       were retuned to sit on a grey ground instead of a cream one. */
+    --success:    #3F9E5A;  --success-bg: #E2EFE6;
+    --warning:    #A9741B;  --warning-bg: #F2E7D2;
+    --danger:     #AE1800;  --danger-bg:  #FFE0D9;
+    --info:       #4A6E85;  --info-bg:    #DFE8ED;
 
-    /* Accent — Terracotta (locked) */
-    --accent:      #B85C3C;
-    --accent-soft: #F4E3D8;
-    --accent-ink:  #5A2818;
+    /* Accent */
+    --accent:      #EC3013;
+    --accent-soft: #FFF2EF;
+    --accent-ink:  #AE1800;
 
-    /* Status chip pairs (PO item) */
-    --status-recv-fg:   #3F6E8C;   --status-recv-bg:   #D9E6EE;
-    --status-prod-fg:   #7A5614;   --status-prod-bg:   #F0E4D1;
-    --status-qc-fg:     #4B3D78;   --status-qc-bg:     #E3DDF0;
-    --status-ship-fg:   #4A7F3F;   --status-ship-bg:   #E0EBD8;
-    --status-rework-fg: #A33B2E;   --status-rework-bg: #F4D9D4;
+    /* Status chip pairs (PO item) — four distinct hues, deliberately kept */
+    --status-recv-fg:   #4A6E85;   --status-recv-bg:   #DFE8ED;
+    --status-prod-fg:   #8A5E12;   --status-prod-bg:   #F3E7D0;
+    --status-qc-fg:     #574A82;   --status-qc-bg:     #E4E0EF;
+    --status-ship-fg:   #3F9E5A;   --status-ship-bg:   #E2EFE6;
+    --status-rework-fg: #AE1800;   --status-rework-bg: #FFE0D9;
 
     /* Status chip pairs (PO level) */
-    --status-order-fg:   #3F6E8C;  --status-order-bg:   #D9E6EE;
-    --status-inprog-fg:  #B8832A;  --status-inprog-bg:  #F3E6CB;
-    --status-partial-fg: #A35530;  --status-partial-bg: #F3E0D8;
-    --status-done-fg:    #4A7F3F;  --status-done-bg:    #E0EBD8;
+    --status-order-fg:   #4A6E85;  --status-order-bg:   #DFE8ED;
+    --status-inprog-fg:  #A9741B;  --status-inprog-bg:  #F2E7D2;
+    --status-partial-fg: #C4441F;  --status-partial-bg: #FFE0D9;
+    --status-done-fg:    #3F9E5A;  --status-done-bg:    #E2EFE6;
 
     /* Role colors */
-    --role-admin:      #A33B2E;
-    --role-supervisor: #B8832A;
+    --role-admin:      #AE1800;
+    --role-supervisor: #A9741B;
     --role-office:     #2C6E70;
     --role-manager:    #3F5AA6;
-    --role-staff:      #4A7F3F;
+    --role-staff:      #3F9E5A;
 
     /* Typography */
-    --font-sans: 'Sarabun', 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-sans: 'Archivo', 'IBM Plex Sans Thai', 'Sarabun', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
     /* Radius */
@@ -238,7 +240,7 @@
        for double-tap-to-zoom disambiguation. Forcing manipulation
        disables that timer for the whole nav. */
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(184,92,60,.18);
+    -webkit-tap-highlight-color: rgba(236,48,19,.16);
   }
   .tabnav button .tab-icon {
     font-size: 20px;
@@ -257,10 +259,10 @@
     color: #fff;
     font-size: 24px;
     margin-top: -10px;
-    box-shadow: 0 6px 16px rgba(184,92,60,.35);
+    box-shadow: 0 6px 16px rgba(236,48,19,.30);
     transition: filter .15s, transform .1s;
   }
-  .tabnav button.primary { color: var(--accent, #B85C3C); }
+  .tabnav button.primary { color: var(--accent, #EC3013); }
   .tabnav button.primary > span:last-child {
     font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px;
     margin-top: 2px;
@@ -268,7 +270,7 @@
   .tabnav button.primary:hover .tab-icon { filter: brightness(1.1); }
   .tabnav button.primary:active .tab-icon { transform: scale(.95); }
   .tabnav button.primary.active .tab-icon {
-    box-shadow: 0 8px 20px rgba(184,92,60,.5);
+    box-shadow: 0 8px 20px rgba(236,48,19,.42);
   }
   /* Hidden tabs collapse entirely; JS assigns .style.order on visible
      ones so that remaining tabs split evenly around the primary + */
@@ -340,7 +342,7 @@
     font-size: 20px; font-weight: 800; margin-top: 3px;
   }
   .hero-stat-col-rework .hero-stat-col-num {
-    color: #F5B8AC;
+    color: #FFC4B8;
   }
 
   /* ── Quick Actions 2x2 grid ── */
@@ -404,24 +406,24 @@
   .addpo-edit-banner {
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px; flex-wrap: wrap;
-    background: #F3E6CB; color: #7A4A12;
-    border: 1px solid #E8D5A8; border-radius: 12px;
+    background: #F2E7D2; color: #8A5E12;
+    border: 1px solid #E4D6B4; border-radius: 12px;
     padding: 11px 14px; margin-bottom: 12px;
     font-size: 13px;
   }
-  .addpo-edit-banner b { color: #5A3A08; }
+  .addpo-edit-banner b { color: #6B4A0E; }
   .addpo-edit-banner .mono {
     font-family: var(--font-mono);
     font-size: 12.5px;
   }
   .addpo-edit-cancel {
-    background: transparent; border: 1px solid #C89756;
-    color: #7A4A12; font-family: inherit;
+    background: transparent; border: 1px solid #C79A5E;
+    color: #8A5E12; font-family: inherit;
     font-size: 12px; font-weight: 700;
     padding: 6px 12px; border-radius: 8px;
     cursor: pointer; touch-action: manipulation;
   }
-  .addpo-edit-cancel:active { background: #E8D5A8; }
+  .addpo-edit-cancel:active { background: #E4D6B4; }
 
   /* ── Recent Activity (Dashboard) ── */
   .activity-section {
@@ -457,7 +459,7 @@
   .activity-avatar {
     flex-shrink: 0;
     width: 32px; height: 32px; border-radius: 50%;
-    background: #D7CFC2; color: #fff;
+    background: #D7D3D3; color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-size: 12px; font-weight: 800;
     font-family: var(--font-sans);
@@ -597,7 +599,7 @@
   .urgent-flame {
     width: 36px; height: 36px; flex-shrink: 0;
     border-radius: 10px;
-    background: #F4D9D4;
+    background: #FFE0D9;
     color: var(--red);
     display: flex; align-items: center; justify-content: center;
     font-size: 18px;
@@ -642,7 +644,7 @@
   }
   select:focus, input:focus, textarea:focus {
     outline: none; border-color: var(--blue);
-    box-shadow: 0 0 0 3px rgba(184,92,60,.15);
+    box-shadow: 0 0 0 3px rgba(236,48,19,.16);
   }
   textarea { resize: none; height: 70px; }
 
@@ -671,18 +673,18 @@
     font-size: 14px; font-weight: 700;
   }
   /* สถานะชิ้นงาน 5 แบบใหม่ */
-  .badge-recv     { background: #D9E6EE; color: #3F6E8C; }   /* รับของแล้ว */
-  .badge-prod     { background: #F0E4D1; color: #7A5614; }   /* กำลังผลิต */
-  .badge-ready    { background: #E3DDF0; color: #4B3D78; }   /* QC/เตรียมส่ง */
-  .badge-sent     { background: #E0EBD8; color: var(--green); } /* ส่งแล้ว */
-  .badge-rework   { background: #F4D9D4; color: var(--red); } /* กลับมาแก้ไข */
+  .badge-recv     { background: #DFE8ED; color: #4A6E85; }   /* รับของแล้ว */
+  .badge-prod     { background: #F3E7D0; color: #8A5E12; }   /* กำลังผลิต */
+  .badge-ready    { background: #E4E0EF; color: #574A82; }   /* QC/เตรียมส่ง */
+  .badge-sent     { background: #E2EFE6; color: var(--green); } /* ส่งแล้ว */
+  .badge-rework   { background: #FFE0D9; color: var(--red); } /* กลับมาแก้ไข */
   /* Toggle switch styling */
   /* rework toggle styling is handled via .urgent-toggle.on class */
 
-  .badge-po-partial { background: #FCE4EC; color: var(--red); }
-  .badge-po-inprog  { background: #FFF8E1; color: var(--amber); }
-  .badge-po-done    { background: #C8E6C9; color: var(--green); }
-  .badge-po-order   { background: #E3F2FD; color: var(--blue); }
+  .badge-po-partial { background: #FFE0D9; color: var(--red); }
+  .badge-po-inprog  { background: #F2E7D2; color: var(--amber); }
+  .badge-po-done    { background: #E2EFE6; color: var(--green); }
+  .badge-po-order   { background: #DFE8ED; color: var(--blue); }
 
   /* ── Update tab — sub-header + selection banner (design spec) ── */
   .update-subheader {
@@ -714,7 +716,7 @@
     padding: 0; flex-shrink: 0;
     transition: border-color .15s, background .15s;
   }
-  .update-edit-btn:hover  { border-color: var(--accent); background: #FCE7E1; }
+  .update-edit-btn:hover  { border-color: var(--accent); background: #FFF2EF; }
   .update-edit-btn:active { transform: scale(.96); }
   .update-subheader-text { flex: 1; min-width: 0; }
   .update-subheader-kicker {
@@ -868,7 +870,7 @@
   .po-card-del-btn {
     background: transparent;
     border: 1px solid transparent;
-    color: var(--danger, #B85C3C);
+    color: var(--danger, #EC3013);
     width: 30px; height: 30px; border-radius: 8px;
     font-size: 15px; line-height: 1;
     cursor: pointer;
@@ -877,7 +879,7 @@
     flex-shrink: 0; margin-left: 6px;
     transition: background .12s, border-color .12s;
   }
-  .po-card-del-btn:active { background: #FCE7E1; border-color: var(--danger, #B85C3C); }
+  .po-card-del-btn:active { background: #FFF2EF; border-color: var(--danger, #EC3013); }
   .po-card {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -992,7 +994,7 @@
   /* ── Toast ── */
   #toast {
     position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: #263238; color: #fff; padding: 12px 24px;
+    background: #201E1D; color: #fff; padding: 12px 24px;
     border-radius: 24px; font-size: 15px; font-weight: 600;
     opacity: 0; transition: all .3s; z-index: 9999; white-space: nowrap;
   }
@@ -1588,7 +1590,7 @@
     gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
   }
   .perm-head-text {
-    font-size: 12px; color: var(--muted, var(--ink-3, #7A6F60));
+    font-size: 12px; color: var(--muted, var(--ink-3, #7D7979));
     line-height: 1.55; flex: 1; min-width: 180px;
   }
   .perm-reset-btn {
@@ -1611,7 +1613,7 @@
   }
   .perm-matrix thead th {
     text-align: left; font-size: 10px; font-weight: 800;
-    color: var(--muted, #7A6F60); letter-spacing: 0.5px;
+    color: var(--muted, #7D7979); letter-spacing: 0.5px;
     text-transform: uppercase;
     padding: 12px 10px; border-bottom: 1.5px solid var(--line);
     white-space: nowrap;
@@ -1624,7 +1626,7 @@
     text-transform: none;
   }
   .perm-lock-note {
-    font-size: 9px; color: var(--muted, #7A6F60);
+    font-size: 9px; color: var(--muted, #7D7979);
     margin-top: 2px; letter-spacing: 0.3px;
   }
   .perm-matrix tbody td {
@@ -1638,7 +1640,7 @@
   .perm-matrix tbody tr:last-child td { border-bottom: none; }
   .perm-foot {
     margin-top: 12px; font-size: 11px;
-    color: var(--muted, #7A6F60); line-height: 1.55;
+    color: var(--muted, #7D7979); line-height: 1.55;
     padding: 0 2px;
   }
 
@@ -1653,7 +1655,7 @@
   .perm-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
   .perm-switch-slider {
     position: absolute; inset: 0;
-    background: #D7CFC2; border-radius: 99px;
+    background: #D7D3D3; border-radius: 99px;
     transition: background 0.15s;
   }
   .perm-switch-slider::before {
@@ -1664,7 +1666,7 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.18);
   }
   .perm-switch input:checked + .perm-switch-slider {
-    background: #4A7F3F;
+    background: #3F9E5A;
   }
   .perm-switch input:checked + .perm-switch-slider::before {
     transform: translateX(18px);
@@ -1724,7 +1726,7 @@
   }
   .sdropdown-input:focus {
     outline: none; border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(184,92,60,.15);
+    box-shadow: 0 0 0 3px rgba(236,48,19,.16);
   }
   .sdropdown-list {
     display: none; position: absolute; top: calc(100% + 2px); left: 0; right: 0;
@@ -1840,9 +1842,9 @@
     display: inline-block; padding: 4px 12px; border-radius: 20px;
     font-size: 12px; font-weight: 700; margin-left: 4px;
   }
-  .role-badge-admin { background: #FFEBEE; color: #C62828; }
-  .role-badge-supervisor { background: #FFF3E0; color: #E65100; }
-  .role-badge-office { background: #E0F2F1; color: #00695C; }
+  .role-badge-admin { background: #FFE0D9; color: #AE1800; }
+  .role-badge-supervisor { background: #F2E7D2; color: #A9741B; }
+  .role-badge-office { background: #DCEAE9; color: #00695C; }
   .role-badge-manager { background: #E8F0FE; color: var(--blue); }
   .role-badge-staff { background: #E8F5E9; color: #2E7D32; }
   .admin-only { /* ซ่อนเมื่อ staff */ }
@@ -2039,7 +2041,7 @@
   .arc-dropdown .arc-divider { height: 1px; background: var(--line); margin: 0; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
 </head>
@@ -5109,7 +5111,20 @@ async function initAddPOTab() {
       // Auto format is PO-DD/MM/YY-NN (Buddhist year) or legacy PO-YYMMDD-NN.
       const looksAuto = /^PO-(?:\d{2}\/\d{2}\/\d{2}|\d{6})-\d+$/.test(poInput.value);
       if (!looksAuto) return;
-      const newAuto = autoNextPO();
+      // BUG37: db.pos holds active POs only, so a PO completed and archived
+      // earlier today is invisible to autoNextPO and its number gets
+      // suggested again. savePO catches it, but only after the worker has
+      // filled the whole form and pressed save. Pull the full number list
+      // here — in the background, so the instant paint above is untouched —
+      // and hand it to autoNextPO so the suggestion is right the first time.
+      let taken = [];
+      try {
+        const { data: allNums } = await sb.from('po_list').select('po_number');
+        taken = (allNums || []).map(r => r.po_number);
+      } catch(e) {
+        console.warn('[initAddPOTab] full-number check skipped:', e);
+      }
+      const newAuto = autoNextPO(taken);
       if (newAuto !== poInput.value) poInput.value = newAuto;
     } catch(e) {
       console.warn('[initAddPOTab] background refresh skipped:', e);
@@ -5312,7 +5327,7 @@ function addBulkItems() {
   document.getElementById('bulk-qty').value = 1;
 }
 
-function autoNextPO() {
+function autoNextPO(extraNumbers) {
   const now = new Date();
   const mm  = String(now.getMonth() + 1).padStart(2, '0');
   const dd  = String(now.getDate()).padStart(2, '0');
@@ -5328,9 +5343,16 @@ function autoNextPO() {
   // Count POs created today in EITHER format so the "-NN" counter keeps
   // advancing sequentially even if earlier POs for this date used the
   // old PO-YYMMDD-NN layout.
-  const todayNums = db.pos
-    .filter(p => p.id && (p.id.startsWith(newPrefix) || p.id.startsWith(legacyPrefix)))
-    .map(p => parseInt(p.id.split('-').pop()) || 0);
+  // BUG37: db.pos only ever holds is_archived=false rows, so a PO that was
+  // completed and archived earlier the SAME DAY is invisible here — while
+  // the database's UNIQUE (po_number) still holds its number. The insert
+  // then bounces and the regen proposes the same taken number again, which
+  // is a dead end for whoever is standing at the receiving bench.
+  // extraNumbers lets savePO pass the full list, archived included.
+  const candidates = db.pos.map(p => p.id).concat(extraNumbers || []);
+  const todayNums = candidates
+    .filter(id => id && (id.startsWith(newPrefix) || id.startsWith(legacyPrefix)))
+    .map(id => parseInt(id.split('-').pop()) || 0);
 
   const next = todayNums.length > 0 ? Math.max(...todayNums) + 1 : 1;
   return `${newPrefix}${String(next).padStart(2, '0')}`;
@@ -5525,10 +5547,23 @@ async function savePO() {
     }
     showLoading(false);
 
-    if (db.pos.find(p => p.id === poNo)) {
-      const suggested = autoNextPO();
+    // BUG37: check against every number the UNIQUE constraint covers, not
+    // just the active ones db.pos carries. One extra single-column query.
+    let takenNumbers = null;
+    try {
+      const { data: allNums } = await sb.from('po_list').select('po_number');
+      takenNumbers = (allNums || []).map(r => r.po_number);
+    } catch(e) {
+      console.warn('[savePO] full-number check skipped, using db.pos only:', e);
+    }
+    const isTaken = takenNumbers
+      ? takenNumbers.includes(poNo)
+      : !!db.pos.find(p => p.id === poNo);
+
+    if (isTaken) {
+      const suggested = autoNextPO(takenNumbers || []);
       document.getElementById('add-pono').value = suggested;
-      toast('⚠️ PO "' + poNo + '" ถูกใช้ไปแล้วในอีกเครื่อง — เปลี่ยนเป็น "' + suggested + '" ให้แล้ว กดบันทึกอีกครั้งได้เลย', 5000);
+      toast('⚠️ PO "' + poNo + '" ถูกใช้ไปแล้ว (อาจอยู่ใน archive) — เปลี่ยนเป็น "' + suggested + '" ให้แล้ว กดบันทึกอีกครั้งได้เลย', 5000);
       return;
     }
   }
