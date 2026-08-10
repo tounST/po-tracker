@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#B85C3C">
+<meta name="theme-color" content="#EC3013">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ERP โรงงานพ่นสี">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23B85C3C'/%3E%3Ctext x='96' y='132' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='96' fill='white'%3E%F0%9F%8F%AD%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23EC3013'/%3E%3Ctext x='96' y='132' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='96' fill='white'%3E%F0%9F%8F%AD%3C/text%3E%3C/svg%3E">
 <meta name="apple-touch-fullscreen" content="yes">
 <title>📦 คลังสต๊อก — ERP</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" media="(min-width: 1024px)"
+<link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
 <style>
   :root {
@@ -24,50 +24,50 @@
        module shares the exact same terracotta / warm-cream language.
        ══════════════════════════════════════════════ */
 
-    /* Base — warm neutrals */
-    --bg:        #F6F1EA;
-    --bg-deep:   #EDE5DA;
-    --surface:   #FCFAF6;
+    /* Base — Modernist neutrals (same palette as the PC app) */
+    --bg:        #EAE7E7;
+    --bg-deep:   #DDD9D9;
+    --surface:   #F8F4F4;
     --surface-2: #FFFFFF;
-    --ink:       #2A2520;
-    --ink-2:     #5A4F42;
-    --ink-3:     #8A7F72;
-    --line:      #E5DDD0;
-    --line-deep: #D6CCBD;
+    --ink:       #201E1D;
+    --ink-2:     #605D5D;
+    --ink-3:     #7D7979;
+    --line:      #D7D3D3;
+    --line-deep: #BAB6B6;
 
-    /* Semantic */
-    --success:    #4A7F3F;  --success-bg: #E0EBD8;
-    --warning:    #B8832A;  --warning-bg: #F3E6CB;
-    --danger:     #A33B2E;  --danger-bg:  #F4D9D4;
-    --info:       #3F6E8C;  --info-bg:    #D9E6EE;
+    /* Semantic — hue kept as the encoding, tints retuned onto grey */
+    --success:    #3F9E5A;  --success-bg: #E2EFE6;
+    --warning:    #A9741B;  --warning-bg: #F2E7D2;
+    --danger:     #AE1800;  --danger-bg:  #FFE0D9;
+    --info:       #4A6E85;  --info-bg:    #DFE8ED;
 
-    /* Accent — Terracotta (locked) */
-    --accent:      #B85C3C;
-    --accent-soft: #F4E3D8;
-    --accent-ink:  #5A2818;
+    /* Accent */
+    --accent:      #EC3013;
+    --accent-soft: #FFF2EF;
+    --accent-ink:  #AE1800;
 
     /* Status chip pairs (PO item) */
-    --status-recv-fg:   #3F6E8C;   --status-recv-bg:   #D9E6EE;
-    --status-prod-fg:   #7A5614;   --status-prod-bg:   #F0E4D1;
-    --status-qc-fg:     #4B3D78;   --status-qc-bg:     #E3DDF0;
-    --status-ship-fg:   #4A7F3F;   --status-ship-bg:   #E0EBD8;
-    --status-rework-fg: #A33B2E;   --status-rework-bg: #F4D9D4;
+    --status-recv-fg:   #4A6E85;   --status-recv-bg:   #DFE8ED;
+    --status-prod-fg:   #8A5E12;   --status-prod-bg:   #F3E7D0;
+    --status-qc-fg:     #574A82;   --status-qc-bg:     #E4E0EF;
+    --status-ship-fg:   #3F9E5A;   --status-ship-bg:   #E2EFE6;
+    --status-rework-fg: #AE1800;   --status-rework-bg: #FFE0D9;
 
     /* Status chip pairs (PO level) */
-    --status-order-fg:   #3F6E8C;  --status-order-bg:   #D9E6EE;
-    --status-inprog-fg:  #B8832A;  --status-inprog-bg:  #F3E6CB;
-    --status-partial-fg: #A35530;  --status-partial-bg: #F3E0D8;
-    --status-done-fg:    #4A7F3F;  --status-done-bg:    #E0EBD8;
+    --status-order-fg:   #4A6E85;  --status-order-bg:   #DFE8ED;
+    --status-inprog-fg:  #A9741B;  --status-inprog-bg:  #F2E7D2;
+    --status-partial-fg: #C4441F;  --status-partial-bg: #FFE0D9;
+    --status-done-fg:    #3F9E5A;  --status-done-bg:    #E2EFE6;
 
     /* Role colors */
-    --role-admin:      #A33B2E;
-    --role-supervisor: #B8832A;
+    --role-admin:      #AE1800;
+    --role-supervisor: #A9741B;
     --role-office:     #2C6E70;
     --role-manager:    #3F5AA6;
-    --role-staff:      #4A7F3F;
+    --role-staff:      #3F9E5A;
 
     /* Typography */
-    --font-sans: 'Sarabun', 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-sans: 'Archivo', 'IBM Plex Sans Thai', 'Sarabun', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
     /* Radius */
@@ -156,7 +156,7 @@
     display: flex; align-items: center; justify-content: center;
     padding: 0;
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(184,92,60,.18);
+    -webkit-tap-highlight-color: rgba(236,48,19,.16);
     transition: background .15s, border-color .15s, transform .1s;
   }
   .icon-btn:hover { background: var(--accent-soft); border-color: var(--blue); }
@@ -299,7 +299,7 @@
     min-height: var(--touch-min);
     display: flex; align-items: center; gap: 6px;
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(184,92,60,.18);
+    -webkit-tap-highlight-color: rgba(236,48,19,.16);
     transition: background .15s, border-color .15s, color .15s;
   }
   .stock-chip.active {
@@ -387,7 +387,7 @@
     display: flex; align-items: center; justify-content: center; gap: 6px;
     color: var(--ink-2);
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(184,92,60,.18);
+    -webkit-tap-highlight-color: rgba(236,48,19,.16);
     transition: background .15s, border-color .15s, transform .1s;
   }
   .qa-btn:active { transform: scale(.97); }
@@ -591,7 +591,7 @@
     background: transparent; color: var(--ink-2); cursor: pointer;
     min-height: var(--touch-min);
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(184,92,60,.18);
+    -webkit-tap-highlight-color: rgba(236,48,19,.16);
     transition: background .15s, color .15s;
   }
   .vs-btn.active { background: var(--surface-2); color: var(--ink); box-shadow: var(--shadow-card); }
