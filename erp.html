@@ -11,6 +11,15 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23B85C3C'/%3E%3Ctext x='96' y='132' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='96' fill='white'%3E%F0%9F%8F%AD%3C/text%3E%3C/svg%3E">
 <meta name="apple-touch-fullscreen" content="yes">
 <title>🏭 ERP — โรงงานพ่นสี</title>
+
+<!-- Desktop-only type pairing from the Modernist handoff: Archivo carries the
+     latin text and the numerals, IBM Plex Sans Thai carries the Thai (Archivo
+     has no Thai glyphs, so listing it first is safe — the browser falls back
+     per glyph). media= means a phone never downloads a font it doesn't use. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" media="(min-width: 1024px)"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
 <style>
   :root {
     /* ══════════════════════════════════════════════
@@ -97,6 +106,39 @@
     --muted:  var(--ink-3);
     --radius: var(--r-md);
     --shadow: var(--shadow-hover);
+
+    /* ══════════════════════════════════════════════
+       "Modernist" tokens — from the Claude Design handoff
+       (its _ds design-system stylesheet). Declared globally but only
+       consumed by the ≥1024px block below, so the phone is untouched.
+       ══════════════════════════════════════════════ */
+    --m-n100: #f8f4f4;   /* panel ground   */
+    --m-n200: #eae7e7;   /* page ground / rail */
+    --m-n300: #d7d3d3;   /* borders        */
+    --m-n400: #bab6b6;
+    --m-n500: #9b9797;
+    --m-n600: #7d7979;   /* muted text     */
+    --m-n700: #605d5d;   /* body text      */
+    --m-n800: #444141;
+    --m-n900: #2d2b2b;
+    --m-text: #201e1d;
+
+    --m-acc:     #ec3013;
+    --m-acc-100: #fff2ef;
+    --m-acc-200: #ffe0d9;
+    --m-acc-300: #ffc4b8;
+    --m-acc-500: #ff563c;
+    --m-acc-600: #dd2b0f;
+    --m-acc-700: #ae1800;
+    --m-acc-800: #7c1405;
+
+    --m-r:    14px;
+    --m-r-sm: 10px;
+    --m-r-xs:  8px;
+
+    --m-shadow-sm: 0 1px 2px rgba(45,43,43,.14);
+    --m-shadow-md: 0 3px 10px rgba(45,43,43,.16);
+    --m-shadow-lg: 0 12px 32px rgba(45,43,43,.22);
   }
 
   /* Mono utility — for numbers, dates, counts. Never apply to Thai text. */
@@ -353,32 +395,64 @@
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   /* ══════════════════════════════════════════════
-     Desktop / PC (≥1024px) — same design language as po-desktop.html
+     Shell switch — the phone tree and the PC tree are separate markup.
+     Same isolation rule the project already uses for po-mobile vs
+     po-desktop: redesigning the PC can never regress the phone.
+     ══════════════════════════════════════════════ */
+  .erp-desktop-shell { display: none; }
+
+  /* ══════════════════════════════════════════════
+     Desktop / PC (≥1024px) — "Modernist" design handoff
+     Left rail + inset panel, warm grey ground, single red accent.
+     Everything here is inside the media query, so < 1024px is untouched.
      ══════════════════════════════════════════════ */
   @media (min-width: 1024px) {
-    body { padding-bottom: 40px; }
 
-    /* Login: split brand + form panels (mirrors po-desktop.html) */
+    /* Re-point the shared aliases at the Modernist palette so the pieces
+       that both shells use (login, toast, loading overlay) come along. */
+    :root {
+      --bg:        var(--m-n200);
+      --bg-deep:   var(--m-n300);
+      --surface:   var(--m-n100);
+      --surface-2: #fff;
+      --ink:       var(--m-text);
+      --ink-2:     var(--m-n700);
+      --ink-3:     var(--m-n600);
+      --line:      var(--m-n300);
+      --line-deep: var(--m-n400);
+      --accent:      var(--m-acc);
+      --accent-soft: var(--m-acc-100);
+      --accent-ink:  var(--m-acc-700);
+      --font-sans: 'Archivo', 'IBM Plex Sans Thai', system-ui, sans-serif;
+      --r-card: var(--m-r);
+      --r-lg:   var(--m-r);
+    }
+
+    body { padding-bottom: 0; background: var(--m-n200); }
+    .erp-mobile-shell { display: none; }
+    .erp-desktop-shell { display: flex; }
+
+    /* ── Login: split brand + form panels ── */
     .login-brand-panel {
-      width: 42%; background: var(--ink); color: var(--bg);
+      width: 42%; background: var(--m-text); color: var(--m-n100);
       padding: 56px;
       display: flex; flex-direction: column; justify-content: space-between;
     }
     .login-brand-top { display: flex; align-items: center; gap: 12px; }
     .login-brand-mark {
-      width: 42px; height: 42px; border-radius: 12px;
-      background: var(--accent); color: #fff;
+      width: 42px; height: 42px; border-radius: var(--m-r-sm);
+      background: var(--m-acc); color: #fff;
       display: flex; align-items: center; justify-content: center;
       font-weight: 800; font-size: 20px;
     }
-    .login-brand-name { font-size: 16px; font-weight: 800; }
+    .login-brand-name { font-size: 16px; font-weight: 700; }
     .login-brand-sub {
-      font-family: var(--font-mono);
-      font-size: 11px; opacity: 0.55; letter-spacing: 0.5px; margin-top: 2px;
+      font-size: 11px; opacity: 0.55; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-top: 2px;
     }
     .login-hero-title {
       font-size: 40px; font-weight: 800;
-      letter-spacing: -1.2px; line-height: 1.15;
+      letter-spacing: -0.02em; line-height: 1.15;
     }
     .login-hero-sub {
       font-size: 15px; opacity: 0.6; margin-top: 16px;
@@ -386,30 +460,415 @@
     }
     .login-brand-foot {
       display: flex; gap: 18px;
-      font-family: var(--font-mono);
-      font-size: 11px; opacity: 0.55; letter-spacing: 0.5px;
+      font-size: 11px; opacity: 0.55; letter-spacing: 0.1em;
+      text-transform: uppercase;
     }
-    .login-form-panel { padding: 48px; }
+    .login-form-panel { padding: 48px; background: var(--m-n100); }
     .pin-login-box { max-width: 400px; }
+    .pin-brand-mark { border-radius: var(--m-r-sm); }
+    .pin-key { border-radius: var(--m-r-sm); }
 
-    /* Topbar + content: wider, same rhythm as po-desktop's .content */
-    .topbar { padding: 18px 32px; }
-    .wrap { max-width: 1140px; padding: 28px 32px 0; }
+    /* ══ Shell ══ */
+    .erp-desktop-shell {
+      align-items: stretch; min-height: 100vh;
+      background: var(--m-n200);
+      font-size: 14px; line-height: 1.55; color: var(--m-text);
+    }
 
-    .erp-hero { margin-bottom: 24px; }
-    .erp-hero-avatar { width: 54px; height: 54px; font-size: 23px; }
-    .erp-hero-name { font-size: 22px; }
+    /* ── Left rail ── */
+    .dk-side {
+      flex: 0 0 250px; min-width: 0;
+      padding: 18px 14px;
+      display: flex; flex-direction: column; gap: 18px;
+      position: sticky; top: 0; align-self: flex-start;
+      height: 100vh;
+    }
+    .dk-brand { display: flex; align-items: center; gap: 11px; padding: 6px 8px; }
+    .dk-brand-mark {
+      width: 34px; height: 34px; flex: 0 0 auto;
+      background: var(--m-acc); border-radius: var(--m-r-sm);
+      display: grid; place-items: center;
+    }
+    .dk-brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+    .dk-brand-name { font-weight: 700; font-size: 14px; }
+    .dk-brand-sub  { font-size: 11px; color: var(--m-n600); }
 
-    .kpi-strip { gap: 16px; margin-bottom: 28px; }
-    .kpi-tile { padding: 20px 16px; }
-    .kpi-num { font-size: 34px; }
-    .kpi-label { font-size: 12.5px; margin-top: 6px; }
+    .dk-nav {
+      display: flex; flex-direction: column; gap: 22px;
+      overflow-y: auto; flex: 1 1 auto; min-height: 0;
+    }
+    .dk-nav-group { display: flex; flex-direction: column; gap: 3px; }
+    .dk-nav-label {
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--m-n600); padding: 0 10px 6px;
+    }
+    .dk-nav-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 11px; border-radius: var(--m-r-sm);
+      font-size: 14px; font-weight: 500; font-family: inherit;
+      color: var(--m-n800); background: transparent;
+      border: 0; cursor: pointer; text-align: left; width: 100%;
+      transition: background .12s, color .12s;
+    }
+    .dk-nav-item:hover { background: var(--m-n300); color: var(--m-text); }
+    .dk-nav-item.active {
+      background: var(--m-acc); color: #fff; font-weight: 600;
+      box-shadow: var(--m-shadow-sm);
+    }
+    .dk-nav-item.active:hover { background: var(--m-acc-600); color: #fff; }
+    .dk-nav-icon { display: grid; place-items: center; width: 20px; flex: 0 0 auto; }
+    .dk-nav-text {
+      flex: 1 1 auto; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dk-nav-badge {
+      flex: 0 0 auto; font-size: 11px; font-weight: 700;
+      border-radius: var(--r-pill); padding: 1px 8px;
+      background: var(--m-acc-200); color: var(--m-acc-800);
+    }
+    .dk-nav-badge:empty { display: none; }
+    .dk-nav-item.active .dk-nav-badge { background: rgba(255,255,255,.25); color: #fff; }
 
-    .module-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .module-card { padding: 22px 20px; gap: 10px; }
-    .module-icon { font-size: 34px; }
-    .module-title { font-size: 17px; }
-    .module-desc { font-size: 13px; }
+    .dk-user {
+      background: var(--m-n100); border: 1px solid var(--m-n300);
+      border-radius: var(--m-r); padding: 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .dk-user-avatar {
+      width: 34px; height: 34px; flex: 0 0 auto; border-radius: var(--r-pill);
+      background: var(--m-text); color: var(--m-n100);
+      display: grid; place-items: center; font-weight: 700;
+    }
+    .dk-user-text { min-width: 0; line-height: 1.25; flex: 1 1 auto; }
+    .dk-user-name {
+      font-weight: 600; font-size: 13px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dk-user-role { font-size: 11px; color: var(--m-n600); }
+    .dk-user-logout {
+      flex: 0 0 auto; width: 30px; height: 30px; padding: 0;
+      display: grid; place-items: center;
+      background: transparent; border: 0; cursor: pointer;
+      border-radius: var(--m-r-xs); color: var(--m-n600);
+      transition: background .12s, color .12s;
+    }
+    .dk-user-logout:hover { background: var(--m-n200); color: var(--m-acc-700); }
+
+    /* ── Main panel (inset card, flush to the right edge) ── */
+    .dk-main {
+      flex: 1 1 0; min-width: 0;
+      background: var(--m-n100);
+      border: 1px solid var(--m-n300); border-right: 0;
+      border-radius: var(--m-r) 0 0 var(--m-r);
+      margin: 12px 0; padding: 0 0 40px;
+      box-shadow: var(--m-shadow-sm);
+    }
+
+    .dk-top {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      padding: 16px 26px;
+      border-bottom: 1px solid var(--m-n300);
+      position: sticky; top: 0; z-index: 10;
+      background: var(--m-n100);
+      border-radius: var(--m-r) 0 0 0;
+    }
+    .dk-search {
+      display: flex; align-items: center; gap: 9px;
+      flex: 1 1 200px; min-width: 0;
+      background: var(--m-n200); border-radius: var(--r-pill);
+      padding: 0 14px; height: 38px;
+    }
+    .dk-search input {
+      border: 0; background: transparent; outline: none;
+      height: 34px; padding: 0; font: inherit; font-size: 13px;
+      min-width: 0; flex: 1 1 auto; color: var(--m-text);
+    }
+    .dk-pill-btn {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px;
+      border-radius: var(--r-pill); background: var(--m-n200); border: 0;
+      height: 38px; padding: 0 14px;
+      font: inherit; font-size: 14px; font-weight: 600; color: var(--m-text);
+      cursor: pointer; transition: background .12s;
+    }
+    .dk-pill-btn:hover { background: var(--m-n300); }
+    .dk-pill-btn.primary { background: var(--m-acc); color: #fff; padding: 0 18px; }
+    .dk-pill-btn.primary:hover { background: var(--m-acc-600); }
+
+    /* Bell + its popover */
+    .dk-bell-wrap { position: relative; flex: 0 0 auto; }
+    .dk-bell-count {
+      font-size: 13px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .dk-bell-wrap.has-alert .dk-pill-btn { background: var(--m-acc-100); color: var(--m-acc-700); }
+    .dk-bell-wrap.has-alert .dk-pill-btn:hover { background: var(--m-acc-200); }
+    .dk-pop {
+      display: none;
+      position: absolute; right: 0; top: calc(100% + 8px); z-index: 40;
+      width: 320px; max-height: 380px; overflow-y: auto;
+      background: var(--m-n100);
+      border: 1px solid var(--m-n300); border-radius: var(--m-r);
+      box-shadow: var(--m-shadow-lg);
+      padding: 6px;
+    }
+    .dk-pop.open { display: block; }
+    .dk-pop-label {
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--m-n600); padding: 10px 10px 6px;
+    }
+    .dk-pop-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: var(--m-r-sm);
+      cursor: pointer; background: transparent; border: 0;
+      width: 100%; text-align: left; font: inherit;
+      transition: background .12s;
+    }
+    .dk-pop-row:hover { background: var(--m-n200); }
+    .dk-pop-row-main { flex: 1 1 auto; min-width: 0; }
+    .dk-pop-row-title {
+      font-size: 13px; font-weight: 600;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dk-pop-row-note { font-size: 12px; color: var(--m-n600); }
+    .dk-pop-empty { padding: 22px 12px; text-align: center; font-size: 13px; color: var(--m-n600); }
+
+    .dk-body { padding: 24px 26px 0; }
+
+    /* ── Greeting ── */
+    .dk-greet {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap;
+    }
+    .dk-greet h1 {
+      margin: 0; font-size: 30px; line-height: 1.15;
+      letter-spacing: -0.02em; font-weight: 800;
+    }
+    .dk-greet-sub { margin: 6px 0 0; color: var(--m-n700); }
+    .dk-greet-date {
+      font-size: 12px; color: var(--m-n600);
+      background: var(--m-n200); border-radius: var(--r-pill);
+      padding: 6px 14px; white-space: nowrap;
+    }
+
+    /* ── Shortcut tiles ── */
+    .dk-shortcuts {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px; margin-top: 20px;
+    }
+    .dk-shortcut {
+      display: flex; align-items: center; gap: 12px;
+      text-align: left; cursor: pointer; font: inherit; color: var(--m-text);
+      background: var(--m-n100); border: 1px solid var(--m-n300);
+      border-radius: var(--m-r); padding: 16px 18px;
+      box-shadow: var(--m-shadow-sm);
+      transition: transform .12s ease, border-color .12s, background .12s;
+    }
+    .dk-shortcut:hover {
+      border-color: var(--m-acc-300); background: var(--m-acc-100);
+      transform: translateY(-1px);
+    }
+    .dk-shortcut-icon {
+      display: grid; place-items: center;
+      width: 38px; height: 38px; flex: 0 0 auto;
+      border-radius: var(--m-r-sm);
+      background: var(--m-acc-100); color: var(--m-acc-700);
+    }
+    .dk-shortcut-text {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 2px; min-width: 0;
+    }
+    .dk-shortcut-label { font-weight: 600; font-size: 14px; }
+    .dk-shortcut-hint  { font-size: 12px; color: var(--m-n600); font-weight: 400; }
+
+    /* ── Stat cards ── */
+    .dk-stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px; margin-top: 12px;
+    }
+    .dk-stat {
+      background: var(--m-n100); border: 1px solid var(--m-n300);
+      border-radius: var(--m-r); padding: 16px 18px;
+    }
+    .dk-stat.accent { background: var(--m-acc-100); border-color: var(--m-acc-300); }
+    .dk-stat-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .dk-stat-label { font-size: 13px; color: var(--m-n700); }
+    .dk-stat-pill {
+      font-size: 11px; font-weight: 600; border-radius: var(--r-pill);
+      padding: 2px 9px; white-space: nowrap;
+      background: var(--m-n200); color: var(--m-n700);
+    }
+    .dk-stat.accent .dk-stat-pill { background: var(--m-acc); color: #fff; }
+    .dk-stat-figure { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+    .dk-stat-value {
+      font-weight: 800; font-size: 38px; line-height: 1;
+      letter-spacing: -0.03em; color: var(--m-text);
+      font-variant-numeric: tabular-nums;
+    }
+    .dk-stat.accent .dk-stat-value { color: var(--m-acc-700); }
+    .dk-stat-unit { font-size: 13px; color: var(--m-n600); }
+    .dk-stat-bar {
+      height: 6px; border-radius: var(--r-pill); background: var(--m-n200);
+      margin-top: 14px; overflow: hidden;
+    }
+    .dk-stat-bar > i {
+      display: block; height: 100%; border-radius: var(--r-pill);
+      background: var(--m-n500);
+    }
+    .dk-stat.accent .dk-stat-bar > i { background: var(--m-acc); }
+
+    /* ── Two-column band: pipeline + alerts ── */
+    .dk-band {
+      display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+      gap: 12px; margin-top: 12px; align-items: start;
+    }
+    .dk-band.no-alerts { grid-template-columns: minmax(0, 1fr); }
+
+    .dk-panel {
+      background: var(--m-n100); border: 1px solid var(--m-n300);
+      border-radius: var(--m-r); overflow: hidden; min-width: 0;
+    }
+    .dk-panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; padding: 16px 18px; flex-wrap: wrap;
+    }
+    .dk-panel-head h2 { margin: 0; font-size: 17px; letter-spacing: -0.01em; font-weight: 800; }
+    .dk-panel-head p  { margin: 2px 0 0; font-size: 12px; color: var(--m-n600); }
+
+    .dk-filters {
+      display: flex; gap: 4px; background: var(--m-n200);
+      border-radius: var(--r-pill); padding: 4px; flex-wrap: wrap;
+    }
+    .dk-filter {
+      appearance: none; cursor: pointer; font: inherit;
+      font-size: 13px; font-weight: 600; border: 0;
+      border-radius: var(--r-pill); padding: 6px 14px; white-space: nowrap;
+      background: transparent; color: var(--m-n700);
+      transition: background .12s, color .12s;
+    }
+    .dk-filter:hover { background: var(--m-n300); color: var(--m-text); }
+    .dk-filter.active {
+      background: var(--m-n100); color: var(--m-text);
+      box-shadow: var(--m-shadow-sm);
+    }
+    .dk-filter.active:hover { background: var(--m-n100); }
+
+    .dk-stages { display: flex; gap: 8px; padding: 0 18px 16px; overflow-x: auto; }
+    .dk-stage {
+      flex: 1 1 0; min-width: 128px;
+      border-radius: var(--m-r-sm); padding: 10px 13px;
+      background: var(--m-n200);
+    }
+    .dk-stage.hot { background: var(--m-acc-100); }
+    .dk-stage-label { font-size: 12px; color: var(--m-n700); white-space: nowrap; }
+    .dk-stage-count {
+      font-weight: 800; font-size: 22px; line-height: 1.2;
+      color: var(--m-text); font-variant-numeric: tabular-nums;
+    }
+    .dk-stage.hot .dk-stage-count { color: var(--m-acc-700); }
+
+    .dk-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) auto auto;
+      gap: 16px; align-items: center;
+      padding: 15px 18px; border-top: 1px solid var(--m-n200);
+    }
+    .dk-row:hover { background: var(--m-n200); }
+    .dk-row.is-done { color: var(--m-n700); }
+    .dk-row-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .dk-row-customer { font-weight: 700; }
+    .dk-row-sub { font-size: 12px; color: var(--m-n600); margin-top: 2px; }
+    .dk-tag {
+      border-radius: var(--r-pill); font-size: 11px; font-weight: 600;
+      padding: 2px 9px; white-space: nowrap;
+      background: var(--m-n200); color: var(--m-n700);
+    }
+    .dk-tag.wip  { background: var(--m-acc-200); color: var(--m-acc-800); }
+    .dk-tag.late { background: var(--m-acc); color: #fff; }
+    .dk-segs { display: flex; align-items: center; gap: 4px; }
+    .dk-seg {
+      flex: 1 1 0; height: 7px; border-radius: var(--r-pill);
+      /* n300, not the handoff's n200: the row sits on n100, where n200 is
+         near-invisible and the bar reads as "segments missing". */
+      background: var(--m-n300);
+    }
+    .dk-seg.done { background: var(--m-n500); }
+    .dk-seg.now  { background: var(--m-acc-500); }
+    .dk-seg.now-late { background: var(--m-acc); }
+    .dk-row-progress-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin-top: 6px; font-size: 12px;
+    }
+    .dk-row-stage { color: var(--m-n700); }
+    .dk-row-count { color: var(--m-n600); font-variant-numeric: tabular-nums; }
+    .dk-row-due { text-align: right; white-space: nowrap; }
+    .dk-row-due-date { font-size: 13px; }
+    .dk-row-due-note { font-size: 12px; color: var(--m-n600); }
+    .dk-row-due-note.late { color: var(--m-acc-700); font-weight: 600; }
+    .dk-row-open {
+      flex: 0 0 auto; border-radius: var(--r-pill);
+      border: 1px solid var(--m-n300); background: transparent;
+      height: 32px; padding: 0 14px;
+      font: inherit; font-size: 13px; font-weight: 600; color: inherit;
+      cursor: pointer; transition: background .12s, border-color .12s, color .12s;
+    }
+    .dk-row-open:hover {
+      background: var(--m-acc-100); border-color: var(--m-acc-300);
+      color: var(--m-acc-700);
+    }
+    .dk-panel-foot { padding: 14px 18px; }
+    .dk-link {
+      font-size: 13px; font-weight: 600; color: var(--m-acc-700);
+      background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit;
+    }
+    .dk-link:hover { color: var(--m-acc); }
+    .dk-empty { padding: 30px 18px; text-align: center; color: var(--m-n600); font-size: 13px; }
+
+    /* ── Alerts card ── */
+    .dk-alerts { padding: 16px 18px 8px; }
+    .dk-alerts-head { display: flex; align-items: center; gap: 8px; }
+    .dk-alerts-icon {
+      display: grid; place-items: center; width: 30px; height: 30px;
+      border-radius: var(--m-r-xs);
+      background: var(--m-acc-100); color: var(--m-acc-700);
+    }
+    .dk-alerts-head h2 { margin: 0; font-size: 17px; letter-spacing: -0.01em; font-weight: 800; }
+    .dk-alerts-head p  { margin: 0; font-size: 12px; color: var(--m-n600); }
+    .dk-alert-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 0; border-bottom: 1px solid var(--m-n200);
+    }
+    .dk-alert-main { flex: 1 1 auto; min-width: 0; }
+    .dk-alert-name { font-weight: 600; font-size: 13px; }
+    .dk-alert-note { font-size: 12px; color: var(--m-n600); }
+    .dk-alert-pill {
+      flex: 0 0 auto; font-weight: 700; font-size: 13px;
+      border-radius: var(--r-pill); padding: 4px 11px; white-space: nowrap;
+      background: var(--m-n200); color: var(--m-n700);
+      font-variant-numeric: tabular-nums;
+    }
+    .dk-alert-pill.low { background: var(--m-acc-100); color: var(--m-acc-700); }
+    .dk-alerts-cta {
+      width: 100%; justify-content: flex-start; display: flex; align-items: center;
+      border-radius: var(--r-pill); height: 38px; margin: 12px 0 14px;
+      font: inherit; font-weight: 600; cursor: pointer;
+      background: transparent; border: 1px solid var(--m-n300); color: inherit;
+      padding: 0 16px; transition: background .12s;
+    }
+    .dk-alerts-cta:hover { background: var(--m-n200); }
+
+    /* Modernist focus ring — never the browser default */
+    .erp-desktop-shell :focus-visible,
+    #pin-login-screen :focus-visible {
+      outline: 2px solid var(--m-acc); outline-offset: 2px;
+    }
+  }
+
+  /* Narrower desktops: drop the alerts column under the pipeline */
+  @media (min-width: 1024px) and (max-width: 1280px) {
+    .dk-band { grid-template-columns: minmax(0, 1fr); }
+    .dk-row { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr) auto auto; }
   }
 
   @media (max-width: 360px) {
@@ -473,6 +932,12 @@
 
 <!-- ═══ APP ═══ -->
 <div id="app-wrapper" style="display:none;">
+
+<!-- ═══════════════════════════════════════════════════
+     PHONE / TABLET SHELL (< 1024px)
+     Untouched by the PC redesign — hidden at ≥1024px.
+     ═══════════════════════════════════════════════════ -->
+<div class="erp-mobile-shell">
 
   <div class="topbar">
     <div class="topbar-greeting">
@@ -565,6 +1030,110 @@
 
     </div>
   </div>
+</div><!-- /.erp-mobile-shell -->
+
+<!-- ═══════════════════════════════════════════════════
+     PC SHELL (≥ 1024px) — "Modernist" design handoff
+     ═══════════════════════════════════════════════════ -->
+<div class="erp-desktop-shell">
+
+  <aside class="dk-side">
+    <div class="dk-brand">
+      <div class="dk-brand-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M4 21V9l5 3V9l5 3V7l6 4v10"/></svg>
+      </div>
+      <div class="dk-brand-text">
+        <span class="dk-brand-name">ระบบจัดการโรงงาน</span>
+        <span class="dk-brand-sub">Toun Paint Factory</span>
+      </div>
+    </div>
+
+    <nav class="dk-nav" id="dk-nav"></nav>
+
+    <div class="dk-user">
+      <div class="dk-user-avatar" id="dk-user-avatar">–</div>
+      <div class="dk-user-text">
+        <div class="dk-user-name" id="dk-user-name">—</div>
+        <div class="dk-user-role" id="dk-user-role">—</div>
+      </div>
+      <button class="dk-user-logout" onclick="doLogout()" title="ออกจากระบบ" aria-label="ออกจากระบบ">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="dk-main">
+
+    <div class="dk-top">
+      <div class="dk-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--m-n600)" stroke-width="2" stroke-linecap="round" style="flex:0 0 auto;"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="dk-search-input" type="search" placeholder="ค้นหา PO · ลูกค้า · ชิ้นงาน" autocomplete="off">
+      </div>
+
+      <div class="dk-bell-wrap" id="dk-bell-wrap">
+        <button class="dk-pill-btn" id="dk-bell-btn" aria-haspopup="true" aria-expanded="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="dk-bell-count" id="dk-bell-count">0</span>
+        </button>
+        <div class="dk-pop" id="dk-bell-pop"></div>
+      </div>
+
+      <button class="dk-pill-btn primary" onclick="handleModuleClick('po-create')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        สร้าง PO ใหม่
+      </button>
+    </div>
+
+    <div class="dk-body">
+
+      <div class="dk-greet">
+        <div style="min-width:0;">
+          <h1 id="dk-greet-title">สวัสดี 👋</h1>
+          <p class="dk-greet-sub" id="dk-greet-sub">กำลังโหลดข้อมูล…</p>
+        </div>
+        <span class="dk-greet-date" id="dk-greet-date"></span>
+      </div>
+
+      <div class="dk-shortcuts" id="dk-shortcuts"></div>
+
+      <div class="dk-stats" id="dk-stats"></div>
+
+      <div class="dk-band" id="dk-band">
+
+        <section class="dk-panel">
+          <div class="dk-panel-head">
+            <div>
+              <h2>งานอยู่ขั้นไหน</h2>
+              <p>ไล่จากรับของเข้า → ส่งมอบ</p>
+            </div>
+            <div class="dk-filters" id="dk-filters"></div>
+          </div>
+          <div class="dk-stages" id="dk-stages"></div>
+          <div id="dk-rows"></div>
+          <div class="dk-panel-foot">
+            <button class="dk-link" data-action="po-list" type="button">ดู PO ทั้งหมด →</button>
+          </div>
+        </section>
+
+        <section class="dk-panel dk-alerts" id="dk-alerts-panel">
+          <div class="dk-alerts-head">
+            <span class="dk-alerts-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+            </span>
+            <div>
+              <h2>ต้องสั่งของ</h2>
+              <p>วัตถุดิบที่ถึงจุดสั่งซื้อแล้ว</p>
+            </div>
+          </div>
+          <div id="dk-alerts-list"></div>
+          <button class="dk-alerts-cta" onclick="handleModuleClick('stock')">เปิดคลังสต๊อก →</button>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div><!-- /.erp-desktop-shell -->
+
 </div>
 
 <div id="toast"></div>
@@ -883,6 +1452,9 @@ function doLogout() {
 function showApp() {
   document.getElementById('pin-login-screen').classList.add('hidden');
   document.getElementById('app-wrapper').style.display = 'block';
+  // PC chrome first so applyPermissions has the nav items to gate.
+  renderDesktopUser();
+  renderDesktopNav(null);
   applyPermissions();
   renderDashboard();
 }
@@ -970,6 +1542,21 @@ async function loadDashboardData() {
 async function renderDashboard() {
   if (!currentUser) return;
   const setNum = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+  // PC gets the richer model (po_items + stock_items); the phone keeps the
+  // cheap 4-KPI query it always had. Only one of the two runs per viewport.
+  if (IS_DESKTOP()) {
+    try {
+      renderDesktopHome(await loadDesktopData());
+    } catch(e) {
+      console.warn('[renderDashboard] desktop load failed:', e);
+      const sub = document.getElementById('dk-greet-sub');
+      if (sub) sub.textContent = 'โหลดข้อมูลไม่สำเร็จ — ลองรีเฟรชหน้าอีกครั้ง';
+      toast('โหลดข้อมูลสรุปไม่สำเร็จ');
+    }
+    return;
+  }
+
   try {
     const kpi = await loadDashboardData();
     setNum('kpi-total', kpi.total);
@@ -984,20 +1571,478 @@ async function renderDashboard() {
 }
 
 // ═══════════════════════════════════════════════════
+//  PC HOME (≥1024px) — "Modernist" design handoff
+// ═══════════════════════════════════════════════════
+// A second, independent render tree. The phone shell above keeps its own
+// markup and its own render path, so PC work can never regress the phone
+// (same isolation rule the project already applies to po-mobile vs
+// po-desktop). Everything below is a no-op on a narrow viewport.
+
+const IS_DESKTOP = () => window.matchMedia('(min-width: 1024px)').matches;
+
+const DK_ICONS = {
+  home:      '<path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-9.5Z"/>',
+  clipboard: '<rect x="5" y="4.5" width="14" height="16.5" rx="2.5"/><path d="M9 4.5V3.6A1.6 1.6 0 0 1 10.6 2h2.8A1.6 1.6 0 0 1 15 3.6v.9"/><path d="M8.5 11h7M8.5 15h4"/>',
+  box:       '<path d="M12 3.2 3.8 7.4v9.2L12 20.8l8.2-4.2V7.4L12 3.2Z"/><path d="M3.8 7.4 12 11.6l8.2-4.2M12 11.6v9.2"/>',
+  file:      '<path d="M13.6 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8.4L13.6 3Z"/><path d="M13.5 3.2V8h5M9 13h6M9 17h4"/>',
+  coins:     '<circle cx="9.5" cy="8.5" r="5.5"/><path d="M14.6 4.6A5.5 5.5 0 0 1 15 20.5"/>',
+  chart:     '<path d="M4.5 19.5V5M4.5 19.5h15"/><path d="M9 19.5v-6M13.5 19.5V9M18 19.5v-3.5"/>',
+  settings:  '<circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6 7.3 7.3M16.7 16.7l1.7 1.7M18.4 5.6 16.7 7.3M7.3 16.7 5.6 18.4"/>',
+  truckIn:   '<path d="M12 3v9m0 0 3.5-3.5M12 12 8.5 8.5"/><path d="M4 15v3.5A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5V15"/>',
+  spray:     '<rect x="7" y="9" width="8" height="12" rx="2.5"/><path d="M7 13h8M15 6h2M15 3h4M18 9h2"/>',
+  check:     '<circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.4 2.4 4.6-4.9"/>',
+  send:      '<path d="M4 12.8 20 5l-7.2 15.5-1.9-6.4L4 12.8Z"/>'
+};
+function dkIcon(key, size = 18, w = 1.9) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${DK_ICONS[key] || ''}</svg>`;
+}
+
+// Left rail. `badge` names a live counter filled in by renderDesktopHome.
+const DK_NAV = [
+  { label: 'ใช้งานทุกวัน', items: [
+    { key: 'home',  icon: 'home',      label: 'ภาพรวม',        action: null },
+    { key: 'po',    icon: 'clipboard', label: 'งานผลิต / PO',  action: 'po',    badge: 'overdue' },
+    { key: 'stock', icon: 'box',       label: 'คลังสต๊อก',      action: 'stock', badge: 'low' },
+    { key: 'docs',  icon: 'file',      label: 'ขาย & เอกสาร',   action: 'soon' }
+  ]},
+  { label: 'จัดการ', items: [
+    { key: 'cost',     icon: 'coins',    label: 'ต้นทุน & กำไร', action: 'soon' },
+    { key: 'report',   icon: 'chart',    label: 'รายงาน',        action: 'soon' },
+    { key: 'settings', icon: 'settings', label: 'ตั้งค่า & ผู้ใช้', action: 'settings', manageOnly: true }
+  ]}
+];
+
+// Item statuses in DB order of travel. 'QC/เตรียมส่ง' and the legacy plain
+// 'เตรียมส่ง' both land on stage 2 (see BUG17 — the two coexist in old rows).
+const DK_STAGES = ['รับของแล้ว', 'กำลังผลิต', 'QC / เตรียมส่ง', 'ส่งแล้ว'];
+function dkStageIndex(status) {
+  const s = status || '';
+  if (s === 'ส่งแล้ว') return 3;
+  if (s.includes('เตรียมส่ง') || s.includes('QC')) return 2;
+  if (s === 'กำลังผลิต' || s === 'กลับมาแก้ไข') return 1;
+  return 0;
+}
+
+const TH_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TH_MONTHS_FULL  = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+// Buddhist-era formatting, same convention as the PO number format.
+function dkThaiDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return '—';
+  return `${d.getDate()} ${TH_MONTHS_SHORT[d.getMonth()]} ${String(d.getFullYear() + 543).slice(-2)}`;
+}
+function dkThaiToday() {
+  const d = new Date();
+  return `${TH_DAYS[d.getDay()]} ${d.getDate()} ${TH_MONTHS_FULL[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+function dkDaysLeft(dueISO, todayISOStr) {
+  if (!dueISO) return null;
+  const a = new Date(dueISO + 'T00:00:00');
+  const b = new Date(todayISOStr + 'T00:00:00');
+  if (isNaN(a) || isNaN(b)) return null;
+  return Math.round((a - b) / 86400000);
+}
+
+const dkState = { filter: 'all', search: '', model: null, rowCap: 6 };
+
+// ── Data ──────────────────────────────────────────
+// One pass over po_list + po_items + stock_items. po_items joins on
+// po_number (text), not on a numeric FK — see po-desktop's loadFromSupabase.
+async function loadDesktopData() {
+  const today = localISO();
+
+  const [poRes, stockRes] = await Promise.all([
+    sb.from('po_list')
+      .select('po_number, company, car_model, due_date, po_status')
+      .eq('is_archived', false),
+    sb.from('stock_items')
+      .select('name, unit, qty_current, qty_min, qty_target')
+      .eq('is_active', true)
+  ]);
+
+  if (poRes.error) throw poRes.error;
+  const pos = poRes.data || [];
+
+  // Stock is a separate module — treat it as optional so the ERP home still
+  // renders if it is unavailable, rather than failing the whole page.
+  let stock = [];
+  if (stockRes.error) console.warn('[ERP] stock_items unavailable:', stockRes.error.message);
+  else stock = stockRes.data || [];
+
+  const nums = pos.map(p => p.po_number).filter(Boolean);
+  let items = [];
+  if (nums.length) {
+    const r = await sb.from('po_items')
+      .select('po_number, part_name, color, car_model, status')
+      .in('po_number', nums);
+    if (r.error) throw r.error;
+    items = r.data || [];
+  }
+
+  return buildDesktopModel(pos, items, stock, today, !stockRes.error);
+}
+
+function buildDesktopModel(pos, items, stock, today, stockOk) {
+  const byPo = new Map();
+  for (const it of items) {
+    if (!byPo.has(it.po_number)) byPo.set(it.po_number, []);
+    byPo.get(it.po_number).push(it);
+  }
+
+  const rows = pos.map(p => {
+    const its      = byPo.get(p.po_number) || [];
+    const total    = its.length;
+    const done     = its.filter(i => i.status === 'ส่งแล้ว').length;
+    // "งานอยู่ขั้นไหน" = the slowest piece still in the PO, not the fastest.
+    const stage    = total ? Math.min(...its.map(i => dkStageIndex(i.status))) : 0;
+    const due      = fixDateStr(p.due_date || '');
+    const complete = p.po_status === 'Complete';
+    const left     = dkDaysLeft(due, today);
+    const late     = !complete && left !== null && left < 0;
+
+    let dueNote;
+    if (complete)          dueNote = 'ส่งครบแล้ว';
+    else if (left === null) dueNote = 'ไม่ระบุกำหนด';
+    else if (left < 0)      dueNote = `เลย ${-left} วัน`;
+    else if (left === 0)    dueNote = 'ครบวันนี้';
+    else                    dueNote = `อีก ${left} วัน`;
+
+    return {
+      po: p.po_number || '—',
+      customer: p.company || '—',
+      part: its.length
+        ? [...new Set(its.map(i => i.part_name).filter(Boolean))].slice(0, 2).join(' · ') +
+          (new Set(its.map(i => i.part_name)).size > 2 ? ' …' : '')
+        : 'ยังไม่มีรายการชิ้นงาน',
+      model: [...new Set(its.map(i => i.car_model || p.car_model).filter(Boolean))].join(' '),
+      total, done, stage, due, dueNote, late, complete,
+      kind: complete ? 'done' : late ? 'late' : 'wip',
+      sortKey: (complete ? 2 : late ? 0 : 1) * 1e6 + (left === null ? 9e5 : left + 1000)
+    };
+  }).sort((a, b) => a.sortKey - b.sortKey);
+
+  const wip      = rows.filter(r => r.kind === 'wip').length;
+  const late     = rows.filter(r => r.kind === 'late').length;
+  const complete = rows.filter(r => r.kind === 'done').length;
+
+  const stageCounts = DK_STAGES.map((_, i) => items.filter(it => dkStageIndex(it.status) === i).length);
+
+  const lowStock = stock
+    .filter(s => Number(s.qty_min) > 0 && Number(s.qty_current) <= Number(s.qty_min))
+    .sort((a, b) => (Number(a.qty_current) - Number(a.qty_min)) - (Number(b.qty_current) - Number(b.qty_min)));
+
+  return { rows, wip, late, complete, total: rows.length, stageCounts, lowStock, stockOk, today };
+}
+
+// ── Render ────────────────────────────────────────
+function renderDesktopNav(model) {
+  const nav = document.getElementById('dk-nav');
+  if (!nav) return;
+  const badges = { overdue: model ? model.late : 0, low: model ? model.lowStock.length : 0 };
+
+  nav.innerHTML = DK_NAV.map(g => `
+    <div class="dk-nav-group">
+      <span class="dk-nav-label">${escapeHtml(g.label)}</span>
+      ${g.items.map(n => {
+        const count = n.badge ? badges[n.badge] : 0;
+        return `<button class="dk-nav-item${n.key === 'home' ? ' active' : ''}${n.manageOnly ? ' erp-manage-only' : ''}"
+                  data-action="${n.action || ''}" type="button">
+          <span class="dk-nav-icon">${dkIcon(n.icon, 18, n.key === 'home' ? 2.1 : 1.9)}</span>
+          <span class="dk-nav-text">${escapeHtml(n.label)}</span>
+          <span class="dk-nav-badge">${count ? count : ''}</span>
+        </button>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+function renderDesktopUser() {
+  if (!currentUser) return;
+  const name = currentUser.display_name || currentUser.username || '—';
+  const roleLabels = {
+    admin: 'ผู้ดูแลระบบ', supervisor: 'หัวหน้างาน',
+    office: 'ออฟฟิศ', manager: 'ผู้จัดการ', staff: 'พนักงาน'
+  };
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('dk-user-avatar', (name || '?').trim().charAt(0).toUpperCase() || '?');
+  set('dk-user-name', name);
+  set('dk-user-role', roleLabels[currentUser.role] || currentUser.role || '—');
+}
+
+function dkFilteredRows() {
+  const m = dkState.model;
+  if (!m) return [];
+  const q = dkState.search.trim().toLowerCase();
+  return m.rows.filter(r => {
+    if (dkState.filter !== 'all' && r.kind !== dkState.filter) return false;
+    if (!q) return true;
+    return (r.po + ' ' + r.customer + ' ' + r.part + ' ' + r.model).toLowerCase().includes(q);
+  });
+}
+
+function renderDesktopHome(model) {
+  if (model) dkState.model = model;
+  const m = dkState.model;
+  if (!m || !document.getElementById('dk-stats')) return;
+
+  const name = currentUser ? (currentUser.display_name || currentUser.username || '') : '';
+  const setHTML = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  const setText = (id, t)    => { const el = document.getElementById(id); if (el) el.textContent = t; };
+
+  // ── Greeting ──
+  setText('dk-greet-title', `สวัสดี ${String(name).split(' ')[0] || 'ครับ'} 👋`);
+  setText('dk-greet-date', dkThaiToday());
+  const bits = [];
+  if (m.late) bits.push(`${m.late} งานเลยกำหนดส่ง`);
+  if (m.lowStock.length) bits.push(`วัตถุดิบ ${m.lowStock.length} รายการถึงจุดสั่งซื้อ`);
+  setText('dk-greet-sub', bits.length
+    ? 'วันนี้มี ' + bits.join(' และ')   // Thai joins "และ" to the next word
+    : `กำลังเดินอยู่ ${m.wip} งาน — ยังไม่มีอะไรค้าง`);
+
+  // ── Shortcuts ──
+  const shortcuts = [
+    { icon: 'truckIn', label: 'สร้าง PO ใหม่',   hint: 'รับงานเข้าโรงงาน', action: 'po-create' },
+    { icon: 'spray',   label: 'อัปเดตการผลิต',   hint: `${m.stageCounts[1]} ชิ้นอยู่ในบูธ`, action: 'po-list' },
+    { icon: 'check',   label: 'ตรวจ QC',         hint: `${m.stageCounts[2]} ชิ้นรอตรวจ / เตรียมส่ง`, action: 'po-qc' },
+    { icon: 'box',     label: 'คลังสต๊อก',        hint: m.stockOk ? `${m.lowStock.length} รายการต้องสั่ง` : 'เปิดคลังวัสดุ', action: 'stock' }
+  ];
+  setHTML('dk-shortcuts', shortcuts.map(q => `
+    <button class="dk-shortcut" data-action="${q.action}" type="button">
+      <span class="dk-shortcut-icon">${dkIcon(q.icon, 19)}</span>
+      <span class="dk-shortcut-text">
+        <span class="dk-shortcut-label">${escapeHtml(q.label)}</span>
+        <span class="dk-shortcut-hint">${escapeHtml(q.hint)}</span>
+      </span>
+    </button>`).join(''));
+
+  // ── Stat cards ──
+  const pct = (n, d) => (d > 0 ? Math.round(n / d * 100) : 0);
+  const stats = [
+    { label: 'PO ที่เปิดอยู่',  value: m.total,    unit: 'ใบ',  pill: `${m.wip} ใบกำลังเดิน`,   bar: pct(m.wip, m.total) },
+    { label: 'กำลังผลิต',      value: m.stageCounts[1], unit: 'ชิ้น', pill: 'อยู่ในบูธพ่นสี',      bar: pct(m.stageCounts[1], m.stageCounts.reduce((a, b) => a + b, 0)) },
+    { label: 'ส่งครบแล้ว',     value: m.complete, unit: 'ใบ',  pill: 'รอปิดรอบ (archive)',   bar: pct(m.complete, m.total) },
+    { label: 'เลยกำหนดส่ง',    value: m.late,     unit: 'ใบ',  pill: m.late ? 'ต้องแก้วันนี้' : 'ตรงเวลาทั้งหมด', bar: pct(m.late, m.total), accent: m.late > 0 }
+  ];
+  setHTML('dk-stats', stats.map(s => `
+    <div class="dk-stat${s.accent ? ' accent' : ''}">
+      <div class="dk-stat-head">
+        <span class="dk-stat-label">${escapeHtml(s.label)}</span>
+        <span class="dk-stat-pill">${escapeHtml(s.pill)}</span>
+      </div>
+      <div class="dk-stat-figure">
+        <span class="dk-stat-value">${s.value}</span>
+        <span class="dk-stat-unit">${escapeHtml(s.unit)}</span>
+      </div>
+      <div class="dk-stat-bar"><i style="width:${Math.min(100, s.bar)}%"></i></div>
+    </div>`).join(''));
+
+  // ── Filters + stage counters ──
+  const filters = [
+    { key: 'all',  label: 'ทั้งหมด' },
+    { key: 'wip',  label: 'กำลังผลิต' },
+    { key: 'late', label: 'เลยกำหนด' },
+    { key: 'done', label: 'เสร็จแล้ว' }
+  ];
+  setHTML('dk-filters', filters.map(f =>
+    `<button class="dk-filter${dkState.filter === f.key ? ' active' : ''}" data-filter="${f.key}" type="button">${escapeHtml(f.label)}</button>`
+  ).join(''));
+
+  setHTML('dk-stages', DK_STAGES.map((label, i) => `
+    <div class="dk-stage${i === 2 && m.stageCounts[i] > 0 ? ' hot' : ''}">
+      <div class="dk-stage-label">${escapeHtml(label)}</div>
+      <div class="dk-stage-count">${m.stageCounts[i]}</div>
+    </div>`).join(''));
+
+  // ── PO rows ──
+  const all = dkFilteredRows();
+  const shown = all.slice(0, dkState.rowCap);
+  if (!all.length) {
+    setHTML('dk-rows', `<div class="dk-empty">${dkState.search ? 'ไม่พบ PO ที่ตรงกับคำค้น' : 'ไม่มี PO ในหมวดนี้'}</div>`);
+  } else {
+    setHTML('dk-rows', shown.map(r => `
+      <div class="dk-row${r.kind === 'done' ? ' is-done' : ''}">
+        <div style="min-width:0;">
+          <div class="dk-row-title">
+            <span class="dk-row-customer">${escapeHtml(r.customer)}</span>
+            <span class="dk-tag ${r.kind}">${r.kind === 'late' ? 'เลยกำหนด' : r.kind === 'done' ? 'เสร็จแล้ว' : 'กำลังผลิต'}</span>
+          </div>
+          <div class="dk-row-sub">${escapeHtml(r.po)} · ${escapeHtml(r.part)}</div>
+        </div>
+        <div style="min-width:0;">
+          <div class="dk-segs">
+            ${DK_STAGES.map((_, i) => {
+              const cls = i < r.stage ? 'done' : i === r.stage ? (r.late ? 'now-late' : 'now') : '';
+              return `<span class="dk-seg ${cls}"></span>`;
+            }).join('')}
+          </div>
+          <div class="dk-row-progress-meta">
+            <span class="dk-row-stage">${escapeHtml(DK_STAGES[r.stage])}</span>
+            <span class="dk-row-count">${r.done} / ${r.total} ชิ้น</span>
+          </div>
+        </div>
+        <div class="dk-row-due">
+          <div class="dk-row-due-date">${escapeHtml(dkThaiDate(r.due))}</div>
+          <div class="dk-row-due-note${r.late ? ' late' : ''}">${escapeHtml(r.dueNote)}</div>
+        </div>
+        <button class="dk-row-open" data-action="po-list" type="button">เปิดงาน</button>
+      </div>`).join(''));
+  }
+  // Never hide a cap silently.
+  const foot = document.querySelector('.dk-panel-foot');
+  if (foot) {
+    foot.innerHTML = (all.length > shown.length
+      ? `<span style="font-size:13px;color:var(--m-n600);margin-right:10px;">แสดง ${shown.length} จาก ${all.length} ใบ</span>`
+      : '') + `<button class="dk-link" data-action="po-list" type="button">ดู PO ทั้งหมด →</button>`;
+  }
+
+  // ── Low-stock alerts ──
+  const band  = document.getElementById('dk-band');
+  const panel = document.getElementById('dk-alerts-panel');
+  if (!m.stockOk) {
+    if (panel) panel.style.display = 'none';
+    if (band) band.classList.add('no-alerts');
+  } else {
+    if (panel) panel.style.display = '';
+    if (band) band.classList.remove('no-alerts');
+    setHTML('dk-alerts-list', m.lowStock.length
+      ? m.lowStock.slice(0, 6).map(s => {
+          const need = Number(s.qty_target || 0) - Number(s.qty_current || 0);
+          return `<div class="dk-alert-row">
+            <div class="dk-alert-main">
+              <div class="dk-alert-name">${escapeHtml(s.name)}</div>
+              <div class="dk-alert-note">${need > 0
+                ? `ควรสั่งเพิ่ม ${need.toLocaleString()} ${escapeHtml(s.unit || '')}`
+                : `ต่ำกว่าจุดสั่งซื้อ (${Number(s.qty_min).toLocaleString()} ${escapeHtml(s.unit || '')})`}</div>
+            </div>
+            <span class="dk-alert-pill low">${Number(s.qty_current).toLocaleString()} ${escapeHtml(s.unit || '')}</span>
+          </div>`;
+        }).join('')
+      : `<div class="dk-empty" style="padding:22px 0;">วัตถุดิบอยู่เหนือจุดสั่งซื้อทุกรายการ</div>`);
+  }
+
+  // ── Notification bell ──
+  const alerts = [];
+  m.rows.filter(r => r.kind === 'late').slice(0, 8).forEach(r =>
+    alerts.push({ title: `${r.customer} · ${r.po}`, note: r.dueNote, action: 'po' }));
+  m.lowStock.slice(0, 8).forEach(s =>
+    alerts.push({ title: s.name, note: `เหลือ ${Number(s.qty_current).toLocaleString()} ${s.unit || ''}`, action: 'stock' }));
+
+  const bellWrap = document.getElementById('dk-bell-wrap');
+  setText('dk-bell-count', String(alerts.length));
+  if (bellWrap) bellWrap.classList.toggle('has-alert', alerts.length > 0);
+  setHTML('dk-bell-pop', alerts.length ? `
+    ${m.late ? `<div class="dk-pop-label">เลยกำหนดส่ง</div>` : ''}
+    ${m.rows.filter(r => r.kind === 'late').slice(0, 8).map(r => `
+      <button class="dk-pop-row" data-action="po-list" type="button">
+        <span class="dk-pop-row-main">
+          <span class="dk-pop-row-title">${escapeHtml(r.customer)} · ${escapeHtml(r.po)}</span>
+          <span class="dk-pop-row-note">${escapeHtml(r.dueNote)}</span>
+        </span>
+      </button>`).join('')}
+    ${m.lowStock.length ? `<div class="dk-pop-label">วัตถุดิบใกล้หมด</div>` : ''}
+    ${m.lowStock.slice(0, 8).map(s => `
+      <button class="dk-pop-row" data-action="stock" type="button">
+        <span class="dk-pop-row-main">
+          <span class="dk-pop-row-title">${escapeHtml(s.name)}</span>
+          <span class="dk-pop-row-note">เหลือ ${Number(s.qty_current).toLocaleString()} ${escapeHtml(s.unit || '')}</span>
+        </span>
+      </button>`).join('')}
+  ` : `<div class="dk-pop-empty">ไม่มีเรื่องค้าง 👍</div>`);
+
+  // Nav badges depend on the same counts.
+  renderDesktopNav(m);
+  applyPermissions();
+}
+
+// ── Events (delegated once — the trees above are re-rendered wholesale) ──
+function initDesktopEvents() {
+  const shell = document.querySelector('.erp-desktop-shell');
+  if (!shell) return;
+
+  shell.addEventListener('click', (e) => {
+    const filterBtn = e.target.closest('.dk-filter');
+    if (filterBtn) {
+      dkState.filter = filterBtn.dataset.filter;
+      renderDesktopHome();
+      return;
+    }
+    const bell = e.target.closest('#dk-bell-btn');
+    if (bell) {
+      const pop = document.getElementById('dk-bell-pop');
+      const open = pop.classList.toggle('open');
+      bell.setAttribute('aria-expanded', open ? 'true' : 'false');
+      return;
+    }
+    const act = e.target.closest('[data-action]');
+    if (act && act.dataset.action) {
+      handleModuleClick(act.dataset.action);
+      return;
+    }
+    // A click anywhere else inside the shell dismisses the popover.
+    if (!e.target.closest('#dk-bell-pop')) {
+      document.getElementById('dk-bell-pop')?.classList.remove('open');
+      document.getElementById('dk-bell-btn')?.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  const search = document.getElementById('dk-search-input');
+  if (search) {
+    search.addEventListener('input', () => {
+      dkState.search = search.value;
+      // Typing widens the cap — otherwise a search that matches 9 rows would
+      // look like it matched 6.
+      dkState.rowCap = search.value.trim() ? 20 : 6;
+      renderDesktopHome();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.getElementById('dk-bell-pop')?.classList.remove('open');
+      document.getElementById('dk-bell-btn')?.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Crossing the breakpoint mid-session (window resize, external monitor)
+  // paints the shell that just became visible — in either direction, since
+  // the two shells load different data and neither is filled in advance.
+  window.matchMedia('(min-width: 1024px)').addEventListener('change', () => {
+    if (currentUser) renderDashboard();
+  });
+}
+
+// ═══════════════════════════════════════════════════
 //  MODULE NAVIGATION
 // ═══════════════════════════════════════════════════
 // Same viewport rule as index.html router: real PC (wide + no touch) → desktop PO app.
 // iPad / touch laptops get the mobile app (44px tap targets) — matches project decision log.
-function poAppUrl() {
+function poAppUrl(route) {
   const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
   const wide = window.innerWidth >= 1024;
-  return (wide && !isTouch) ? 'po-desktop.html' : 'po-mobile.html';
+  const desktop = wide && !isTouch;
+  const base = desktop ? 'po-desktop.html' : 'po-mobile.html';
+  // Deep links are desktop-only: po-desktop.html honours "#route" on boot and
+  // falls back to its dashboard for an unknown or not-permitted route.
+  // po-mobile has no equivalent entry point, so it always opens on its own tab.
+  return (desktop && route) ? `${base}#${route}` : base;
 }
 
 function handleModuleClick(action) {
   switch (action) {
     case 'po':
       window.location.href = poAppUrl();
+      break;
+    case 'po-create':
+      window.location.href = poAppUrl('create');
+      break;
+    case 'po-list':
+      window.location.href = poAppUrl('list');
+      break;
+    case 'po-qc':
+      window.location.href = poAppUrl('qc');
       break;
     case 'stock':
       // stock.html not built yet — navigating there is intentional (task spec).
@@ -1037,6 +2082,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initPINKeypad();
+  initDesktopEvents();
 
   // Restore session if already logged in (same pattern as po-mobile.html).
   const userIdFromSession = sessionStorage.getItem('po_user_id');

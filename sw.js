@@ -3,8 +3,8 @@
 //  Version: v1.0 — 2026-03-20
 // ═══════════════════════════════════════════════════
 
-// v36 — เพิ่ม erp.html + stock.html เข้า cache (โมดูล ERP/คลังสต๊อก)
-const CACHE_NAME = 'po-tracker-v36';
+// v37 — ERP หน้าแรกฝั่ง PC ดีไซน์ใหม่ (erp.html) + deep link เข้า po-desktop.html
+const CACHE_NAME = 'po-tracker-v37';
 
 // ไฟล์ที่จะ cache ไว้ใช้ offline
 const CACHE_FILES = [
