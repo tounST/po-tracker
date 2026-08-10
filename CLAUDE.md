@@ -47,7 +47,7 @@
 
 ### 📦 PWA / Cache Management
 - **ห้าม commit code ที่แก้ `po-mobile.html` / `po-desktop.html` / `manifest.json` โดยไม่ bump `sw.js` CACHE_NAME** — ถ้าไม่ bump → installed PWA จะเสิร์ฟ cached version เก่า → user ไม่ได้รับ fix เลย. BUG22 CLI fix ติดปัญหานี้จนต้องตาม bump เอง (v11→v12)
-- **Cache version ปัจจุบัน**: `po-tracker-v38` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
+- **Cache version ปัจจุบัน**: `po-tracker-v39` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
 
 ### 🛠️ Development Discipline
 - **ถ้าไม่แน่ใจ → ถามก่อนเสมอ อย่าสร้างอะไรใหม่เอง**
@@ -89,6 +89,7 @@
 | `config` | Master lists dropdown (config_type: company/car_model/part_name) | ⚙️ CONFIG |
 | `users` | ผู้ใช้ + จุดงาน (role: admin/staff, station: all/receiving/production/shipping) | ใหม่ |
 | `activity_log` | บันทึกว่าใครทำอะไรเมื่อไหร่ (action, target_type, detail JSONB) | ใหม่ |
+| `po_items` (คอลัมน์ใหม่ 2026-08-10) | `qc_photo_url` (รูปหลักฐาน QC) · `qc_note` (หมายเหตุผู้ตรวจ) · `qc_defect_reasons text[]` (เลือกได้หลายเหตุผล — `qc_defect_reason` เดิมยังเก็บแบบต่อกันด้วย เพราะ po-mobile อ่านช่องเดิมอย่างเดียว) | — |
 | `role_permissions` | Editable permission matrix (role, permission_key, allowed, updated_at, updated_by) — PK (role, permission_key) — seeded 50 rows = 5 roles × 10 flags | ใหม่ 2026-04-23 |
 | `stock_items` | วัสดุในคลัง — qty_current, **qty_min** (ห้ามต่ำกว่า), **qty_target** (ค่ากลาง), cost_per_unit (เฉลี่ยเคลื่อนที่), ministry_seq | ใหม่ 2026-08-05 |
 | `stock_movements` | **ประวัติทุกการเคลื่อนไหว** — type (in/out/adjust/initial), qty, balance_after, **unit_cost**, ref_type/ref_id (ผูก PO), doc_no/supplier/photo_url, reverses_id | ใหม่ 2026-08-05 |
