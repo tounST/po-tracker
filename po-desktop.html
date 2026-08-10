@@ -315,6 +315,106 @@ a:hover { color: var(--accent); }
 .btn-icon { width: 38px; padding: 0; justify-content: center; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* ═══ ROUND A — additive design-handoff pieces ═══
+   Everything below is new markup only; no existing structure was rewired. */
+
+/* Shortcut tiles (dashboard) */
+.shortcut-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px; margin-bottom: 16px;
+}
+.shortcut {
+  display: flex; align-items: center; gap: 12px;
+  text-align: left; cursor: pointer; font: inherit; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(45,43,43,.14);
+  transition: transform .12s ease, border-color .12s, background .12s;
+}
+.shortcut:hover { border-color: #FFC4B8; background: var(--accent-soft); transform: translateY(-1px); }
+.shortcut-icon {
+  display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto;
+  border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink);
+}
+.shortcut-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.shortcut-label { font-weight: 600; font-size: 14px; }
+.shortcut-hint { font-size: 12px; color: var(--ink-3); font-weight: 400; }
+
+/* KPI extras — icon, pill, progress track */
+.kpi-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.kpi-label-wrap { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.kpi-icon { display: grid; place-items: center; color: var(--ink-3); flex: 0 0 auto; }
+.kpi-pill {
+  font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 9px;
+  white-space: nowrap; background: var(--bg); color: var(--ink-2); flex: 0 0 auto;
+}
+.kpi.is-accent { background: var(--accent-soft); border-color: #FFC4B8; }
+.kpi.is-accent .kpi-value { color: var(--accent-ink); }
+.kpi.is-accent .kpi-pill { background: var(--accent); color: #fff; }
+.kpi.is-accent .kpi-icon { color: var(--accent-ink); }
+.kpi-track { height: 6px; border-radius: 999px; background: var(--bg); margin-top: 12px; overflow: hidden; }
+.kpi-track > i { display: block; height: 100%; border-radius: 999px; background: var(--line-deep); }
+.kpi.is-accent .kpi-track > i { background: var(--accent); }
+
+/* Filter dot + sort控制 (PO list) */
+.pill-dot {
+  width: 7px; height: 7px; border-radius: 999px; flex: 0 0 auto;
+  display: inline-block; margin-right: 7px; vertical-align: middle;
+}
+.list-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.list-toolbar .filter-row { margin-bottom: 0; }
+.sort-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sort-label { font-size: 12px; color: var(--ink-3); }
+.sort-btn {
+  appearance: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--line); border-radius: 999px; padding: 5px 13px;
+  background: transparent; color: var(--ink-2); white-space: nowrap;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.sort-btn:hover { background: var(--bg); color: var(--ink); }
+.sort-btn.active { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+
+/* Facts strip (archive month) */
+.facts-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin: 0 0 16px;
+}
+.fact-tile {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 13px 15px;
+}
+.fact-label { font-size: 12px; color: var(--ink-3); }
+.fact-value-row { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; }
+.fact-value { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.fact-unit { font-size: 12px; color: var(--ink-3); }
+
+/* Company quick-pick chips (create) */
+.quick-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.quick-chip {
+  appearance: none; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px;
+  background: transparent; color: var(--ink-2); white-space: nowrap;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.quick-chip:hover { background: var(--accent-soft); border-color: #FFC4B8; color: var(--accent-ink); }
+.quick-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Live checklist (create aside) */
+.check-list { display: flex; flex-direction: column; gap: 9px; margin-top: 10px; }
+.check-row { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; }
+.check-mark {
+  width: 17px; height: 17px; flex: 0 0 auto; border-radius: 999px;
+  display: grid; place-items: center; margin-top: 1px;
+  border: 1.5px solid var(--line-deep); color: transparent;
+}
+.check-row.done .check-mark { background: var(--success); border-color: var(--success); color: #fff; }
+.check-row.done .check-text { color: var(--ink-3); }
+.check-text { color: var(--ink); line-height: 1.45; }
+.check-note { color: var(--ink-3); }
+
 .content { flex: 1; padding: 20px 26px 40px; overflow-y: auto; min-height: 0; }
 .content-inner { max-width: 1360px; margin: 0 auto; }
 
@@ -1695,6 +1795,7 @@ let db = { pos: [], items: [], activities: [], masters: { companies: [], models:
 let currentRoute = 'dashboard';
 let currentRouteParams = {};
 let currentFilter = 'active';
+let currentSort   = 'due';   // Round A: the PO list sort is now user-chosen
 let pinInput = '';
 let sessionTimer = null;
 let createState = null;  // holds in-progress new-PO draft while on Create page
@@ -2490,6 +2591,21 @@ setInterval(() => {
 // ═══════════════════════════════════════════════════
 //  RENDER: DASHBOARD
 // ═══════════════════════════════════════════════════
+// Line icons for the Round A tiles — same Lucide-style set the handoff uses.
+const DASH_ICONS = {
+  box:    '<path d="M12 3.2 3.8 7.4v9.2L12 20.8l8.2-4.2V7.4L12 3.2Z"/><path d="M3.8 7.4 12 11.6l8.2-4.2M12 11.6v9.2"/>',
+  truck:  '<path d="M3 7h11v9H3zM14 10h3.5L21 13v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',
+  flame:  '<path d="M12 3s5 4.2 5 8.6a5 5 0 1 1-10 0C7 9.6 9 7.6 9 7.6S9.6 10 11 10c0-3 1-7 1-7Z"/>',
+  wrench: '<path d="M14.5 6a3.8 3.8 0 0 0 5 5l-8.3 8.3a2.4 2.4 0 0 1-3.4-3.4L14.5 6Z"/><path d="M14.5 6 12 3.5"/>',
+  plus:   '<path d="M12 5v14M5 12h14"/>',
+  spray:  '<rect x="7" y="9" width="8" height="12" rx="2.5"/><path d="M7 13h8M15 6h2M15 3h4M18 9h2"/>',
+  check:  '<circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.4 2.4 4.6-4.9"/>',
+};
+function dashIcon(key, size) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${DASH_ICONS[key] || ''}</svg>`;
+}
+
 function renderDashboard() {
   const el = document.getElementById('page-dashboard');
   const pos = db.pos.map(enrichPO);
@@ -2514,36 +2630,60 @@ function renderDashboard() {
   // Activity feed
   const activities = (db.activities || []).slice(0, 6);
 
+  // Round A: the handoff's stat card carries an icon, a state pill and a
+  // progress track. All four values come from data already loaded above.
+  const inBooth = items.filter(i => i.status === 'กำลังผลิต').length;
+  const awaitQc = items.filter(i => i.status === 'QC/เตรียมส่ง').length;
+  const pct = (n, d) => (d > 0 ? Math.min(100, Math.round(n / d * 100)) : 0);
+  const kpis = [
+    { label: 'PO ใช้งาน',  icon: 'box',   value: totalPO, sub: `Active POs · ${totalItems} ชิ้น`,
+      pill: 'Active',  bar: pct(pos.filter(p => p.status !== 'Complete').length, totalPO) },
+    { label: 'ส่งแล้ว',    icon: 'truck', value: sent,    sub: `Shipped · จาก ${totalItems} ชิ้น`,
+      pill: 'Shipped', bar: pct(sent, totalItems) },
+    { label: 'งานด่วน',    icon: 'flame', value: urgent,  sub: 'Urgent · ต้องเร่ง',
+      pill: urgent ? 'ต้องเร่ง' : 'ปลอดโปร่ง', bar: pct(urgent, totalPO) },
+    { label: 'ต้องแก้ไข',  icon: 'wrench',value: rework,  sub: 'Rework · ชิ้น',
+      pill: rework ? 'ค้างอยู่' : 'ไม่มี', bar: pct(rework, totalItems), accent: rework > 0 },
+  ];
+
+  // Shortcut tiles. Each hint is a live count, so the tile says something
+  // the sidebar link can't.
+  const shortcuts = [
+    { icon: 'plus',  label: 'สร้าง PO ใหม่',  hint: 'รับงานเข้าโรงงาน',        route: 'create', perm: 'createPO' },
+    { icon: 'spray', label: 'อัปเดตการผลิต',  hint: `${inBooth} ชิ้นอยู่ในบูธ`,  route: 'list' },
+    { icon: 'check', label: 'ตรวจ QC',        hint: `${awaitQc} ชิ้นรอตรวจ`,    route: 'qc' },
+    { icon: 'box',   label: 'คลังสต๊อก',       hint: 'วัสดุ · ต้นทุน',           href: 'stock.html' },
+  ].filter(q => !q.perm || hasPermission(q.perm));
+
   el.innerHTML = `
     <div class="kpi-row">
-      <div class="kpi">
-        <div class="kpi-label">PO ใช้งาน</div>
-        <div class="kpi-row-val">
-          <div class="kpi-value">${totalPO}</div>
-        </div>
-        <div class="kpi-sub">Active POs · ${totalItems} ชิ้น</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">ส่งแล้ว</div>
-        <div class="kpi-row-val">
-          <div class="kpi-value">${sent}</div>
-        </div>
-        <div class="kpi-sub">Shipped · จากทั้งหมด</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">งานด่วน</div>
-        <div class="kpi-row-val">
-          <div class="kpi-value">${urgent}</div>
-        </div>
-        <div class="kpi-sub">Urgent · ต้องเร่ง</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">ต้องแก้ไข</div>
-        <div class="kpi-row-val">
-          <div class="kpi-value">${rework}</div>
-        </div>
-        <div class="kpi-sub">Rework · ชิ้น</div>
-      </div>
+      ${kpis.map(k => `
+        <div class="kpi${k.accent ? ' is-accent' : ''}">
+          <div class="kpi-head">
+            <span class="kpi-label-wrap">
+              <span class="kpi-icon">${dashIcon(k.icon, 15)}</span>
+              <span class="kpi-label">${escapeHtml(k.label)}</span>
+            </span>
+            <span class="kpi-pill">${escapeHtml(k.pill)}</span>
+          </div>
+          <div class="kpi-row-val">
+            <div class="kpi-value">${k.value}</div>
+          </div>
+          <div class="kpi-sub">${escapeHtml(k.sub)}</div>
+          <div class="kpi-track"><i style="width:${k.bar}%"></i></div>
+        </div>`).join('')}
+    </div>
+
+    <div class="shortcut-row">
+      ${shortcuts.map(q => `
+        <button class="shortcut" type="button"
+          ${q.route ? `data-goto="${q.route}"` : `data-href="${q.href}"`}>
+          <span class="shortcut-icon">${dashIcon(q.icon, 19)}</span>
+          <span class="shortcut-text">
+            <span class="shortcut-label">${escapeHtml(q.label)}</span>
+            <span class="shortcut-hint">${escapeHtml(q.hint)}</span>
+          </span>
+        </button>`).join('')}
     </div>
 
     <div class="section-header">
@@ -2608,6 +2748,9 @@ function renderDashboard() {
   if (viewAll) {
     viewAll.onclick = () => { currentFilter = 'active'; goTo('list'); };
   }
+
+  // Round A shortcut tiles (data-goto / data-href)
+  wireGotoLinks(el);
 }
 
 function renderUrgentFeature(po) {
@@ -2905,17 +3048,34 @@ function renderList() {
   else if (currentFilter === 'urgent')   filtered = pos.filter(p => p.urgent && p.status !== 'Complete');
   else if (currentFilter === 'complete') filtered = pos.filter(p => p.status === 'Complete');
 
-  // Sort by due date (closest first)
-  filtered.sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
+  // Sort. Was hard-wired to due date; the handoff exposes the choice.
+  const SORTS = {
+    due:      { label: 'กำหนดส่ง',    fn: (a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999) },
+    recv:     { label: 'วันรับของ',    fn: (a, b) => String(b.recv || '').localeCompare(String(a.recv || '')) },
+    progress: { label: 'ความคืบหน้า', fn: (a, b) => (a.progress ?? 0) - (b.progress ?? 0) },
+    company:  { label: 'บริษัท',       fn: (a, b) => String(a.company || '').localeCompare(String(b.company || ''), 'th') },
+  };
+  filtered.sort((SORTS[currentSort] || SORTS.due).fn);
 
   el.innerHTML = `
-    <div class="filter-row">
-      <button class="pill ${currentFilter === 'active' ? 'active' : ''}" data-filter="active">กำลังทำ (${cnt.active})</button>
-      <button class="pill ${currentFilter === 'urgent' ? 'active' : ''}" data-filter="urgent">🔥 ด่วน (${cnt.urgent})</button>
-      <button class="pill ${currentFilter === 'partial' ? 'active' : ''}" data-filter="partial">ส่งบางส่วน (${cnt.partial})</button>
-      <button class="pill ${currentFilter === 'complete' ? 'active' : ''}" data-filter="complete">เสร็จแล้ว (${cnt.complete})</button>
-      <button class="pill ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">ทั้งหมด (${cnt.all})</button>
-      <div class="flex-spacer"></div>
+    <div class="list-toolbar">
+      <div class="filter-row">
+        ${[
+          { k: 'active',   label: 'กำลังทำ',     n: cnt.active,   dot: 'var(--warning)' },
+          { k: 'urgent',   label: '🔥 ด่วน',      n: cnt.urgent,   dot: 'var(--danger)' },
+          { k: 'partial',  label: 'ส่งบางส่วน',   n: cnt.partial,  dot: 'var(--accent)' },
+          { k: 'complete', label: 'เสร็จแล้ว',    n: cnt.complete, dot: 'var(--success)' },
+          { k: 'all',      label: 'ทั้งหมด',      n: cnt.all,      dot: 'var(--line-deep)' },
+        ].map(f => `
+          <button class="pill ${currentFilter === f.k ? 'active' : ''}" data-filter="${f.k}">
+            <span class="pill-dot" style="background:${f.dot}"></span>${f.label} (${f.n})
+          </button>`).join('')}
+      </div>
+      <div class="sort-group">
+        <span class="sort-label">เรียงตาม</span>
+        ${Object.entries(SORTS).map(([k, v]) =>
+          `<button class="sort-btn ${currentSort === k ? 'active' : ''}" data-sort="${k}">${v.label}</button>`).join('')}
+      </div>
     </div>
 
     ${filtered.length === 0
@@ -2939,6 +3099,9 @@ function renderList() {
   `;
 
   // Wire filter pills
+  el.querySelectorAll('.sort-btn[data-sort]').forEach(btn => {
+    btn.onclick = () => { currentSort = btn.dataset.sort; renderList(); };
+  });
   el.querySelectorAll('.pill[data-filter]').forEach(btn => {
     btn.onclick = () => setListFilter(btn.dataset.filter);
   });
@@ -3614,6 +3777,15 @@ async function renderCreate() {
   const s = createState;
   const masters = db.masters || { companies: [], models: [], parts: [] };
 
+  // Round A: quick-pick the companies this shop actually orders from most,
+  // ranked by how often they appear in the POs already loaded. Falls back to
+  // the master list on a fresh database.
+  const freq = {};
+  db.pos.forEach(p => { if (p.company) freq[p.company] = (freq[p.company] || 0) + 1; });
+  const topCompanies = (Object.keys(freq).length
+      ? Object.keys(freq).sort((a, b) => freq[b] - freq[a])
+      : (masters.companies || [])).slice(0, 5);
+
   const el = document.getElementById('page-create');
   el.innerHTML = `
     <button class="back-link" data-goto="list">← HOME / PO / NEW</button>
@@ -3645,6 +3817,9 @@ async function renderCreate() {
               <label class="form-field-label">บริษัท / Company</label>
               <input class="form-input" id="f-company" list="dl-companies" value="${escapeHtml(s.company)}" placeholder="เลือกหรือพิมพ์บริษัท">
               <datalist id="dl-companies">${masters.companies.map(c => `<option value="${escapeHtml(c)}">`).join('')}</datalist>
+              ${topCompanies.length ? `<div class="quick-chips">
+                ${topCompanies.map(c => `<button type="button" class="quick-chip ${s.company === c ? 'on' : ''}" data-company="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('')}
+              </div>` : ''}
             </div>
             <!-- car model moved to per-item (see renderCreateItemRow) —
                  a single PO often covers multiple models. masters.models
@@ -3723,6 +3898,10 @@ async function renderCreate() {
         </div>
 
         <div class="divider"></div>
+        <div class="side-panel-label">รายการตรวจ</div>
+        <div class="check-list" id="create-checklist"></div>
+
+        <div class="divider"></div>
         <div style="font-size: 11px; color: var(--ink-3); line-height: 1.6;">
           เมื่อสร้าง PO แล้ว ชิ้นงานทั้งหมดจะตั้งสถานะเริ่มต้นเป็น "รับของแล้ว" โดยอัตโนมัติ
         </div>
@@ -3737,6 +3916,39 @@ async function renderCreate() {
 // Summary-rail helper — derive "dominant" model label from current
 // createState.items for the #sum-model element. Empty when no item
 // has a model yet; shows "X +N" for multi-model POs.
+// Round A: a checklist that reads the form as it stands rather than a fixed
+// list of reminders. It answers the same questions submitCreate() asks, so
+// what it shows is exactly what will pass or fail on submit.
+function refreshCreateChecklist() {
+  const box = document.getElementById('create-checklist');
+  if (!box || !createState) return;
+  const s = createState;
+  const filled = s.items.filter(i => (i.part || '').trim());
+  const missingQty = filled.filter(i => !(Number(i.qty) > 0)).length;
+  const dueBeforeRecv = s.recv && s.due && s.due < s.recv;
+
+  const checks = [
+    { done: /^PO-.+$/.test((s.id || '').trim()),
+      text: 'เลข PO ถูกรูปแบบ', note: 'ต้องขึ้นต้นด้วย PO-' },
+    { done: !!(s.company || '').trim(),
+      text: 'เลือกบริษัทแล้ว', note: 'ยังไม่ได้เลือก' },
+    { done: !!s.due && !dueBeforeRecv,
+      text: 'กำหนดส่งสมเหตุสมผล', note: dueBeforeRecv ? 'กำหนดส่งอยู่ก่อนวันรับของ' : 'ยังไม่ได้ใส่' },
+    { done: filled.length > 0 && missingQty === 0,
+      text: `รายการชิ้นงาน ${filled.length} รายการ`,
+      note: filled.length === 0 ? 'ยังไม่ได้ใส่ชื่อชิ้นงาน' : `${missingQty} รายการยังไม่ได้ใส่จำนวน` },
+  ];
+
+  box.innerHTML = checks.map(c => `
+    <div class="check-row ${c.done ? 'done' : ''}">
+      <span class="check-mark">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
+      </span>
+      <span class="check-text">${escapeHtml(c.text)}${c.done ? '' : ` <span class="check-note">— ${escapeHtml(c.note)}</span>`}</span>
+    </div>`).join('');
+}
+
 function refreshCreateSummaryModel() {
   const el = document.getElementById('sum-model');
   if (!el) return;
@@ -3780,6 +3992,22 @@ function wireCreateForm() {
   document.getElementById('f-due').oninput  = e => { s.due  = e.target.value; document.getElementById('sum-due').textContent  = s.due  ? s.due.slice(5)  : '—'; };
   document.getElementById('f-remark').oninput = e => { s.remark = e.target.value; };
 
+  // Round A: quick-pick company chips. They write the same state the text
+  // field does, so either route ends up in one place.
+  document.querySelectorAll('.quick-chip[data-company]').forEach(chip => {
+    chip.onclick = () => {
+      s.company = chip.dataset.company;
+      document.getElementById('f-company').value = s.company;
+      document.getElementById('sum-company').textContent = s.company;
+      document.querySelectorAll('.quick-chip[data-company]').forEach(c =>
+        c.classList.toggle('on', c.dataset.company === s.company));
+      refreshCreateChecklist();
+    };
+  });
+
+  // One listener keeps the checklist honest no matter which field moved.
+  document.getElementById('page-create').addEventListener('input', refreshCreateChecklist);
+
   const urgentEl = document.getElementById('f-urgent');
   urgentEl.onclick = () => {
     s.urgent = !s.urgent;
@@ -3803,6 +4031,7 @@ function wireCreateForm() {
     if (field === 'carModel') refreshCreateSummaryModel();
   };
   refreshCreateSummaryModel();  // initial paint for edit mode
+  refreshCreateChecklist();
   container.onclick = (e) => {
     const btn = e.target.closest('[data-remove-item]');
     if (!btn) return;
@@ -3899,6 +4128,10 @@ async function submitCreate() {
 
 // Helper: wire [data-goto] links inside a container to goTo(...)
 function wireGotoLinks(root) {
+  // Round A shortcut tiles can point outside the PO app (the stock module).
+  root.querySelectorAll('[data-href]').forEach(el => {
+    el.onclick = (e) => { e.preventDefault(); window.location.href = el.dataset.href; };
+  });
   root.querySelectorAll('[data-goto]').forEach(el => {
     el.onclick = (e) => {
       e.preventDefault();
@@ -4463,6 +4696,19 @@ async function renderArchiveMonthDetail(ym) {
 
   const isAdmin = currentUser && currentUser.role === 'admin';
 
+  // Round A: the handoff opens an archived month with a facts strip. Every
+  // number is counted from the month's own rows — nothing new is stored.
+  const arcItems   = monthPOs.flatMap(p => p.items || []);
+  const arcShipped = arcItems.filter(i => i.status === 'ส่งแล้ว').length;
+  const arcCompanies = new Set(monthPOs.map(p => p.company).filter(Boolean)).size;
+  const arcClosed  = arcItems.map(i => i.sentDate || i.sent_date || '').filter(Boolean).sort().pop();
+  const facts = [
+    { label: 'PO ในเดือนนี้', value: monthPOs.length,  unit: 'ใบ' },
+    { label: 'ชิ้นงานรวม',    value: arcItems.length,  unit: 'ชิ้น' },
+    { label: 'ส่งแล้ว',       value: arcShipped,       unit: `จาก ${arcItems.length}` },
+    { label: 'ลูกค้า',        value: arcCompanies,     unit: arcClosed ? `ปิดรอบ ${arcClosed.slice(5)}` : 'ราย' },
+  ];
+
   let body = `
     <button class="back-link" id="arc-back">← เดือนทั้งหมด</button>
 
@@ -4487,6 +4733,18 @@ async function renderArchiveMonthDetail(ym) {
       </div>
     </div>
   `;
+
+  body += `
+    <div class="facts-row">
+      ${facts.map(f => `
+        <div class="fact-tile">
+          <div class="fact-label">${escapeHtml(f.label)}</div>
+          <div class="fact-value-row">
+            <span class="fact-value">${f.value}</span>
+            <span class="fact-unit">${escapeHtml(String(f.unit))}</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
 
   if (monthPOs.length === 0) {
     body += `<div class="empty-state"><span class="emoji">📭</span><p>ไม่มี PO ในเดือนนี้</p></div>`;
