@@ -2359,7 +2359,7 @@ async function createPOInSupabase(po, items) {
 }
 
 // Auto-generate next PO number for today: PO-DD/MM/YY-NN (Buddhist year)
-function nextPONumber() {
+function nextPONumber(extraNumbers) {
   const d = new Date();
   const mm = pad2(d.getMonth() + 1);
   const dd = pad2(d.getDate());
@@ -2374,9 +2374,15 @@ function nextPONumber() {
 
   // Count POs created today in EITHER format so "-NN" keeps advancing
   // through the transition window (mirrors po-mobile.html autoNextPO).
-  const todayNums = (db.pos || [])
-    .filter(p => p.id && (p.id.startsWith(newPrefix) || p.id.startsWith(legacyPrefix)))
-    .map(p => parseInt(p.id.split('-').pop(), 10))
+  // BUG37: extraNumbers lets submitCreate pass the FULL po_number list from
+  // the DB (archived included) — db.pos alone only holds non-archived rows,
+  // so a PO completed and archived earlier the same day became invisible
+  // here and its number got re-suggested, which the UNIQUE constraint then
+  // rejected over and over.
+  const candidates = (db.pos || []).map(p => p.id).concat(extraNumbers || []);
+  const todayNums = candidates
+    .filter(id => id && (id.startsWith(newPrefix) || id.startsWith(legacyPrefix)))
+    .map(id => parseInt(id.split('-').pop(), 10))
     .filter(n => !isNaN(n));
   const next = (todayNums.length ? Math.max(...todayNums) : 0) + 1;
   return newPrefix + pad2(next);
@@ -4312,12 +4318,26 @@ async function submitCreate() {
   }
   showLoading(false);
 
-  if (db.pos.some(p => p.id === s.id)) {
+  // BUG37: check against every number the UNIQUE constraint spans --
+  // db.pos omits archived POs, so a same-day archived PO's number looked
+  // free here, the insert bounced, and the regen kept proposing the same
+  // taken number. One extra single-column query closes the blind spot.
+  let takenNumbers = null;
+  try {
+    const { data: allNums } = await sb.from('po_list').select('po_number');
+    takenNumbers = (allNums || []).map(r => r.po_number);
+  } catch(e) {
+    console.warn('[submitCreate] full-number check skipped, using db.pos only:', e);
+  }
+  const isTaken = takenNumbers
+    ? takenNumbers.includes(s.id)
+    : db.pos.some(p => p.id === s.id);
+  if (isTaken) {
     const originalId = s.id;
-    const suggested = nextPONumber();
+    const suggested = nextPONumber(takenNumbers || []);
     s.id = suggested;
     renderCreate();  // re-render with the new id shown in the field
-    toast(`⚠️ PO "${originalId}" ถูกใช้ไปแล้วในอีกเครื่อง — เปลี่ยนเป็น "${suggested}" ให้แล้ว กด "สร้าง PO" อีกครั้ง`, 5500);
+    toast(`⚠️ PO "${originalId}" ถูกใช้ไปแล้ว (อาจอยู่ใน archive) — เปลี่ยนเป็น "${suggested}" ให้แล้ว กด "สร้าง PO" อีกครั้ง`, 5500);
     return;
   }
 
