@@ -1,0 +1,27 @@
+#!/bin/sh
+# Refuse commits made directly on a shipping branch.
+#
+# Twice in one session a change meant for Dev-PC was committed straight onto
+# main because the working branch had drifted between steps. Once it reached
+# the remote and shipped to the factory unreviewed. CLAUDE.md already says
+# "main = production, never commit to it directly" -- this makes the rule
+# enforceable instead of remembered.
+#
+# Merges are allowed: that is how work is supposed to reach main.
+branch=$(git rev-parse --abbrev-ref HEAD)
+case "$branch" in
+  main|ERP|stock)
+    if [ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ]; then exit 0; fi
+    echo "✋ commit ตรงบน branch '$branch' ถูกบล็อก"
+    echo ""
+    echo "   $branch = production (GitHub Pages เสิร์ฟจาก main)"
+    echo "   งานต้องเข้าผ่าน Dev-PC แล้ว merge เท่านั้น"
+    echo ""
+    echo "   ย้ายงานที่ค้างอยู่:"
+    echo "     git stash && git checkout Dev-PC && git stash pop"
+    echo ""
+    echo "   ถ้าตั้งใจจริง ๆ (เช่น merge ด้วยมือ):  git commit --no-verify"
+    exit 1
+    ;;
+esac
+exit 0

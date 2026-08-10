@@ -44,6 +44,8 @@
 - **หลัง merge ทุก branch ต้องอยู่ที่ commit เดียวกัน** — verify ด้วย `git rev-parse main Dev Dev-PC origin/main origin/Dev origin/Dev-PC` ทั้ง 6 ต้องเท่ากัน
 - **ห้ามสร้าง branch ใหม่โดยไม่จำเป็น** — ถ้าแก้ bug/feature ใช้ branch ที่มีอยู่แล้ว
 - **ห้าม force push หรือ rewrite history บน main/Dev/Dev-PC** — ใช้ merge commit ปกติเท่านั้น
+- **มี git hook กันไว้แล้ว** (`.githooks/pre-commit`, เปิดด้วย `git config core.hooksPath .githooks`) — commit ตรงบน `main`/`ERP`/`stock` จะถูกบล็อก ยกเว้น merge commit. เกิดจากเหตุจริง 2 ครั้งใน session 2026-08-10 ที่ commit หลุดลง main เพราะ branch drift ระหว่างขั้นตอน ครั้งหนึ่งขึ้น production โดยยังไม่ได้รีวิว
+- **ก่อน commit ทุกครั้งให้ `git branch --show-current` ก่อน** และเวลาตรวจว่า "ไฟล์เดิมไม่ถูกแตะ" ต้องเทียบกับ commit ฐานก่อนเริ่มงาน ไม่ใช่ `HEAD~1` (ครั้งนั้น `HEAD~1..HEAD` เป็นคู่ที่มีแต่ไฟล์พรีวิว เลยขึ้นว่างเปล่าทั้งที่ commit ก่อนหน้าแตะไฟล์จริงไปแล้ว)
 
 ### 📦 PWA / Cache Management
 - **ห้าม commit code ที่แก้ `po-mobile.html` / `po-desktop.html` / `manifest.json` โดยไม่ bump `sw.js` CACHE_NAME** — ถ้าไม่ bump → installed PWA จะเสิร์ฟ cached version เก่า → user ไม่ได้รับ fix เลย. BUG22 CLI fix ติดปัญหานี้จนต้องตาม bump เอง (v11→v12)
