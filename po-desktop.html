@@ -415,6 +415,55 @@ a:hover { color: var(--accent); }
 .check-text { color: var(--ink); line-height: 1.45; }
 .check-note { color: var(--ink-3); }
 
+/* ═══ ROUND B — preview rail beside the PO list ═══
+   The full detail PAGE is untouched. This is a read-mostly summary that
+   saves a round trip for the common "which one is this again?" question,
+   with a primary button into the real page for anything that edits. */
+.list-split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+@media (max-width: 1279px) { .list-split { grid-template-columns: minmax(0, 1fr); } }
+
+.po-rail {
+  position: sticky; top: 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.rail-empty { color: var(--ink-3); font-size: 13px; text-align: center; padding: 26px 6px; }
+.rail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.rail-po { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
+.rail-company { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+.rail-remark { font-size: 12px; color: var(--ink-3); margin-top: 4px; line-height: 1.45; }
+.rail-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+.rail-fact-label { font-size: 11px; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; }
+.rail-fact-value { font-size: 14px; font-weight: 700; margin-top: 2px; }
+.rail-fact-value.late { color: var(--danger); }
+.rail-prog-track { height: 7px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.rail-prog-track > i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.rail-prog-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+.rail-steps { display: flex; flex-direction: column; gap: 7px; }
+.rail-step { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+.rail-step-dot { width: 8px; height: 8px; border-radius: 999px; flex: 0 0 auto; background: var(--line-deep); }
+.rail-step.has .rail-step-dot { background: var(--accent); }
+.rail-step-label { flex: 1 1 auto; min-width: 0; color: var(--ink-2); }
+.rail-step.has .rail-step-label { color: var(--ink); font-weight: 600; }
+.rail-step-count { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink-3); }
+.rail-actions { display: flex; flex-direction: column; gap: 8px; }
+.rail-actions .btn { width: 100%; justify-content: center; }
+.rail-label { font-size: 11px; color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* The row is now a selection, so it needs a selected state and its own
+   way to reach the full page. */
+.data-row { cursor: pointer; }
+.data-row.picked { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.data-row.picked:hover { background: var(--accent-soft); }
+.td-open-btn {
+  width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px;
+  background: transparent; color: var(--ink-3); cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .12s, color .12s;
+}
+.td-open-btn:hover { background: var(--accent-soft); color: var(--accent-ink); }
+
 .content { flex: 1; padding: 20px 26px 40px; overflow-y: auto; min-height: 0; }
 .content-inner { max-width: 1360px; margin: 0 auto; }
 
@@ -626,7 +675,10 @@ a:hover { color: var(--accent); }
 .data-table { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .data-header, .data-row {
   display: grid;
-  grid-template-columns: 150px 2fr 1.2fr 95px 95px 60px 1.3fr 120px 40px;
+  /* Round B: the rail shows รุ่นรถ and รับของ, so the table drops them and
+     gives the width back to the company name, which was wrapping to four
+     lines once the rail took 340px. */
+  grid-template-columns: 140px minmax(0, 2fr) 90px 62px minmax(0, 1.4fr) 112px 62px;
   gap: 14px;
 }
 .data-header {
@@ -647,8 +699,8 @@ a:hover { color: var(--accent); }
 .data-row:hover { background: var(--bg); }
 .td-po { display: flex; align-items: center; gap: 7px; }
 .td-po-no { font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 800; color: var(--ink); }
-.td-company-main { font-weight: 700; color: var(--ink); }
-.td-company-sub { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.td-company-main { font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-company-sub { font-size: 11px; color: var(--ink-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .td-model { color: var(--ink-2); }
 .td-date-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; }
 .td-date-mono.mute { color: var(--ink-3); }
@@ -1796,6 +1848,7 @@ let currentRoute = 'dashboard';
 let currentRouteParams = {};
 let currentFilter = 'active';
 let currentSort   = 'due';   // Round A: the PO list sort is now user-chosen
+let listSelectedPo = null;   // Round B: which PO the preview rail is showing
 let pinInput = '';
 let sessionTimer = null;
 let createState = null;  // holds in-progress new-PO draft while on Create page
@@ -3057,6 +3110,13 @@ function renderList() {
   };
   filtered.sort((SORTS[currentSort] || SORTS.due).fn);
 
+  // Round B: keep the rail pointed at something real. If the previous pick
+  // was filtered or searched away, fall back to the top row rather than
+  // showing an empty rail next to a full table.
+  if (!filtered.some(p => p.id === listSelectedPo)) {
+    listSelectedPo = filtered.length ? filtered[0].id : null;
+  }
+
   el.innerHTML = `
     <div class="list-toolbar">
       <div class="filter-row">
@@ -3081,19 +3141,20 @@ function renderList() {
     ${filtered.length === 0
       ? `<div class="empty-state"><span class="emoji">📋</span><p>ไม่มี PO ในกลุ่มนี้</p></div>`
       : `
-      <div class="data-table">
-        <div class="data-header">
-          <div>PO No.</div>
-          <div>บริษัท / Company</div>
-          <div>รุ่นรถ</div>
-          <div>รับของ</div>
-          <div>กำหนดส่ง</div>
-          <div>ชิ้น</div>
-          <div>ความคืบหน้า</div>
-          <div>Status</div>
-          <div></div>
+      <div class="list-split">
+        <div class="data-table">
+          <div class="data-header">
+            <div>PO No.</div>
+            <div>บริษัท / Company</div>
+            <div>กำหนดส่ง</div>
+            <div>ชิ้น</div>
+            <div>ความคืบหน้า</div>
+            <div>Status</div>
+            <div></div>
+          </div>
+          ${filtered.map(renderListRow).join('')}
         </div>
-        ${filtered.map(renderListRow).join('')}
+        <aside class="po-rail" id="po-rail">${renderListRail(filtered)}</aside>
       </div>
     `}
   `;
@@ -3105,10 +3166,22 @@ function renderList() {
   el.querySelectorAll('.pill[data-filter]').forEach(btn => {
     btn.onclick = () => setListFilter(btn.dataset.filter);
   });
-  // Row click → PO detail
+  // Round B: the row now picks which PO the rail shows. The full detail
+  // PAGE is still one click away -- via the chevron on the row, or the
+  // primary button in the rail -- so nothing that edits moved.
   el.querySelectorAll('.data-row[data-po]').forEach(row => {
-    row.onclick = () => goTo('detail', { poId: row.dataset.po });
+    row.onclick = () => {
+      listSelectedPo = row.dataset.po;
+      el.querySelectorAll('.data-row[data-po]').forEach(r =>
+        r.classList.toggle('picked', r.dataset.po === listSelectedPo));
+      const rail = document.getElementById('po-rail');
+      if (rail) { rail.innerHTML = renderListRail(filtered); wireListRail(rail); }
+    };
   });
+  el.querySelectorAll('[data-open-po]').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); goTo('detail', { poId: btn.dataset.openPo }); };
+  });
+  wireListRail(el);
   // Admin-only row-level delete. stopPropagation so the row's goTo
   // detail handler doesn't fire as we open the confirm dialog.
   el.querySelectorAll('[data-del-sbid]').forEach(btn => {
@@ -3153,6 +3226,99 @@ async function deletePoFromList(sbId, poNumber, company, itemCount) {
   showLoading(false);
 }
 
+// Round B — the preview rail. Read-only summary plus a way into the real
+// detail page. Everything here is derived from the enriched PO the table
+// already has, so opening the rail costs no extra query.
+function renderListRail(rows) {
+  const po = rows.find(p => p.id === listSelectedPo);
+  if (!po) {
+    return `<div class="rail-empty">เลือก PO จากตารางด้านซ้าย<br>เพื่อดูรายละเอียดย่อ</div>`;
+  }
+
+  const STAGES = [
+    { label: 'รับของแล้ว',    match: st => st === 'รับของแล้ว' },
+    { label: 'กำลังผลิต',     match: st => st === 'กำลังผลิต' || st === 'กลับมาแก้ไข' },
+    { label: 'QC / เตรียมส่ง', match: st => (st || '').includes('เตรียมส่ง') || (st || '').includes('QC') },
+    { label: 'ส่งแล้ว',       match: st => st === 'ส่งแล้ว' },
+  ].map(st => ({ label: st.label, n: (po.items || []).filter(i => st.match(i.status)).length }));
+
+  const left = po.daysLeft;
+  const isLate = po.status !== 'Complete' && left !== null && left !== undefined && left < 0;
+  const dueNote = po.status === 'Complete' ? 'ส่งครบแล้ว'
+    : left === null || left === undefined ? 'ไม่ระบุ'
+    : left < 0 ? `เลย ${-left} วัน`
+    : left === 0 ? 'ครบวันนี้' : `อีก ${left} วัน`;
+
+  const qcWaiting = (po.items || []).filter(i =>
+    (i.status || '').includes('QC') && i.qcPassed == null).length;
+
+  return `
+    <div class="rail-head">
+      <div style="min-width:0;">
+        <div class="rail-po">${po.urgent ? '🔥 ' : ''}${escapeHtml(po.id)}</div>
+        <div class="rail-company">${escapeHtml(po.company || '—')}</div>
+        ${po.remark ? `<div class="rail-remark">📝 ${escapeHtml(po.remark)}</div>` : ''}
+      </div>
+      ${poStatusChip(po.status)}
+    </div>
+
+    <div>
+      <div class="rail-prog-track"><i style="width:${po.progress}%"></i></div>
+      <div class="rail-prog-meta">
+        <span>${escapeHtml(getPoDisplayModel(po))}</span>
+        <span>${po.sent} / ${po.total} ชิ้น · ${po.progress}%</span>
+      </div>
+    </div>
+
+    <div class="rail-facts">
+      <div>
+        <div class="rail-fact-label">รับของ</div>
+        <div class="rail-fact-value mono">${po.recv ? po.recv.slice(5) : '—'}</div>
+      </div>
+      <div>
+        <div class="rail-fact-label">กำหนดส่ง</div>
+        <div class="rail-fact-value mono ${isLate ? 'late' : ''}">${po.due ? po.due.slice(5) : '—'}</div>
+      </div>
+      <div>
+        <div class="rail-fact-label">สถานะเวลา</div>
+        <div class="rail-fact-value ${isLate ? 'late' : ''}" style="font-size:13px;">${escapeHtml(dueNote)}</div>
+      </div>
+      <div>
+        <div class="rail-fact-label">รอตรวจ QC</div>
+        <div class="rail-fact-value" style="font-size:13px;">${qcWaiting ? `${qcWaiting} ชิ้น` : '—'}</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="rail-label" style="margin-bottom:8px;">งานอยู่ขั้นไหน</div>
+      <div class="rail-steps">
+        ${STAGES.map(st => `
+          <div class="rail-step ${st.n ? 'has' : ''}">
+            <span class="rail-step-dot"></span>
+            <span class="rail-step-label">${escapeHtml(st.label)}</span>
+            <span class="rail-step-count">${st.n}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="rail-actions">
+      <button class="btn btn-primary" data-rail-open="${escapeHtml(po.id)}">
+        เปิดเต็ม · แก้ไขชิ้นงาน
+      </button>
+      ${qcWaiting ? `<button class="btn btn-ghost" data-rail-qc="1">ไปหน้า QC (${qcWaiting} ชิ้นรอตรวจ)</button>` : ''}
+    </div>
+  `;
+}
+
+function wireListRail(root) {
+  root.querySelectorAll('[data-rail-open]').forEach(b => {
+    b.onclick = () => goTo('detail', { poId: b.dataset.railOpen });
+  });
+  root.querySelectorAll('[data-rail-qc]').forEach(b => {
+    b.onclick = () => goTo('qc');
+  });
+}
+
 function renderListRow(po) {
   // Strict admin-only gate — supervisor still uses the detail-modal
   // delete path (via hasPermission('delete')). This row-level button
@@ -3171,17 +3337,15 @@ function renderListRow(po) {
        </button>`
     : '';
   return `
-    <div class="data-row" data-po="${po.id}">
+    <div class="data-row${po.id === listSelectedPo ? ' picked' : ''}" data-po="${po.id}">
       <div class="td-po">
         ${po.urgent ? '<span>🔥</span>' : ''}
         <span class="td-po-no">${escapeHtml(po.id)}</span>
       </div>
-      <div>
+      <div style="min-width:0;">
         <div class="td-company-main">${escapeHtml(po.company || '—')}</div>
-        ${po.remark ? `<div class="td-company-sub">${escapeHtml(po.remark)}</div>` : ''}
+        <div class="td-company-sub">${escapeHtml(getPoDisplayModel(po))}${po.remark ? ' · ' + escapeHtml(po.remark) : ''}</div>
       </div>
-      <div class="td-model">${escapeHtml(getPoDisplayModel(po))}</div>
-      <div class="td-date-mono mute">${po.recv ? po.recv.slice(5) : '—'}</div>
       <div class="td-date-mono strong">${po.due ? po.due.slice(5) : '—'}</div>
       <div class="td-qty">${po.sent}/${po.total}</div>
       <div class="td-prog">
@@ -3189,7 +3353,9 @@ function renderListRow(po) {
         <span class="td-prog-pct">${po.progress}%</span>
       </div>
       <div>${poStatusChip(po.status)}</div>
-      <div class="td-action">${delBtn}<span class="td-chev">›</span></div>
+      <div class="td-action">${delBtn}<button class="td-open-btn" data-open-po="${escapeHtml(po.id)}" title="เปิดหน้ารายละเอียดเต็ม">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button></div>
     </div>
   `;
 }
