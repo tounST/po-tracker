@@ -477,6 +477,14 @@
     transition: transform .1s, filter .15s;
   }
   .btn-primary:active { transform: scale(.99); filter: brightness(.96); }
+  /* On a short phone the receive form is taller than the sheet, and the one
+     button that must never be hunted for was ending up below the fold. Pin it
+     to the bottom of the sheet; the fields scroll behind it. The shadow paints
+     the sheet's own padding so nothing peeks out underneath. */
+  .modal-sheet .btn-primary {
+    position: sticky; bottom: 0; z-index: 2;
+    box-shadow: 0 20px 0 20px var(--surface);
+  }
   .btn-danger-ghost {
     width: 100%; min-height: var(--touch-min); padding: 12px;
     background: transparent; color: var(--danger);
@@ -744,6 +752,8 @@
     padding: 6px 10px; border-radius: var(--r-sm);
     border: 1px solid var(--line-deep); background: var(--surface-2);
     color: var(--ink-2); cursor: pointer; white-space: nowrap;
+    /* also used by the ministry-report buttons, which are reachable on a phone */
+    touch-action: manipulation;
     transition: border-color .15s, background .15s;
   }
   .row-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -2102,7 +2112,7 @@ function buildMonthlySeries() {
       const bucket = perMonth[mk];
       if (!bucket) return;               // outside the rendered window
       const it = bucket.items[itemId] || (bucket.items[itemId] =
-        { inQty: 0, outQty: 0, adjQty: 0, inValue: 0, outValue: 0 });
+        { inQty: 0, outQty: 0, adjQty: 0, initQty: 0, inValue: 0, outValue: 0 });
 
       // Price as recorded on the row. Falling back to the material's current
       // cost only covers rows written before unit_cost existed.
@@ -2110,7 +2120,14 @@ function buildMonthlySeries() {
         ? cost : (Number(m.unit_cost) || 0);
 
       const bt = bucketTypeOf(m);
-      if (bt === 'out') {
+      if (bt === 'initial') {
+        // ยอดตั้งต้น is what was already in the store when the ledger opened —
+        // nobody bought it that month. Counting it as a purchase makes the
+        // first month claim a six-figure spend that never happened, and tells
+        // the ministry form the same story. Keep it out of both buckets; the
+        // form then derives it as ยอดยกมา, which is what it actually is.
+        it.initQty += delta;
+      } else if (bt === 'out') {
         const used = -delta;             // delta is negative on an issue,
         bucket.consume += used * uc;     // positive when one is cancelled, so
         it.outQty += used;               // a cancellation nets itself out
@@ -2790,7 +2807,7 @@ function buildMinistryRows() {
     .sort((a, b) => (a.ministry_seq || 9999) - (b.ministry_seq || 9999)
                  || String(a.name).localeCompare(String(b.name), 'th'))
     .map((i, idx) => {
-      const it    = s.items[i.id] || { inQty: 0, outQty: 0, adjQty: 0, inValue: 0 };
+      const it    = s.items[i.id] || { inQty: 0, outQty: 0, adjQty: 0, initQty: 0, inValue: 0 };
       const close = s.closingQty[i.id] || 0;
       const open  = close - it.inQty + it.outQty - it.adjQty;
 
