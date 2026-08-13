@@ -259,6 +259,9 @@
     background: #263238; color: #fff; padding: 12px 24px;
     border-radius: 24px; font-size: 15px; font-weight: 600;
     opacity: 0; transition: all .3s; z-index: 9999; white-space: nowrap;
+    /* The pill keeps its text after fading out, so without this it stays a
+       ~200px invisible click-blocker floating over the buttons underneath. */
+    pointer-events: none;
     max-width: 90vw; text-align: center;
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -2020,13 +2023,21 @@ function monthsBetween(fromKey, toKey) {
   return out;
 }
 
+// id + reverses_id are what let the monthly maths tell a cancellation apart
+// from a real purchase — without them a reversal reads as new stock arriving.
+const MOVEMENT_CAP = 20000;
 async function loadAllMovements() {
   try {
     const { data, error } = await sb.from('stock_movements')
-      .select('item_id,movement_type,qty,balance_after,unit_cost,ref_type,ref_id,created_at')
-      .order('created_at', { ascending: true });
+      .select('id,item_id,movement_type,qty,balance_after,unit_cost,ref_type,ref_id,created_at,reverses_id')
+      .order('created_at', { ascending: true })
+      .limit(MOVEMENT_CAP);
     if (error) throw error;
     allMovements = data || [];
+    // PostgREST caps a page silently. Say so rather than quietly reporting a
+    // half month — an under-count here looks exactly like a slow month.
+    if (allMovements.length >= MOVEMENT_CAP)
+      console.warn('[loadAllMovements] ถึงเพดาน', MOVEMENT_CAP, 'แถว — รายงานรายเดือนอาจไม่ครบ');
   } catch(e) {
     console.warn('[loadAllMovements]', e);
     allMovements = [];
@@ -2050,8 +2061,20 @@ function buildMonthlySeries() {
     byItem.get(m.item_id).push(m);
   });
 
+  // A cancellation is written as the opposite movement type, so bucketing by
+  // movement_type alone books "ยกเลิกการเบิก" as a purchase and inflates both
+  // columns of the month. Look the original row up and charge the reversal
+  // back to ITS bucket — the balance-chain delta already carries the sign, so
+  // the same arithmetic then subtracts instead of adding.
+  const byId = new Map(allMovements.map(m => [m.id, m]));
+  const bucketTypeOf = m => {
+    const orig = m.reverses_id ? byId.get(m.reverses_id) : null;
+    return orig ? orig.movement_type : m.movement_type;
+  };
+
   const perMonth = {};      // month -> { purchaseQty..., values }
   const closingByItem = {}; // itemId -> { month -> qty }
+  const closingAvgByItem = {}; // itemId -> { month -> average cost that month }
 
   const firstMonth = monthKeyOf(allMovements[0].created_at);
   const lastMonth  = todayISO().slice(0, 7);
@@ -2086,12 +2109,13 @@ function buildMonthlySeries() {
       const uc = (m.unit_cost === null || m.unit_cost === undefined)
         ? cost : (Number(m.unit_cost) || 0);
 
-      if (m.movement_type === 'out') {
-        const used = -delta;             // delta is negative on an issue
-        bucket.consume += used * uc;
-        it.outQty += used;
+      const bt = bucketTypeOf(m);
+      if (bt === 'out') {
+        const used = -delta;             // delta is negative on an issue,
+        bucket.consume += used * uc;     // positive when one is cancelled, so
+        it.outQty += used;               // a cancellation nets itself out
         it.outValue += used * uc;
-      } else if (m.movement_type === 'adjust') {
+      } else if (bt === 'adjust') {
         bucket.adjust += delta * uc;
         it.adjQty += delta;
       } else {                            // in | initial
@@ -2101,16 +2125,34 @@ function buildMonthlySeries() {
       }
     });
 
-    // Closing quantity for every month: carry the last known balance forward.
-    let idx = 0, bal = 0;
+    // Closing quantity for every month, plus the average cost as it stood at
+    // that moment. Valuing an old month at today's average made every past
+    // month's closing value move whenever a new lot was bought at a new price
+    // — the same "history must not change" rule that put unit_cost on each row.
+    let idx = 0, bal = 0, avg = 0;
     closingByItem[itemId] = {};
+    closingAvgByItem[itemId] = {};
     months.forEach(mk => {
       while (idx < rows.length && monthKeyOf(rows[idx].created_at) <= mk) {
-        const ba = rows[idx].balance_after;
+        const r  = rows[idx];
+        const ba = r.balance_after;
+        const ru = (r.unit_cost === null || r.unit_cost === undefined) ? null : Number(r.unit_cost);
+        // Replay the server's moving average: only a genuine receipt re-blends
+        // it, and a reversal deliberately leaves it alone (reverse_stock_movement
+        // does the same — an average cannot be un-blended from one row).
+        if (!r.reverses_id && ru !== null) {
+          if (r.movement_type === 'initial') {
+            avg = ru;
+          } else if (r.movement_type === 'in') {
+            const base = Math.max(bal, 0), q = Number(r.qty) || 0;
+            avg = (base + q) > 0 ? (base * avg + q * ru) / (base + q) : ru;
+          }
+        }
         if (ba !== null && ba !== undefined && isFinite(Number(ba))) bal = Number(ba);
         idx++;
       }
       closingByItem[itemId][mk] = bal;
+      closingAvgByItem[itemId][mk] = avg;
     });
   });
 
@@ -2120,7 +2162,10 @@ function buildMonthlySeries() {
     Object.keys(closingByItem).forEach(itemId => {
       const q = closingByItem[itemId][mk] || 0;
       closingQty[itemId] = q;
-      closingValue += q * costOf(itemId);
+      // Price of that month, not of today. Falls back to the material's current
+      // cost only for a material whose ledger carries no price at all.
+      const a = closingAvgByItem[itemId][mk];
+      closingValue += q * (a > 0 ? a : costOf(itemId));
     });
     return {
       month: mk,
@@ -2165,7 +2210,8 @@ function deriveMonthAgg() {
   if (!s) return;
   Object.keys(s.items).forEach(itemId => {
     const it = s.items[itemId];
-    monthAgg[itemId] = { in: it.inQty || 0, out: it.outQty || 0 };
+    monthAgg[itemId] = { in: it.inQty || 0, out: it.outQty || 0,
+                         inValue: it.inValue || 0, outValue: it.outValue || 0 };
   });
 }
 
@@ -2247,10 +2293,13 @@ function renderStockSummary(lowItems) {
   const totalValue = stockItems.reduce((s, i) => s + itemValue(i), 0);
   // Consumption is summed in baht, never in raw quantity — the units differ
   // per item (กก. / ลิตร / แผ่น) so a quantity total would be meaningless.
+  // Valued at the price stamped on each movement, not at today's average —
+  // otherwise buying a dearer lot silently re-prices what was already used.
   let monthOutValue = 0, monthOutItems = 0;
   stockItems.forEach(i => {
-    const out = (monthAgg[i.id] || {}).out || 0;
-    if (out > 0) { monthOutItems++; monthOutValue += out * (Number(i.cost_per_unit) || 0); }
+    const agg = monthAgg[i.id] || {};
+    if ((agg.out || 0) > 0) monthOutItems++;
+    monthOutValue += agg.outValue || 0;
   });
   const el = document.getElementById('stock-summary');
   if (!el) return;
@@ -3331,11 +3380,13 @@ async function confirmMovement() {
     if (isFinite(price)) unitCost = price;
   }
 
-  // Warn on going negative, using the balance we currently know about. The
-  // authoritative check happens server-side anyway; this is just a heads-up.
+  // A balance below zero is always a bookkeeping error, so the server refuses
+  // it. Say so here too, with the two ways out, rather than making the user
+  // wait for a round trip to be told no.
   const cur = Number(item.qty_current) || 0;
   if (_mvType === 'out' && (cur - qty) < 0) {
-    if (!confirm(`⚠️ ยอดจะติดลบ (${fmtNum(cur - qty)}) ต้องการบันทึกต่อไหม?`)) return;
+    toast(`เบิกได้ไม่เกิน ${fmtNum(cur)} ${item.unit || ''} — ถ้าของจริงมีมากกว่านี้ ให้บันทึกรับเข้า หรือปรับยอดให้ตรงก่อน`, 4500);
+    return;
   }
 
   const docNo    = (_mvType === 'in') ? document.getElementById('mv-doc-no').value.trim()    : '';
@@ -3379,7 +3430,12 @@ async function confirmMovement() {
   } catch(e) {
     showLoading(false);
     console.error('[confirmMovement]', e);
-    toast('บันทึกไม่สำเร็จ: ' + (e.message || e.code || ''));
+    // The server sends the quantity actually on hand along with this one, so a
+    // stale screen (someone else issued first) still gets a usable message.
+    const short = /INSUFFICIENT_STOCK:([\d.\-]+)/.exec(e.message || '');
+    toast(short
+      ? `เบิกไม่ได้ — ในระบบเหลือ ${fmtNum(short[1])} ${item.unit || ''} ให้บันทึกรับเข้า หรือปรับยอดให้ตรงก่อน`
+      : 'บันทึกไม่สำเร็จ: ' + (e.message || e.code || ''), 4500);
     return;   // BUG22.3 — stop here on error, don't run success cleanup
   }
 
