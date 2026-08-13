@@ -2091,6 +2091,12 @@
     <button class="icon-btn admin-only" onclick="openSyncModal()" title="Sync" aria-label="Sync">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 15a1.7 1.7 0 00.3 1.8 2 2 0 11-2.8 2.8 1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5 2 2 0 01-4 0 1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3 2 2 0 11-2.8-2.8 1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1 2 2 0 010-4 1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8 2 2 0 112.8-2.8 1.7 1.7 0 001.8.3 1.7 1.7 0 001-1.5 2 2 0 014 0 1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3 2 2 0 112.8 2.8 1.7 1.7 0 00-.3 1.8 1.7 1.7 0 001.5 1 2 2 0 010 4 1.7 1.7 0 00-1.5 1z"/></svg>
     </button>
+    <!-- Way back up to the ERP shell. Hidden unless the role may enter it, so a
+         worker never learns the page exists (applyPermissions + the ERP page
+         itself both check, since hiding a link is not access control). -->
+    <button class="icon-btn view-erp-only" onclick="goToERP()" title="กลับไปหน้า ERP" aria-label="ERP" style="display:none;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    </button>
     <button class="icon-btn" onclick="doLogout()" title="ออกจากระบบ" aria-label="Logout">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
     </button>
@@ -2704,11 +2710,11 @@ function resetSessionTimer() {
 //   manageDataAdd     — add/edit master data rows (company/model/part/defect)
 //   manageDataDelete  — delete master data rows (manager CANNOT — prevents accidental destruction)
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, viewERP: true  },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, viewERP: true  },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, viewERP: false }
 };
 
 // Station-based status permissions for staff
@@ -2735,6 +2741,7 @@ const PERMISSION_META = [
   { key: 'manageDataDelete', label: 'ลบ Master Data' },
   { key: 'quickAddMaster',   label: 'เพิ่ม master data ตอนสร้าง/แก้ PO (ไม่ต้องไปหน้าจัดการ)' },
   { key: 'viewActivityLog',  label: 'ดูกิจกรรมล่าสุดบน Dashboard' },
+  { key: 'viewERP',          label: 'เข้าหน้า ERP + คลังสต๊อก' },
 ];
 const ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
 
@@ -3025,6 +3032,16 @@ function applyPermissions() {
   document.querySelectorAll('.view-activity-only').forEach(el => {
     el.style.display = hasPermission('viewActivityLog') ? '' : 'none';
   });
+  document.querySelectorAll('.view-erp-only').forEach(el => {
+    el.style.display = hasPermission('viewERP') ? '' : 'none';
+  });
+}
+
+// The ERP shell lives beside this file, so a plain relative hop is enough.
+// It re-checks viewERP on its own side before showing anything.
+function goToERP() {
+  if (!hasPermission('viewERP')) { toast('❌ ไม่มีสิทธิ์เข้าหน้า ERP'); return; }
+  location.href = 'erp.html';
 }
 
 async function logActivity(action, targetType, detail) {
