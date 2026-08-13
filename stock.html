@@ -1598,11 +1598,11 @@ function resetSessionTimer() {
 // writes to role_permissions — so changing who may issue stock never needs a
 // code change.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true, viewERP: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true  },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true  },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false }
 };
 
 // Labels for the permission panel — order here is the order shown.
@@ -1798,7 +1798,61 @@ function doLogout() {
   document.getElementById('pin-error').textContent = '';
 }
 
+// ── ERP access gate ────────────────────────────────────────────────────────
+// Hiding the entrance is not the same as locking it: anyone holding the URL
+// (bookmark, shared link, browser history) lands here regardless of whether a
+// link was ever shown to them. So the check runs on this side too, on every
+// way in — fresh login and resumed session alike. It reads the same viewERP
+// flag the PO pages use to decide whether to show the way back, so toun can
+// grant or revoke it from the Permissions screen without a deploy.
+function enforceERPAccess() {
+  if (hasPermission('viewERP')) return true;
+
+  document.getElementById('pin-login-screen').classList.add('hidden');
+  const wrap = document.getElementById('app-wrapper');
+  if (wrap) wrap.style.display = 'none';
+
+  let el = document.getElementById('erp-denied');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'erp-denied';
+    el.style.cssText = 'position:fixed;inset:0;z-index:900;display:flex;align-items:center;'
+      + 'justify-content:center;padding:24px;background:var(--bg,#eae7e7);';
+    el.innerHTML = `
+      <div style="max-width:380px;width:100%;text-align:center;background:var(--surface,#fff);
+                  border:1px solid var(--line,#ddd);border-radius:16px;padding:28px 22px;">
+        <div style="font-size:40px;line-height:1;margin-bottom:12px;">🔒</div>
+        <div style="font-size:19px;font-weight:800;color:var(--ink,#201E1D);margin-bottom:8px;">
+          บัญชีนี้ยังไม่มีสิทธิ์เข้าหน้า ERP
+        </div>
+        <div style="font-size:14px;color:var(--ink-3,#6b6b6b);line-height:1.6;margin-bottom:20px;">
+          หน้านี้สำหรับออฟฟิศ ถ้าต้องใช้งานให้แจ้งผู้ดูแลระบบ<br>เปิดสิทธิ์ให้ในหน้าจัดการ &gt; สิทธิ์
+        </div>
+        <button id="erp-denied-po" style="width:100%;min-height:46px;margin-bottom:10px;
+                background:var(--accent,#ec3013);color:#fff;border:none;border-radius:10px;
+                font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;
+                touch-action:manipulation;">ไปหน้า PO Tracker</button>
+        <button id="erp-denied-out" style="width:100%;min-height:44px;background:transparent;
+                color:var(--ink-3,#6b6b6b);border:1px solid var(--line,#ddd);border-radius:10px;
+                font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;
+                touch-action:manipulation;">ออกจากระบบ</button>
+      </div>`;
+    document.body.appendChild(el);
+    // The router picks the right PO build for whatever device they are on.
+    el.querySelector('#erp-denied-po').onclick  = () => { location.href = './'; };
+    el.querySelector('#erp-denied-out').onclick = () => doLogout();
+  }
+  el.style.display = 'flex';
+
+  // Worth a line in the log: a worker landing here means a link leaked, or
+  // somebody needs a permission they do not have.
+  logActivity('erp_access_denied', 'system',
+    { username: currentUser && currentUser.username, role: currentUser && currentUser.role });
+  return false;
+}
+
 function showApp() {
+  if (!enforceERPAccess()) return;
   document.getElementById('pin-login-screen').classList.add('hidden');
   document.getElementById('app-wrapper').style.display = 'block';
   applyPermissions();

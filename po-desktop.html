@@ -1749,6 +1749,14 @@ a:hover { color: var(--accent); }
     </div>
 
     <nav class="sidebar-nav">
+      <!-- Way back up to the ERP shell. data-perm hides it for roles that may
+           not enter; no data-page, so the router never binds it. Hiding is not
+           access control, so erp.html re-checks viewERP on its own side. -->
+      <a class="sidebar-item" id="sidebar-erp" data-perm="viewERP">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <span class="sidebar-item-label">กลับไป ERP</span>
+      </a>
+
       <div class="sidebar-section-label">main</div>
       <a class="sidebar-item" data-page="dashboard" data-perm="all">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V10z"/></svg>
@@ -1926,11 +1934,11 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 // Permissions — mirrored from po-mobile.html so both clients enforce the same rules.
 // See po-mobile.html for flag definitions.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, qcPhoto: false },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, qcPhoto: true  },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, qcPhoto: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true, viewERP: true  },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true, viewERP: true  },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, qcPhoto: false, viewERP: true  },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, qcPhoto: true, viewERP: true  },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, qcPhoto: false, viewERP: false }
 };
 const ROLE_LABELS = { admin: 'Admin', supervisor: 'Supervisor', office: 'Office', manager: 'Manager', staff: 'Staff' };
 const ROLE_COLORS = { admin: '#A33B2E', supervisor: '#B8832A', office: '#2C6E70', manager: '#3F5AA6', staff: '#4A7F3F' };
@@ -1952,6 +1960,7 @@ const PERMISSION_META = [
   { key: 'manageDataDelete', label: 'ลบ Master Data' },
   { key: 'quickAddMaster',   label: 'เพิ่ม master data ตอนสร้าง/แก้ PO (ไม่ต้องไปหน้าจัดการ)' },
   { key: 'viewActivityLog',  label: 'ดูกิจกรรมล่าสุดบน Dashboard' },
+  { key: 'viewERP',          label: 'เข้าหน้า ERP + คลังสต๊อก' },
 ];
 const ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
 
@@ -2611,6 +2620,14 @@ function initShell() {
   document.querySelectorAll('.sidebar-item[data-page]').forEach(el => {
     el.onclick = (e) => { e.preventDefault(); goTo(el.dataset.page); };
   });
+
+  // Back up to the ERP shell
+  const erpLink = document.getElementById('sidebar-erp');
+  if (erpLink) erpLink.onclick = (e) => {
+    e.preventDefault();
+    if (!hasPermission('viewERP')) { toast('❌ ไม่มีสิทธิ์เข้าหน้า ERP'); return; }
+    location.href = 'erp.html';
+  };
 
   // Logout
   document.getElementById('btn-logout').onclick = () => {

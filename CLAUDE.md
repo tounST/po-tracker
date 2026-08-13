@@ -49,7 +49,7 @@
 
 ### 📦 PWA / Cache Management
 - **ห้าม commit code ที่แก้ `po-mobile.html` / `po-desktop.html` / `manifest.json` โดยไม่ bump `sw.js` CACHE_NAME** — ถ้าไม่ bump → installed PWA จะเสิร์ฟ cached version เก่า → user ไม่ได้รับ fix เลย. BUG22 CLI fix ติดปัญหานี้จนต้องตาม bump เอง (v11→v12)
-- **Cache version ปัจจุบัน**: `po-tracker-v42` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
+- **Cache version ปัจจุบัน**: `po-tracker-v43` — bump ทุกครั้งที่ modify cached files (ตอนนี้ cache: index / po-mobile / po-desktop / **erp** / **stock**)
 
 ### 🛠️ Development Discipline
 - **ถ้าไม่แน่ใจ → ถามก่อนเสมอ อย่าสร้างอะไรใหม่เอง**
@@ -92,7 +92,7 @@
 | `users` | ผู้ใช้ + จุดงาน (role: admin/staff, station: all/receiving/production/shipping) | ใหม่ |
 | `activity_log` | บันทึกว่าใครทำอะไรเมื่อไหร่ (action, target_type, detail JSONB) | ใหม่ |
 | `po_items` (คอลัมน์ใหม่ 2026-08-10) | `qc_photo_url` (รูปหลักฐาน QC) · `qc_note` (หมายเหตุผู้ตรวจ) · `qc_defect_reasons text[]` (เลือกได้หลายเหตุผล — `qc_defect_reason` เดิมยังเก็บแบบต่อกันด้วย เพราะ po-mobile อ่านช่องเดิมอย่างเดียว) | — |
-| `role_permissions` | Editable permission matrix (role, permission_key, allowed, updated_at, updated_by) — PK (role, permission_key) — seeded 50 rows = 5 roles × 10 flags | ใหม่ 2026-04-23 |
+| `role_permissions` | Editable permission matrix (role, permission_key, allowed, updated_at, updated_by) — PK (role, permission_key) — seeded 50 rows = 5 roles × 10 flags · เพิ่ม `viewERP` 2026-08-13 (คุมการเข้า erp.html + stock.html) | ใหม่ 2026-04-23 |
 | `stock_items` | วัสดุในคลัง — qty_current, **qty_min** (ห้ามต่ำกว่า), **qty_target** (ค่ากลาง), cost_per_unit (เฉลี่ยเคลื่อนที่), ministry_seq | ใหม่ 2026-08-05 |
 | `stock_movements` | **ประวัติทุกการเคลื่อนไหว** — type (in/out/adjust/initial), qty, balance_after, **unit_cost**, ref_type/ref_id (ผูก PO), doc_no/supplier/photo_url, reverses_id | ใหม่ 2026-08-05 |
 
@@ -601,6 +601,10 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - **ทำไม `#toast` ต้องมี `pointer-events: none` เสมอ**: `toast()` เขียนข้อความลง div แล้วถอด `.show` ออกอย่างเดียว — **ข้อความยังอยู่ ความกว้างยังอยู่** div จึงลอยค้างที่ `z-index:9999` กลางจอตลอดอายุหน้า ทั้งที่ `opacity:0`. บน PC พลาดไปโดนน้อยเพราะเมาส์เล็ง แต่บนมือถือ `bottom:40px` กลางจอ = ตำแหน่งปุ่มยืนยันท้าย modal พอดี (BUG38). **จับได้เพราะทดสอบด้วย viewport มือถือจริง** — Playwright ฟ้องตรง ๆ ว่า element ไหนกินคลิก ซึ่งอ่านโค้ดเปล่า ๆ ไม่มีทางเห็น. กฎ: element ตกแต่งที่ลอยทับ (toast / overlay / badge / ribbon) ต้อง `pointer-events: none` โดยดีฟอลต์ แล้วค่อยเปิดเฉพาะลูกที่ต้องกดได้
 - **ทำไม query ที่ feed การคำนวณต้องใส่ `.limit()` ชัด ๆ**: PostgREST ตัดผลลัพธ์ที่ 1,000 แถวเงียบ ๆ ไม่มี error. `loadAllMovements` เรียง `created_at` **ขึ้น** → พอ ledger โตเกิน 1,000 จะเก็บของเก่าไว้แล้วทิ้งของใหม่ = **รายงานรายเดือนค้างอยู่ในอดีตถาวรโดยไม่มีสัญญาณอะไรเลย** (BUG43). ใส่ limit ที่ตั้งใจ + warn เมื่อชนเพดาน = ความผิดพลาดกลายเป็นเสียงดัง. บทเรียน: ทุก query ที่ผลลัพธ์ถูกเอาไป**รวมยอด** ต้องรู้ว่าเพดานอยู่ตรงไหนและจะรู้ตัวได้ยังไงเมื่อชน
 - **ทำไมทดสอบ RPC กับฐานข้อมูลจริง แทนที่จะเชื่อ shim**: เลขคณิตของสต๊อกทั้งหมดอยู่ใน plpgsql ฝั่ง server — `shim` ที่ผมเขียนเองจะสะท้อนแค่ *ความเข้าใจของผม* ไม่ใช่ของจริง. วิธีที่ใช้: อ่าน `pg_get_functiondef()` ออกมาก่อน → ยิง RPC จริงบน**วัสดุทดสอบชั่วคราว** (สร้าง → ทดสอบครบลูป → ลบทิ้ง ตรวจว่ากลับมา 15/15/135,406.80 เป๊ะ) → แล้วค่อยถอดสูตรนั้นลง shim เพื่อทดสอบ UI. เจอ 2 อย่างที่ shim ไม่มีวันบอก: **overload ซ้อน 2 ตัวของ `apply_stock_movement`** (เสี่ยง PGRST203) และพฤติกรรมยอดติดลบของจริง
+- **ทำไมทางกลับ ERP ต้องกั้น 2 ชั้น ไม่ใช่แค่ซ่อนปุ่ม**: toun ขอปุ่มกลับจาก PO → ERP แต่กำชับว่า "เฉพาะคนที่มีสิทธิ์". ตรวจแล้วพบว่า **`erp.html` กับ `stock.html` เดิมไม่มีการกั้นเลย** — ใครมี PIN ก็เข้าได้ ที่ผ่านมารอดเพราะ**ไม่มีใครรู้ URL** ซึ่งไม่ใช่การป้องกัน (bookmark / ประวัติเบราว์เซอร์ / ส่งลิงก์ต่อ ก็เข้าได้หมด) ถ้าใส่ปุ่มเฉย ๆ จะยิ่งกระจาย URL ออกไป. จึงทำพร้อมกัน: **ซ่อนปุ่ม** (`.view-erp-only` / `data-perm="viewERP"`) + **ปฏิเสธที่หน้าปลายทาง** (`enforceERPAccess()` ใน `showApp()` ครอบทั้งทางล็อกอินใหม่และทาง session recovery). **หลักการ: การซ่อนทางเข้าไม่เท่ากับการล็อกประตู — ต้องมีตัวตรวจอยู่ที่ประตูเสมอ**
+- **ทำไมหน้าปฏิเสธต้องมีทางออก 2 ทาง**: ถ้าเด้งไปหน้า login เปล่า ๆ คนงานจะกดวนไม่รู้จบเพราะ PIN ถูกแต่เข้าไม่ได้ — ดูเหมือนระบบพัง. หน้าปฏิเสธจึงบอกเหตุผลตรง ๆ + ปุ่ม **"ไปหน้า PO Tracker"** (ที่ที่เขาควรอยู่ ผ่าน `./` เพื่อให้ router เลือก build ตามเครื่อง) + **"ออกจากระบบ"** (เผื่อยืมเครื่องกันใช้) และเขียน `erp_access_denied` ลง activity_log ให้ toun เห็นว่าลิงก์รั่วไปถึงใคร
+- **ทำไม `viewERP` ครอบ `stock.html` ด้วย**: stock เป็นโมดูลใต้ ERP เข้าถึงได้จากหน้า ERP เท่านั้น และแสดง**ต้นทุนกับราคาผู้ขาย**ซึ่งเป็นข้อมูลเชิงพาณิชย์ สิทธิ์ `stockIn/Out/...` เดิมคุมแค่ "แก้ได้ไหม" ไม่ได้คุม "เห็นได้ไหม" — ใช้ธงเดียวกันทั้งสองหน้าจึงตรงกับที่ toun สั่งว่า "เข้าหน้า ERP ได้เฉพาะคนที่มีสิทธิ์"
+- **ข้อจำกัดที่ยอมรับไว้**: ถ้า admin ปิด `viewERP` ระหว่างที่คนนั้น**เปิดหน้า ERP ค้างอยู่** เขาจะยังใช้ได้จนกว่าจะรีเฟรช (ตรวจตอนเข้าเท่านั้น ไม่ได้ตรวจซ้ำเป็นระยะ) — รับได้เพราะเป็นการกั้นการมองเห็น ไม่ใช่การกั้นการเขียนข้อมูล ซึ่งมีสิทธิ์ `stockIn/Out/Adjust` คุมอีกชั้นที่ server อยู่แล้ว
 - **ทำไม ERP เป็นไฟล์แยก ไม่ใช่แก้ po-mobile/po-desktop**: คนงานใช้ PO อยู่ทุกวันบน production — การเพิ่มโมดูลใหม่เข้าไปในไฟล์เดิมเสี่ยงพังของที่ใช้งานอยู่. `erp.html`/`stock.html` เป็นไฟล์ใหม่ล้วน merge เข้า main ได้โดย `git diff` ของไฟล์ PO เดิม**ว่างเปล่า** = พิสูจน์ได้ว่าไม่กระทบ. `index.html` ก็ไม่แตะ คนงานเปิด URL เดิมเข้า PO เหมือนเดิม. ต่อยอด decision เดิม "PC/Mobile แยกไฟล์เพื่อ isolation" ไปอีกขั้น
 
 ## Context ธุรกิจ
