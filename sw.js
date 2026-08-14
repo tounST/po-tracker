@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════
 
 // v40 — ฝั่งมือถือ: ธีมใหม่ทั้ง po-mobile/erp/stock + แก้ BUG37 เวอร์ชันมือถือ
-const CACHE_NAME = 'po-tracker-v43';
+const CACHE_NAME = 'po-tracker-v44';
 
 // ไฟล์ที่จะ cache ไว้ใช้ offline
 const CACHE_FILES = [
