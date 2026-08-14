@@ -1,0 +1,40 @@
+-- Applied to Supabase rkdxbxtakvisroxelrvq on 2026-08-14
+-- migration name: drop_stale_apply_stock_movement_overload
+--
+-- INCIDENT — stock recording was broken in production for about 20 minutes.
+-- toun pressed รับเข้า and got:
+--   "Could not choose the best candidate function between:
+--    public.apply_stock_movement(p_item_id => uuid, p_type => text, ...)"
+--
+-- WHY
+-- The backdating migration used CREATE OR REPLACE while adding an eleventh
+-- parameter (p_created_at). CREATE OR REPLACE only replaces an *exact* argument
+-- signature; a different one creates a second function. Both then accepted the
+-- ten named arguments the buttons send — the eleventh has a default — so
+-- PostgREST could not pick one and refused every call with PGRST203.
+--
+-- This is the same trap the 2026-08-13 migration removed the seven-argument
+-- overload to avoid, and the comment there even names PGRST203. Writing the
+-- warning down was not enough; nothing checked it.
+--
+-- THE FIX
+-- Drop the superseded ten-argument version. The survivor defaults p_created_at
+-- to NULL, so the buttons behave exactly as before and the Excel import can
+-- still pass a real date.
+--
+-- WHY THE TESTS MISSED IT
+-- The suites drive the UI against a JavaScript stand-in for supabase-js, which
+-- resolves rpc('apply_stock_movement') by name alone. Overload ambiguity only
+-- exists in PostgREST, so no amount of browser testing could see it. The guard
+-- that would have caught it is a count of functions by name in the database —
+-- added to the checklist below.
+--
+-- RULE FOR NEXT TIME
+-- After any migration that touches a function's parameter list, run:
+--   select oid::regprocedure, pronargs from pg_proc
+--    where proname = '<fn>' and pronamespace = 'public'::regnamespace;
+-- and confirm there is exactly one row. Adding a parameter is a DROP-then-
+-- CREATE, never a CREATE OR REPLACE.
+
+DROP FUNCTION IF EXISTS public.apply_stock_movement(
+  uuid, text, numeric, numeric, text, text, text, text, text, text);
