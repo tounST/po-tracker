@@ -595,6 +595,69 @@
     .day-name { font-size: 14.5px; }
   }
 
+  /* ── Excel in/out + import preview ── */
+  .daily-actions {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .daily-actions .row-btn { min-height: 42px; }
+
+  .imp-sum { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .imp-pill {
+    font-size: 12px; font-weight: 800; padding: 5px 11px; border-radius: var(--r-pill);
+  }
+  .imp-ok   { background: var(--success-bg); color: var(--success); }
+  .imp-bad  { background: var(--danger-bg);  color: var(--danger); }
+  .imp-warn { background: var(--warning-bg); color: var(--warning); }
+  .imp-note { font-size: 11.5px; color: var(--ink-3); }
+
+  .imp-list { max-height: 46vh; overflow-y: auto; margin-bottom: 12px; }
+  .imp-row {
+    display: flex; gap: 10px; padding: 9px 11px; border-radius: var(--r-sm);
+    border: 1px solid var(--line); margin-bottom: 6px; background: var(--surface);
+  }
+  .imp-row.is-bad  { border-color: var(--danger);  background: var(--danger-bg); }
+  .imp-row.is-warn { border-color: var(--warning); background: var(--warning-bg); }
+  .imp-line { font-size: 11px; font-weight: 800; color: var(--ink-3); min-width: 46px; padding-top: 2px; }
+  .imp-main { flex: 1; min-width: 0; }
+  .imp-title { font-size: 13.5px; font-weight: 700; color: var(--ink); display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+  .imp-meta { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+  .imp-msg  { font-size: 11.5px; font-weight: 700; margin-top: 3px; color: var(--ink-2); }
+  .imp-row.is-bad .imp-msg  { color: var(--danger); }
+  .imp-row.is-warn .imp-msg { color: var(--warning); }
+
+  /* ── Paper report: the daily log, printed as one long continuous table ──
+     Everything that is for tapping disappears; what is left is the record. */
+  #print-report { display: none; }
+  @media print {
+    @page { size: A4 portrait; margin: 12mm 10mm; }
+    body { background: #fff !important; }
+    .topbar, .view-switch, .chip-row, .daily-toolbar, .daily-actions,
+    .stock-summary, .period-bar, #stock-add-btn, .modal-backdrop,
+    #view-current, #view-monthly, #view-perms, #daily-list, #toast, #loading-overlay {
+      display: none !important;
+    }
+    .wrap { padding: 0 !important; max-width: none !important; }
+    #print-report { display: block !important; }
+    #print-report * { color: #000 !important; }
+    .pr-head { margin-bottom: 8mm; }
+    .pr-title { font-size: 17px; font-weight: 800; }
+    .pr-sub { font-size: 11px; margin-top: 2px; }
+    .pr-tot { font-size: 11px; margin-top: 5px; font-weight: 700; }
+    table.pr-table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+    .pr-table th, .pr-table td {
+      border: 1px solid #999; padding: 3px 5px; text-align: left;
+      vertical-align: top;
+    }
+    .pr-table th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 800; }
+    .pr-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    /* Repeat the header on every sheet, and never split a row across pages. */
+    .pr-table thead { display: table-header-group; }
+    .pr-table tr { page-break-inside: avoid; }
+    .pr-day td { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 800; }
+    .pr-sign { margin-top: 10mm; font-size: 11px; display: flex; gap: 20mm; }
+    .pr-sign div { flex: 1; border-top: 1px dotted #666; padding-top: 3px; text-align: center; }
+  }
+
   .mv-end-note {
     text-align: center; font-size: 11.5px; color: var(--ink-3);
     padding: 10px 0 2px;
@@ -1285,11 +1348,22 @@
       <div class="daily-toolbar">
         <input id="daily-search" type="search" autocomplete="off"
                placeholder="🔍 ค้นชื่อวัสดุ · ผู้บันทึก · เลขใบส่งของ · PO">
-        <button class="row-btn" id="daily-csv">⬇️ ดาวน์โหลด Excel (CSV)</button>
+      </div>
+
+      <div class="daily-actions">
+        <button class="row-btn" id="daily-print">🖨️ พิมพ์รายงาน</button>
+        <button class="row-btn" id="daily-xlsx">⬇️ ส่งออก Excel</button>
+        <button class="row-btn" id="daily-csv">⬇️ CSV</button>
+        <button class="row-btn stock-write-only" id="daily-template" style="display:none;">📄 ดาวน์โหลดแม่แบบ</button>
+        <button class="row-btn stock-write-only" id="daily-import" style="display:none;">📤 นำเข้าจาก Excel</button>
+        <input type="file" id="import-file" accept=".xlsx,.xls,.csv" hidden>
       </div>
 
       <div id="daily-list"></div>
     </div>
+
+    <!-- Filled in just before printing; invisible on screen. -->
+    <div id="print-report"></div>
 
     <div id="view-monthly" style="display:none;">
 
@@ -1562,6 +1636,30 @@
       <input id="mv-note" type="text" placeholder="ไม่ระบุ" autocomplete="off">
     </div>
     <button class="btn-primary" id="mv-confirm" onclick="confirmMovement()">ยืนยัน</button>
+  </div>
+</div>
+
+<!-- ═══ IMPORT PREVIEW — nothing is written until the button at the bottom ═══ -->
+<div class="modal-backdrop hidden" id="import-modal" style="z-index:700;">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title">ตรวจก่อนนำเข้า</div>
+      <button class="modal-close" onclick="document.getElementById('import-modal').classList.add('hidden')" aria-label="ปิด">✕</button>
+    </div>
+    <div id="import-summary"></div>
+    <div id="import-rows" class="imp-list"></div>
+    <button class="btn-primary" id="import-apply">นำเข้า</button>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="import-fail-modal" style="z-index:710;">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title" id="import-fail-head">ผลการนำเข้า</div>
+      <button class="modal-close" onclick="document.getElementById('import-fail-modal').classList.add('hidden')" aria-label="ปิด">✕</button>
+    </div>
+    <div id="import-fail-list" class="imp-list"></div>
+    <button class="btn-primary" onclick="document.getElementById('import-fail-modal').classList.add('hidden')">ปิด</button>
   </div>
 </div>
 
@@ -1963,6 +2061,13 @@ function applyPermissions() {
   const isAdmin = currentUser.role === 'admin';
   document.querySelectorAll('.role-admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
+  });
+  // Importing writes movements, so it is offered only to someone who is
+  // already allowed to record at least one kind of movement. Each row is
+  // still checked against its own type when the file is validated.
+  const canWrite = canMove('in') || canMove('out') || canMove('adjust');
+  document.querySelectorAll('.stock-write-only').forEach(el => {
+    el.style.display = canWrite ? '' : 'none';
   });
   // If a permission was just revoked while sitting on a hidden tab, fall back.
   if (!isAdmin && stockView === 'perms') switchStockView('current');
@@ -2780,6 +2885,383 @@ function dailyRowHTML(r, canSeeMoney) {
       <div class="day-value">เหลือ ${fmtNum(m.balance_after)}</div>
     </div>
   </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  EXCEL IN / OUT
+//
+//  For stock staff who do not use the app: they fill a spreadsheet and
+//  upload it. The template is the same shape the export produces, so a
+//  round-trip works — download what is already recorded, add rows, send it
+//  back. Real .xlsx rather than CSV, because Excel on a Thai machine saves
+//  CSV in the local codepage by default and the Thai turns to rubbish; xlsx
+//  also keeps dates as dates instead of reformatting them.
+//
+//  The library is fetched only when one of these buttons is pressed, so the
+//  900 KB never lands on a worker who just wants to issue a can of thinner.
+// ══════════════════════════════════════════════════════════════════════
+const XLSX_SRC = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+let xlsxLoading = null;
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (xlsxLoading) return xlsxLoading;
+  xlsxLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = XLSX_SRC;
+    s.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error('โหลดตัวอ่าน Excel ไม่สำเร็จ'));
+    s.onerror = () => { xlsxLoading = null; reject(new Error('โหลดตัวอ่าน Excel ไม่สำเร็จ — ต้องต่อเน็ตครั้งแรก')); };
+    document.head.appendChild(s);
+  });
+  return xlsxLoading;
+}
+
+// The column order IS the contract: the importer finds each field by matching
+// this header text, so a file keeps working even if the user reorders columns
+// or adds their own at the end.
+const XL_COLS = ['วันที่', 'เวลา', 'ชื่อวัสดุ', 'ประเภท', 'จำนวน', 'หน่วย',
+                 'ราคา/หน่วย', 'ผู้ขาย', 'เลขใบส่งของ', 'งาน/PO', 'ผู้บันทึก', 'หมายเหตุ'];
+const XL_TYPES = { 'รับเข้า': 'in', 'เบิกออก': 'out', 'ปรับยอด': 'adjust',
+                   'in': 'in', 'out': 'out', 'adjust': 'adjust' };
+const XL_TYPE_TH = { in: 'รับเข้า', out: 'เบิกออก', adjust: 'ปรับยอด' };
+
+// Excel hands dates back in several shapes depending on how they were typed:
+// a real date cell (serial number), "14/08/2569", "14/8/69", "2026-08-14".
+// Thai users type Buddhist years, so anything past 2400 is converted down.
+function xlParseDate(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (v instanceof Date && !isNaN(v)) return localISO(v);
+  if (typeof v === 'number' && isFinite(v)) {
+    // Excel serial: day 1 is 1900-01-01, with the well-known 1900 leap-year bug
+    const d = new Date(Date.UTC(1899, 11, 30) + v * 86400000);
+    return isNaN(d) ? null : localISO(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return xlBuildISO(+m[1], +m[2], +m[3]);
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (m) return xlBuildISO(+m[3], +m[2], +m[1]);
+  return null;
+}
+// Thai staff write Buddhist years, in two digits as often as four: 14/08/2569
+// and 14/8/69 both mean August 2026. Two digits are read as พ.ศ. because that
+// is what a Thai keyboard produces; nobody here is entering 1969.
+function xlYearToAD(y) {
+  if (y >= 2400) return y - 543;   // 2569 → 2026
+  if (y >= 1900) return y;         // already ค.ศ.
+  return 2000 + y - 43;            // 69 → 2569 → 2026
+}
+function xlBuildISO(y, mo, d) {
+  const year = xlYearToAD(y);
+  if (!(mo >= 1 && mo <= 12) || !(d >= 1 && d <= 31)) return null;
+  const dt = new Date(year, mo - 1, d);
+  if (dt.getFullYear() !== year || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return localISO(dt);
+}
+function xlParseTime(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (v instanceof Date && !isNaN(v)) return `${String(v.getHours()).padStart(2,'0')}:${String(v.getMinutes()).padStart(2,'0')}`;
+  if (typeof v === 'number' && isFinite(v) && v < 1) {   // Excel time fraction
+    const mins = Math.round(v * 24 * 60);
+    return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
+  }
+  const m = String(v).trim().match(/^(\d{1,2})[:.](\d{2})/);
+  return m ? `${String(+m[1]).padStart(2,'0')}:${m[2]}` : null;
+}
+
+// ── Building the workbook ──────────────────────────────────────────────
+// Two sheets: the data, and a page telling the person what to type. The
+// instructions sheet also lists the exact material names, because "ทินเนอร์ "
+// with a trailing space is the single most common reason a row is rejected.
+async function buildWorkbook(rows) {
+  const XLSX = await loadXLSX();
+  const body = rows.map(r => XL_COLS.map(c => r[c] ?? ''));
+  const ws = XLSX.utils.aoa_to_sheet([XL_COLS].concat(body));
+  ws['!cols'] = [{ wch: 11 }, { wch: 7 }, { wch: 22 }, { wch: 10 }, { wch: 9 },
+                 { wch: 9 }, { wch: 11 }, { wch: 16 }, { wch: 16 }, { wch: 18 },
+                 { wch: 14 }, { wch: 26 }];
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+  const names = stockItems.filter(i => i.is_active !== false)
+    .map(i => [i.name, i.unit || '', i.qty_current]);
+  const help = [
+    ['แม่แบบระบบคลังสต๊อก v1 — ห้ามแก้ชื่อหัวตารางในแผ่น "รายการเคลื่อนไหว"'],
+    [],
+    ['วิธีกรอก'],
+    ['1', 'กรอกทีละแถวในแผ่นแรก แถวละ 1 รายการ'],
+    ['2', 'วันที่', 'พิมพ์ได้ทั้ง 14/08/2569 · 14/8/69 · 2026-08-14 (ใส่ปี พ.ศ. ได้)'],
+    ['3', 'เวลา', 'ไม่ใส่ก็ได้ ระบบจะลงเป็น 09:00 น.'],
+    ['4', 'ชื่อวัสดุ', 'ต้องตรงกับรายชื่อข้างล่าง (คัดลอกไปวางได้เลย)'],
+    ['5', 'ประเภท', 'พิมพ์ได้ 3 คำเท่านั้น: รับเข้า · เบิกออก · ปรับยอด'],
+    ['6', 'จำนวน', 'ตัวเลขบวก · ถ้าเป็น "ปรับยอด" ให้ใส่ยอดคงเหลือใหม่ ไม่ใช่ส่วนต่าง'],
+    ['7', 'ราคา/หน่วย', 'ใส่เฉพาะตอนรับเข้า ถ้าไม่ใส่ระบบใช้ราคาเฉลี่ยเดิม'],
+    ['8', 'หน่วย', 'ไม่ต้องกรอก ระบบเติมให้เอง'],
+    [],
+    ['ก่อนนำเข้า ระบบจะให้ดูตัวอย่างทีละแถวและบอกว่าแถวไหนผิดตรงไหน'],
+    ['ยังไม่มีอะไรถูกบันทึกจนกว่าจะกดยืนยัน'],
+    [],
+    ['รายชื่อวัสดุที่มีในระบบ'],
+    ['ชื่อวัสดุ', 'หน่วย', 'คงเหลือตอนนี้'],
+  ].concat(names);
+  const wsHelp = XLSX.utils.aoa_to_sheet(help);
+  wsHelp['!cols'] = [{ wch: 30 }, { wch: 14 }, { wch: 52 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'รายการเคลื่อนไหว');
+  XLSX.utils.book_append_sheet(wb, wsHelp, 'วิธีใช้');
+  return { XLSX, wb };
+}
+
+function xlRowFromMovement(r) {
+  const m = r.mv;
+  const canSeeMoney = hasPermission('viewStockDocs');
+  return {
+    'วันที่': monthDayTH(r.day), 'เวลา': timeTH(m.created_at),
+    'ชื่อวัสดุ': r.name,
+    'ประเภท': m.reverses_id ? 'ยกเลิกรายการ'
+            : m.movement_type === 'initial' ? 'ยอดตั้งต้น' : XL_TYPE_TH[r.kind] || r.kind,
+    'จำนวน': Math.abs(r.delta), 'หน่วย': r.unit,
+    'ราคา/หน่วย': canSeeMoney ? (m.unit_cost ?? '') : '',
+    'ผู้ขาย': canSeeMoney ? (m.supplier || '') : '',
+    'เลขใบส่งของ': canSeeMoney ? (m.doc_no || '') : '',
+    'งาน/PO': (m.ref_type === 'po' && m.ref_id) ? m.ref_id : '',
+    'ผู้บันทึก': m.created_by || '', 'หมายเหตุ': m.note || '',
+  };
+}
+
+async function exportStockXLSX(mode) {
+  try {
+    showLoading(true);
+    // "template" ships a couple of worked examples so the shape is obvious;
+    // "data" ships whatever range the daily view is showing.
+    let rows, fname;
+    if (mode === 'template') {
+      const sample = stockItems[0];
+      const today = monthDayTH(todayISO());
+      rows = [
+        { 'วันที่': today, 'เวลา': '09:00', 'ชื่อวัสดุ': sample ? sample.name : 'ทินเนอร์',
+          'ประเภท': 'รับเข้า', 'จำนวน': 20, 'หน่วย': sample ? sample.unit : 'กิโลกรัม',
+          'ราคา/หน่วย': 45, 'ผู้ขาย': 'ร้านตัวอย่าง', 'เลขใบส่งของ': 'INV-0001',
+          'งาน/PO': '', 'ผู้บันทึก': '', 'หมายเหตุ': 'ตัวอย่าง — ลบแถวนี้ก่อนนำเข้า' },
+        { 'วันที่': today, 'เวลา': '13:30', 'ชื่อวัสดุ': sample ? sample.name : 'ทินเนอร์',
+          'ประเภท': 'เบิกออก', 'จำนวน': 5, 'หน่วย': sample ? sample.unit : 'กิโลกรัม',
+          'ราคา/หน่วย': '', 'ผู้ขาย': '', 'เลขใบส่งของ': '', 'งาน/PO': '',
+          'ผู้บันทึก': '', 'หมายเหตุ': 'ตัวอย่าง — ลบแถวนี้ก่อนนำเข้า' },
+      ];
+      fname = 'แม่แบบบันทึกสต๊อก.xlsx';
+    } else {
+      const list = dailyRows();
+      if (!list.length) { showLoading(false); toast('ช่วงที่เลือกไม่มีรายการให้ส่งออก'); return; }
+      rows = list.slice().reverse().map(xlRowFromMovement);   // oldest first reads better on paper
+      const b = dailyBounds();
+      fname = `ความเคลื่อนไหวสต๊อก-${b.from}${b.from === b.to ? '' : '-ถึง-' + b.to}.xlsx`;
+    }
+    const { XLSX, wb } = await buildWorkbook(rows);
+    XLSX.writeFile(wb, fname, { compression: true });
+    showLoading(false);
+    toast(mode === 'template' ? 'ดาวน์โหลดแม่แบบแล้ว' : `ส่งออกแล้ว — ${rows.length} รายการ`);
+  } catch(e) {
+    showLoading(false);
+    console.error('[exportStockXLSX]', e);
+    toast(e.message || 'ส่งออกไม่สำเร็จ');
+  }
+}
+
+// ── Import: read, check, show, and only then write ─────────────────────
+let importRows = [];
+
+// Everything is checked before a single row is sent, so the person sees the
+// whole picture and can fix the spreadsheet rather than discovering on row 40
+// that half the batch went in and half did not.
+function validateImportRows(raw) {
+  const byName = new Map();
+  stockItems.filter(i => i.is_active !== false)
+    .forEach(i => byName.set(String(i.name).trim().toLowerCase(), i));
+  const today = todayISO();
+
+  return raw.map((r, idx) => {
+    const out = { line: idx + 2, raw: r, errors: [], warn: [] };   // +2: header is row 1
+    const get = k => { const v = r[k]; return v === undefined || v === null ? '' : String(v).trim(); };
+
+    const name = get('ชื่อวัสดุ');
+    const item = byName.get(name.toLowerCase());
+    if (!name)      out.errors.push('ไม่ได้กรอกชื่อวัสดุ');
+    else if (!item) out.errors.push(`ไม่มีวัสดุชื่อ "${name}" ในระบบ`);
+    out.item = item;
+
+    const typeRaw = get('ประเภท');
+    const type = XL_TYPES[typeRaw];
+    if (!typeRaw)    out.errors.push('ไม่ได้กรอกประเภท');
+    else if (!type)  out.errors.push(`ประเภท "${typeRaw}" ไม่ถูกต้อง — ใช้ได้แค่ รับเข้า / เบิกออก / ปรับยอด`);
+    out.type = type;
+    if (type && !canMove(type)) out.errors.push(`ไม่มีสิทธิ์บันทึก "${XL_TYPE_TH[type]}"`);
+
+    const qty = parseFloat(String(r['จำนวน'] ?? '').replace(/,/g, ''));
+    if (!isFinite(qty))      out.errors.push('จำนวนไม่ใช่ตัวเลข');
+    else if (qty < 0)        out.errors.push('จำนวนติดลบไม่ได้');
+    else if (qty === 0 && type !== 'adjust') out.errors.push('จำนวนต้องมากกว่า 0');
+    out.qty = qty;
+
+    const day = xlParseDate(r['วันที่']);
+    if (!r['วันที่'])   { out.day = today; out.warn.push('ไม่ได้กรอกวันที่ — จะลงเป็นวันนี้'); }
+    else if (!day)      out.errors.push(`อ่านวันที่ "${get('วันที่')}" ไม่ออก`);
+    else if (day > today) out.errors.push('วันที่เป็นอนาคต');
+    else                out.day = day;
+    out.time = xlParseTime(r['เวลา']) || '09:00';
+
+    const priceRaw = get('ราคา/หน่วย');
+    if (priceRaw) {
+      const p = parseFloat(priceRaw.replace(/,/g, ''));
+      if (!isFinite(p) || p < 0) out.errors.push('ราคาไม่ถูกต้อง');
+      else if (type && type !== 'in') out.warn.push('ราคาใส่ได้เฉพาะรับเข้า — จะไม่ถูกใช้');
+      else out.price = p;
+    }
+
+    const po = get('งาน/PO');
+    if (po && !openPOs.some(p => p.po_number === po)) out.warn.push(`ไม่พบงาน ${po} ที่เปิดอยู่ — จะบันทึกเลขไว้เฉย ๆ`);
+    out.po = po;
+    out.supplier = get('ผู้ขาย');
+    out.docNo = get('เลขใบส่งของ');
+    out.note = get('หมายเหตุ');
+    out.by = get('ผู้บันทึก');
+
+    // Cheap sanity check against the balance we know about. The server holds
+    // the real line, but catching it here saves a round trip and reads better.
+    if (item && type === 'out' && isFinite(qty) && qty > (Number(item.qty_current) || 0))
+      out.warn.push(`เบิกมากกว่ายอดปัจจุบัน (${fmtNum(item.qty_current)}) — อาจถูกปฏิเสธ`);
+
+    out.ok = out.errors.length === 0;
+    return out;
+  });
+}
+
+async function handleImportFile(file) {
+  if (!file) return;
+  try {
+    showLoading(true);
+    const XLSX = await loadXLSX();
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    // Prefer the sheet we ship; fall back to the first one so a file rebuilt
+    // by hand still works.
+    const sheetName = wb.SheetNames.includes('รายการเคลื่อนไหว') ? 'รายการเคลื่อนไหว' : wb.SheetNames[0];
+    const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
+    showLoading(false);
+
+    if (!raw.length) { toast('ไฟล์นี้ไม่มีข้อมูล'); return; }
+    const headers = Object.keys(raw[0]);
+    if (!headers.includes('ชื่อวัสดุ') || !headers.includes('ประเภท')) {
+      toast('ไฟล์นี้ไม่ใช่แม่แบบของระบบ — ดาวน์โหลดแม่แบบแล้วกรอกในนั้น', 4500);
+      return;
+    }
+    // Drop the two example rows the template ships with.
+    const body = raw.filter(r => !/ลบแถวนี้ก่อนนำเข้า/.test(String(r['หมายเหตุ'] || '')));
+    importRows = validateImportRows(body);
+    renderImportPreview();
+  } catch(e) {
+    showLoading(false);
+    console.error('[handleImportFile]', e);
+    toast(e.message || 'อ่านไฟล์ไม่สำเร็จ');
+  }
+}
+
+function renderImportPreview() {
+  const okRows = importRows.filter(r => r.ok);
+  const bad = importRows.length - okRows.length;
+  const warned = okRows.filter(r => r.warn.length).length;
+
+  document.getElementById('import-summary').innerHTML = `
+    <div class="imp-sum">
+      <span class="imp-pill imp-ok">พร้อมนำเข้า ${okRows.length}</span>
+      ${bad ? `<span class="imp-pill imp-bad">มีปัญหา ${bad}</span>` : ''}
+      ${warned ? `<span class="imp-pill imp-warn">ควรตรวจ ${warned}</span>` : ''}
+      <span class="imp-note">ยังไม่มีอะไรถูกบันทึก จนกว่าจะกดปุ่มด้านล่าง</span>
+    </div>`;
+
+  document.getElementById('import-rows').innerHTML = importRows.map(r => {
+    const state = !r.ok ? 'bad' : r.warn.length ? 'warn' : 'ok';
+    const msgs = r.errors.concat(r.warn);
+    return `<div class="imp-row is-${state}">
+      <div class="imp-line">แถว ${r.line}</div>
+      <div class="imp-main">
+        <div class="imp-title">${escapeHtml(String(r.raw['ชื่อวัสดุ'] || '—'))}
+          <span class="mv-badge ${r.type === 'in' ? 'mv-in' : r.type === 'out' ? 'mv-out' : 'mv-adjust'}">${
+            escapeHtml(XL_TYPE_TH[r.type] || String(r.raw['ประเภท'] || '?'))}</span></div>
+        <div class="imp-meta">${escapeHtml(r.day ? monthDayTH(r.day) : '—')} ${escapeHtml(r.time || '')} · ${
+          isFinite(r.qty) ? fmtNum(r.qty) : '?'} ${escapeHtml(r.item ? (r.item.unit || '') : '')}${
+          r.price !== undefined ? ' · ' + fmtBaht(r.price) + ' บาท/หน่วย' : ''}</div>
+        ${msgs.length ? `<div class="imp-msg">${msgs.map(escapeHtml).join(' · ')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const btn = document.getElementById('import-apply');
+  btn.disabled = okRows.length === 0;
+  btn.textContent = okRows.length ? `นำเข้า ${okRows.length} รายการ` : 'ไม่มีรายการที่นำเข้าได้';
+  document.getElementById('import-modal').classList.remove('hidden');
+}
+
+async function applyImport() {
+  const rows = importRows.filter(r => r.ok)
+    // Oldest first: each row then lands on top of the balance the previous one
+    // left, which is also the order that keeps the balance checks meaningful.
+    .sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
+  if (!rows.length) return;
+
+  const btn = document.getElementById('import-apply');
+  btn.disabled = true;
+  showLoading(true);
+
+  const failed = [];
+  let done = 0;
+  for (const r of rows) {
+    btn.textContent = `กำลังนำเข้า ${done + 1}/${rows.length}…`;
+    try {
+      // Same path as the buttons — the function takes the row lock, keeps the
+      // balance chain right and refuses anything that would go negative.
+      const { error } = await sb.rpc('apply_stock_movement', {
+        p_item_id: r.item.id,
+        p_type: r.type,
+        p_qty: r.qty,
+        p_unit_cost: r.type === 'in' && r.price !== undefined ? r.price : null,
+        p_po_number: r.po || null,
+        p_note: r.note || null,
+        p_created_by: r.by || currentUser.display_name || currentUser.username,
+        p_doc_no: r.docNo || null,
+        p_supplier: r.supplier || null,
+        p_photo_url: null,
+        p_created_at: new Date(`${r.day}T${r.time}:00`).toISOString(),
+      });
+      if (error) throw error;
+      done++;
+    } catch(e) {
+      const short = /INSUFFICIENT_STOCK:([\d.\-]+)/.exec(e.message || '');
+      const retro = /RETRO_WOULD_GO_NEGATIVE:([\d.\-]+)/.exec(e.message || '');
+      failed.push({ line: r.line, why: short ? `ของไม่พอ (เหลือ ${fmtNum(short[1])})`
+                            : retro ? `ทำให้ยอดวันหลังติดลบ (ตอนนั้นเหลือ ${fmtNum(retro[1])})`
+                            : (e.message || 'ไม่ทราบสาเหตุ') });
+    }
+  }
+
+  await logActivity('stock_import', 'stock_item',
+    { total: rows.length, imported: done, failed: failed.length });
+
+  showLoading(false);
+  document.getElementById('import-modal').classList.add('hidden');
+  importRows = [];
+  await loadStock();
+
+  if (failed.length) {
+    // Keep the failures on screen — a toast would scroll away before anyone
+    // could write down which lines to fix.
+    document.getElementById('import-fail-list').innerHTML =
+      failed.map(f => `<div class="imp-row is-bad"><div class="imp-line">แถว ${f.line}</div>
+        <div class="imp-main"><div class="imp-msg">${escapeHtml(f.why)}</div></div></div>`).join('');
+    document.getElementById('import-fail-head').textContent =
+      `นำเข้าสำเร็จ ${done} รายการ · ไม่สำเร็จ ${failed.length} รายการ`;
+    document.getElementById('import-fail-modal').classList.remove('hidden');
+  } else {
+    toast(`นำเข้าสำเร็จ ${done} รายการ`);
+  }
 }
 
 // ── date helpers for the daily view (Buddhist era, same as everywhere else) ──
@@ -4226,6 +4708,88 @@ document.getElementById('daily-search').addEventListener('input', (e) => {
   dailySearch = e.target.value;
   renderDailyView();
 });
+
+// ── The paper report ──
+// Built on demand from the same rows the screen is showing, so what prints is
+// exactly what was on screen — one long table, the header repeated on every
+// sheet, and a signature line at the end because these get filed.
+function buildPrintReport() {
+  const rows = dailyRows().slice().reverse();     // oldest first reads correctly on paper
+  const { from, to } = dailyBounds();
+  const canSeeMoney = hasPermission('viewStockDocs');
+  const host = document.getElementById('print-report');
+  if (!rows.length) { host.innerHTML = '<div class="pr-head"><div class="pr-title">ไม่มีรายการในช่วงที่เลือก</div></div>'; return; }
+
+  let inVal = 0, outVal = 0, inN = 0, outN = 0;
+  rows.forEach(r => { if (r.kind === 'in') { inVal += r.value; inN++; }
+                      else if (r.kind === 'out') { outVal += r.value; outN++; } });
+
+  const cols = ['วันที่', 'เวลา', 'วัสดุ', 'ประเภท', 'จำนวน', 'หน่วย']
+    .concat(canSeeMoney ? ['มูลค่า'] : [])
+    .concat(['คงเหลือ', 'ผู้บันทึก', 'งาน / ใบส่งของ / หมายเหตุ']);
+
+  let lastDay = null;
+  const body = rows.map(r => {
+    const m = r.mv;
+    const bits = [];
+    if (m.ref_type === 'po' && m.ref_id) bits.push(m.ref_id);
+    if (canSeeMoney && m.doc_no) bits.push(m.doc_no);
+    if (canSeeMoney && m.supplier) bits.push(m.supplier);
+    if (m.note) bits.push(m.note);
+    const label = m.reverses_id ? 'ยกเลิก'
+      : m.movement_type === 'initial' ? 'ยอดตั้งต้น' : (XL_TYPE_TH[r.kind] || r.kind);
+    const sep = r.day !== lastDay
+      ? `<tr class="pr-day"><td colspan="${cols.length}">${escapeHtml(dayLabelTH(r.day))}</td></tr>` : '';
+    lastDay = r.day;
+    return sep + `<tr>
+      <td>${escapeHtml(monthDayTH(r.day))}</td>
+      <td>${escapeHtml(timeTH(m.created_at))}</td>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(label)}</td>
+      <td class="num">${r.delta > 0 ? '+' : r.delta < 0 ? '−' : ''}${fmtNum(Math.abs(r.delta))}</td>
+      <td>${escapeHtml(r.unit)}</td>
+      ${canSeeMoney ? `<td class="num">${r.value ? fmtBaht(r.value) : '–'}</td>` : ''}
+      <td class="num">${fmtNum(m.balance_after)}</td>
+      <td>${escapeHtml(m.created_by || '-')}</td>
+      <td>${escapeHtml(bits.join(' · '))}</td>
+    </tr>`;
+  }).join('');
+
+  host.innerHTML = `
+    <div class="pr-head">
+      <div class="pr-title">รายงานความเคลื่อนไหวคลังวัตถุดิบ</div>
+      <div class="pr-sub">ช่วงวันที่ ${escapeHtml(monthDayTH(from))}${from === to ? '' : ' – ' + escapeHtml(monthDayTH(to))}
+        · พิมพ์เมื่อ ${escapeHtml(monthDayTH(todayISO()))} ${escapeHtml(timeTH(new Date().toISOString()))} น.
+        · โดย ${escapeHtml(currentUser.display_name || currentUser.username)}</div>
+      <div class="pr-tot">รวม ${rows.length} รายการ · รับเข้า ${inN} รายการ${
+        canSeeMoney ? ' (' + fmtBaht(inVal) + ' บาท)' : ''} · เบิกออก ${outN} รายการ${
+        canSeeMoney ? ' (' + fmtBaht(outVal) + ' บาท)' : ''}</div>
+    </div>
+    <table class="pr-table">
+      <thead><tr>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+    <div class="pr-sign">
+      <div>ผู้จัดทำ</div><div>ผู้ตรวจสอบ</div><div>ผู้อนุมัติ</div>
+    </div>`;
+}
+
+document.getElementById('daily-print').addEventListener('click', () => {
+  if (!dailyRows().length) { toast('ช่วงที่เลือกไม่มีรายการให้พิมพ์'); return; }
+  buildPrintReport();
+  setTimeout(() => window.print(), 60);
+});
+
+document.getElementById('daily-xlsx').addEventListener('click', () => exportStockXLSX('data'));
+document.getElementById('daily-template').addEventListener('click', () => exportStockXLSX('template'));
+document.getElementById('daily-import').addEventListener('click', () =>
+  document.getElementById('import-file').click());
+document.getElementById('import-file').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';           // so choosing the same file twice still fires
+  handleImportFile(f);
+});
+document.getElementById('import-apply').addEventListener('click', applyImport);
 
 document.getElementById('daily-csv').addEventListener('click', () => {
   const rows = dailyRows();
