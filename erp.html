@@ -1086,7 +1086,7 @@
         <span class="module-pill pill-soon">เร็ว ๆ นี้</span>
       </button>
 
-      <button class="module-card erp-manage-only" id="module-settings" data-action="settings" style="display:none;">
+      <button class="module-card role-admin-only" id="module-settings" data-action="settings" style="display:none;">
         <div class="module-icon">⚙️</div>
         <div class="module-title">ตั้งค่า · ผู้ใช้ · สิทธิ์</div>
         <div class="module-desc">ผู้ใช้ · master data · สิทธิ์</div>
@@ -1682,10 +1682,12 @@ function applyPermissions() {
     badgeEl.innerHTML = `<span class="role-badge ${badgeClass} topbar-role-chip">${roleLabels[currentUser.role] || currentUser.role}${stationText}</span>`;
   }
 
-  // Settings module — visible only if the user can manage users OR master data.
-  const canManage = hasPermission('manageUsers') || hasPermission('manageDataAdd');
-  document.querySelectorAll('.erp-manage-only').forEach(el => {
-    el.style.display = canManage ? '' : 'none';
+  // ตั้งค่าผู้ใช้งาน is the admin's own panel — everyone else must not even
+  // see the door. Hidden rather than disabled: a button that refuses you only
+  // tells you where to keep trying.
+  const isAdmin = currentUser.role === 'admin';
+  document.querySelectorAll('.role-admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
   });
 }
 
@@ -1801,7 +1803,7 @@ const DK_NAV = [
   { label: 'จัดการ', items: [
     { key: 'cost',     icon: 'coins',    label: 'ต้นทุน & กำไร', action: 'soon' },
     { key: 'report',   icon: 'chart',    label: 'รายงาน',        action: 'soon' },
-    { key: 'settings', icon: 'settings', label: 'ตั้งค่า & ผู้ใช้', action: 'settings', manageOnly: true }
+    { key: 'settings', icon: 'settings', label: 'ตั้งค่า & ผู้ใช้', action: 'settings', adminOnly: true }
   ]}
 ];
 
@@ -1941,7 +1943,12 @@ function renderDesktopNav(model) {
       <span class="dk-nav-label">${escapeHtml(g.label)}</span>
       ${g.items.map(n => {
         const count = n.badge ? badges[n.badge] : 0;
-        return `<button class="dk-nav-item${n.key === 'home' ? ' active' : ''}${n.manageOnly ? ' erp-manage-only' : ''}"
+        // The rail is re-rendered on every refresh, so it decides for itself
+        // rather than waiting for applyPermissions to catch up — otherwise the
+        // item flashes into view for a moment on each redraw.
+        const hide = n.adminOnly && !(currentUser && currentUser.role === 'admin');
+        return `<button class="dk-nav-item${n.key === 'home' ? ' active' : ''}${n.adminOnly ? ' role-admin-only' : ''}"
+                  ${hide ? 'style="display:none;"' : ''}
                   data-action="${n.action || ''}" type="button">
           <span class="dk-nav-icon">${dkIcon(n.icon, 18, n.key === 'home' ? 2.1 : 1.9)}</span>
           <span class="dk-nav-text">${escapeHtml(n.label)}</span>
@@ -2251,11 +2258,11 @@ function handleModuleClick(action) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  ตั้งค่าผู้ใช้งาน
+//  ตั้งค่าผู้ใช้งาน — admin only
 //
-//  Whoever manages users may set anyone's PIN; everybody else may set their
-//  own and nobody else's. Changing your own is deliberately open to all —
-//  a PIN you cannot change is a PIN you end up sharing.
+//  Admin sets everyone's PIN, including their own; nobody else opens this at
+//  all. The entrance is hidden AND the function refuses, because hiding a
+//  button is not access control — the same lesson as enforceERPAccess().
 // ══════════════════════════════════════════════════════════════════════
 let usUsers = [];
 let usTarget = null;
@@ -2263,8 +2270,16 @@ let usTarget = null;
 const US_ROLE_TH = { admin: 'Admin', supervisor: 'หัวหน้า', office: 'Office',
                      manager: 'ผู้จัดการ', staff: 'พนักงาน' };
 
+function isAdminUser() {
+  return !!currentUser && currentUser.role === 'admin';
+}
+
 async function openUserSettings() {
-  const canAll = hasPermission('manageUsers');
+  if (!isAdminUser()) {
+    toast('หน้านี้เปิดได้เฉพาะ Admin');
+    logActivity('user_settings_denied', 'user', { role: currentUser ? currentUser.role : null });
+    return;
+  }
   try {
     showLoading(true);
     const { data, error } = await sb.from('users')
@@ -2281,12 +2296,10 @@ async function openUserSettings() {
     return;
   }
 
-  document.getElementById('users-note').innerHTML = canAll
-    ? 'ตั้งรหัสได้ทุกคน · รหัสยาว <strong>4–6 หลัก</strong> · ระบบจะกันไม่ให้ตั้งรหัสที่ซ้ำหรือชนกับของคนอื่น'
-    : 'เปลี่ยนได้เฉพาะรหัสของตัวเอง · รหัสยาว <strong>4–6 หลัก</strong>';
+  document.getElementById('users-note').innerHTML =
+    'ตั้งรหัสได้ทุกคน · รหัสยาว <strong>4–6 หลัก</strong> · ระบบจะกันไม่ให้ตั้งรหัสที่ซ้ำหรือชนกับของคนอื่น';
 
-  const rows = canAll ? usUsers : usUsers.filter(u => u.id === currentUser.id);
-  document.getElementById('users-list').innerHTML = rows.map(u => {
+  document.getElementById('users-list').innerHTML = usUsers.map(u => {
     const me = u.id === currentUser.id;
     return `<div class="us-row${me ? ' is-me' : ''}">
       <div class="us-who">
@@ -2316,11 +2329,9 @@ function pinClash(pin, exceptId) {
 }
 
 function openPinModal(userId) {
+  if (!isAdminUser()) { toast('หน้านี้เปิดได้เฉพาะ Admin'); return; }
   const u = usUsers.find(x => x.id === userId);
   if (!u) return;
-  if (u.id !== currentUser.id && !hasPermission('manageUsers')) {
-    toast('เปลี่ยนได้เฉพาะรหัสของตัวเอง'); return;
-  }
   usTarget = u;
   document.getElementById('pin-modal-title').textContent =
     `เปลี่ยนรหัส · ${u.display_name || u.username}`;
@@ -2334,6 +2345,7 @@ function openPinModal(userId) {
 
 async function savePin() {
   if (!usTarget) return;
+  if (!isAdminUser()) { toast('หน้านี้เปิดได้เฉพาะ Admin'); return; }
   const msg = document.getElementById('pin-msg');
   const set = (t, ok) => { msg.textContent = t; msg.className = 'us-msg' + (ok ? ' ok' : ''); };
   const a = document.getElementById('pin-new').value.trim();
