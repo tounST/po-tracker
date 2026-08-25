@@ -1727,6 +1727,8 @@ a:hover { color: var(--accent); }
         <div class="pin-dot" id="pin-dot-1"></div>
         <div class="pin-dot" id="pin-dot-2"></div>
         <div class="pin-dot" id="pin-dot-3"></div>
+      <div class="pin-dot pin-dot-extra" id="pin-dot-4" style="display:none;"></div>
+      <div class="pin-dot pin-dot-extra" id="pin-dot-5" style="display:none;"></div>
       </div>
 
       <div class="pin-keypad" id="pin-keypad"></div>
@@ -2103,24 +2105,68 @@ function initPINKeypad() {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key >= '0' && e.key <= '9') { e.preventDefault(); addPINDigit(Number(e.key)); }
       else if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); backspacePIN(); }
-      else if (e.key === 'Enter' && pinInput.length === 4) { e.preventDefault(); submitPIN(); }
+      else if (e.key === 'Enter' && pinInput.length >= PIN_MIN) { e.preventDefault(); submitPIN(); }
     });
   }
 }
 
-function addPINDigit(d) {
-  if (pinInput.length >= 4) return;
-  pinInput += d;
+// PINs are 4 or 6 digits while the changeover runs: admin moved to six, the
+// rest are still on four. So a try at four cannot fail loudly — it has to fall
+// through and wait for the fifth digit. Only six ends the attempt for good.
+// (setUserPin refuses a PIN that is a prefix of another, so no four-digit
+// user can shadow the first four digits of somebody's six.)
+const PIN_MIN = 4, PIN_MAX = 6;
+
+// A four-digit try that misses cannot report anything yet — the fifth digit
+// may still be coming. But it cannot stay silent forever either, or someone
+// with a plain wrong four-digit PIN sees nothing happen at all and their
+// digits sit there poisoning whatever they type next. So a miss at four waits
+// briefly for a fifth keypress; if none arrives, it becomes a normal failure.
+let pinPendingTimer = null;
+function cancelPinPending() {
+  if (pinPendingTimer) { clearTimeout(pinPendingTimer); pinPendingTimer = null; }
+}
+function pinTentativeMiss() {
+  cancelPinPending();
+  pinPendingTimer = setTimeout(() => {
+    pinPendingTimer = null;
+    if (pinInput.length !== PIN_MIN) return;   // they kept typing after all
+    const errEl = document.getElementById('pin-error');
+    if (errEl) errEl.textContent = '❌ PIN ไม่ถูกต้อง';
+    playShakeAnimation();
+    pinInput = '';
+    updatePINDots();
+  }, 1500);
+}
+
+function addPINDigit(digit) {
+  if (pinInput.length >= PIN_MAX) return;
+  cancelPinPending();
+  const errEl = document.getElementById('pin-error');
+  if (errEl) errEl.textContent = '';
+  pinInput += String(digit);
   updatePINDots();
-  if (pinInput.length === 4) setTimeout(submitPIN, 200);
+  if (pinInput.length === PIN_MIN || pinInput.length === PIN_MAX) {
+    setTimeout(() => submitPIN(pinInput.length < PIN_MAX), 200);
+  }
 }
+
 function backspacePIN() {
-  if (pinInput.length > 0) { pinInput = pinInput.slice(0, -1); updatePINDots(); }
+  cancelPinPending();
+  if (pinInput.length > 0) {
+    pinInput = pinInput.slice(0, -1);
+    updatePINDots();
+  }
 }
+
+// The last two dots only appear once they are needed, so a four-digit user
+// never sees two empty slots wondering what is missing.
 function updatePINDots() {
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < PIN_MAX; i++) {
     const dot = document.getElementById(`pin-dot-${i}`);
-    if (dot) dot.classList.toggle('filled', i < pinInput.length);
+    if (!dot) continue;
+    if (i >= PIN_MIN) dot.style.display = pinInput.length > PIN_MIN ? '' : 'none';
+    dot.classList.toggle('filled', i < pinInput.length);
   }
 }
 function playShakeAnimation() {
@@ -2130,10 +2176,11 @@ function playShakeAnimation() {
   setTimeout(() => wrap.classList.remove('shake'), 500);
 }
 
-async function submitPIN() {
+// tentative = a four-digit attempt that may still become a six-digit one, so a
+// miss must stay silent and leave the digits on screen rather than clearing.
+async function submitPIN(tentative = false) {
   const pin = pinInput;
-  pinInput = '';
-  updatePINDots();
+  if (!tentative) { pinInput = ''; updatePINDots(); }
   const errEl = document.getElementById('pin-error');
   errEl.textContent = '';
 
@@ -2145,11 +2192,16 @@ async function submitPIN() {
       .eq('is_active', true)
       .single();
     if (error || !data) {
+      showLoading(false);
+      if (tentative) { pinTentativeMiss(); return; }   // maybe a six is coming
       errEl.textContent = '❌ PIN ไม่ถูกต้อง';
       playShakeAnimation();
-      showLoading(false);
+      pinInput = '';
+      updatePINDots();
       return;
     }
+    cancelPinPending();
+    pinInput = ''; updatePINDots();
     currentUser = data;
     sessionStorage.setItem('po_user_id', currentUser.id);
     await logActivity('login_desktop', 'user', { username: currentUser.username });
@@ -5703,9 +5755,36 @@ function escapeHtml(s) {
 // ═══════════════════════════════════════════════════
 //  BOOTSTRAP
 // ═══════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initPINKeypad();
   wireUserModal();
+
+  // Carry the login across pages. sessionStorage is per-tab and shared by
+  // everything on this origin, so arriving here from the ERP shell — which
+  // wrote the same key — means the PIN has already been given in this sitting.
+  // This file was the only one of the four that saved it and never read it
+  // back, which is why the PC asked again on every hop. The 30-minute idle
+  // timeout is unchanged and still the thing that ends a session.
+  const userIdFromSession = sessionStorage.getItem('po_user_id');
+  if (!userIdFromSession) return;
+  try {
+    const { data, error } = await sb.from('users')
+      .select('*')
+      .eq('id', userIdFromSession)
+      .eq('is_active', true)
+      .single();
+    if (data && !error) {
+      currentUser = data;
+      resetSessionTimer();
+      await onLoginSuccess();
+    } else {
+      // Deactivated or deleted while the tab sat open — make them log in again.
+      sessionStorage.removeItem('po_user_id');
+    }
+  } catch (e) {
+    console.warn('[Session Recovery] Failed:', e);
+    sessionStorage.removeItem('po_user_id');
+  }
 });
 </script>
 
