@@ -14,6 +14,20 @@
 - ไม่สมมติว่ารู้แล้ว เช่น ถ้าบอกให้ "deploy" ต้องอธิบายทุก step
 - ถ้าทำได้เองเลย → ทำให้เลย ไม่ต้องรออธิบาย
 
+### 🔗 กฎถาวร — แนบลิงก์ทุกครั้ง (toun สั่ง 2026-08-14)
+**ทุกครั้งที่รายงานว่างานเสร็จ / deploy แล้ว / มีอะไรให้ดู ต้องแนบลิงก์เปิดใช้งานมาด้วยเสมอ ไม่ต้องรอให้ถาม**
+
+| หน้า | ลิงก์ |
+|---|---|
+| 📦 คลังสต๊อก | `https://tounst.github.io/po-tracker/stock.html` |
+| 🏭 ERP หน้าแรก | `https://tounst.github.io/po-tracker/erp.html` |
+| 📋 PO Tracker (เลือกให้อัตโนมัติ) | `https://tounst.github.io/po-tracker/` |
+| 📋 PO — PC | `https://tounst.github.io/po-tracker/po-desktop.html` |
+| 📋 PO — มือถือ | `https://tounst.github.io/po-tracker/po-mobile.html` |
+| 💻 โค้ดบน GitHub | `https://github.com/tounST/po-tracker` |
+
+ถ้า bump cache ต้องบอกด้วยว่า **ต้องปิดแอปเปิดใหม่ 1 ครั้ง** + บอกวิธีเช็คว่าได้ตัวใหม่แล้ว
+
 ### Shortcut phrases (toun's shorthand)
 - **"เขียนบันทึก"** / **"บันทึกเลย"** / **"จดลง"** / **"จดไว้"** → update ทั้ง `CLAUDE.md` + memory files ใน `~/.claude/projects/.../memory/`. ไม่ต้องถามว่าเขียนเรื่องอะไร — ดู context บทสนทนาที่ผ่านมา (เพิ่ง fix อะไร / เจอกฎใหม่อะไร / ได้ milestone อะไร) แล้วเขียนสิ่งนั้น. ดูรายละเอียดใน `memory/feedback_shortcut_writenote.md`
 
