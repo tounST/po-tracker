@@ -216,7 +216,19 @@
   }
   .us-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .us-title { font-size: 18px; font-weight: 800; color: var(--ink); }
-  .us-note { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; margin-bottom: 14px; }
+  .us-note { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; }
+  .us-noterow {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 12px; margin-bottom: 14px;
+  }
+  /* Same shape as the หมวด headers in คลังสต๊อก, so the two lists read alike. */
+  .us-group {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 8px; margin: 16px 2px 8px;
+  }
+  .us-group:first-child { margin-top: 2px; }
+  .usg-name { font-size: 13px; font-weight: 800; color: var(--ink-2); letter-spacing: .2px; }
+  .usg-meta { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
   .us-row {
     display: flex; align-items: center; gap: 10px;
     padding: 11px 12px; border: 1px solid var(--line);
@@ -238,6 +250,27 @@
     touch-action: manipulation;
   }
   .us-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .us-eye {
+    font-family: inherit; font-size: 15px; line-height: 1;
+    width: 42px; min-height: 40px; border-radius: var(--r-sm);
+    border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink-3); cursor: pointer; flex-shrink: 0;
+    touch-action: manipulation;
+  }
+  .us-eye:hover,
+  .us-eye.on { border-color: var(--accent); color: var(--accent); }
+  .us-eye-all {
+    width: auto; padding: 8px 12px; font-size: 12.5px; font-weight: 700;
+    white-space: nowrap;
+  }
+  /* On a narrow phone the name gets its own line, so it never squeezes down
+     to a couple of characters next to the PIN and the two buttons. */
+  @media (max-width: 430px) {
+    .us-row { flex-wrap: wrap; }
+    .us-who { flex: 1 1 100%; }
+    .us-pin { flex: 1; text-align: left; }
+    .us-noterow { flex-direction: column; gap: 8px; }
+  }
   .us-field { margin-bottom: 12px; }
   .us-field label { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; }
   .us-field input {
@@ -1208,7 +1241,10 @@
       <div class="us-title">ตั้งค่าผู้ใช้งาน</div>
       <button class="icon-btn" id="users-close" aria-label="ปิด">✕</button>
     </div>
-    <div class="us-note" id="users-note"></div>
+    <div class="us-noterow">
+      <div class="us-note" id="users-note"></div>
+      <button class="us-eye us-eye-all" id="users-eye-all" type="button">👁 แสดงรหัสทั้งหมด</button>
+    </div>
     <div class="us-list" id="users-list"></div>
   </div>
 </div>
@@ -2269,6 +2305,13 @@ let usTarget = null;
 
 const US_ROLE_TH = { admin: 'Admin', supervisor: 'หัวหน้า', office: 'Office',
                      manager: 'ผู้จัดการ', staff: 'พนักงาน' };
+// Listed from the most authority down, so the rows people rarely touch sink
+// to the bottom instead of being scattered through the list.
+const US_ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
+
+// Which PINs are currently uncovered. Kept outside the markup so a redraw
+// after a save does not silently re-reveal — or re-hide — what admin chose.
+let usShown = new Set();
 
 function isAdminUser() {
   return !!currentUser && currentUser.role === 'admin';
@@ -2297,21 +2340,62 @@ async function openUserSettings() {
   }
 
   document.getElementById('users-note').innerHTML =
-    'ตั้งรหัสได้ทุกคน · รหัสยาว <strong>4–6 หลัก</strong> · ระบบจะกันไม่ให้ตั้งรหัสที่ซ้ำหรือชนกับของคนอื่น';
+    'ตั้งรหัสได้ทุกคน · รหัสยาว <strong>4–6 หลัก</strong> · ระบบจะกันไม่ให้ตั้งรหัสที่ซ้ำหรือชนกับของคนอื่น · กด 👁 เพื่อดูรหัส';
 
-  document.getElementById('users-list').innerHTML = usUsers.map(u => {
-    const me = u.id === currentUser.id;
-    return `<div class="us-row${me ? ' is-me' : ''}">
-      <div class="us-who">
-        <div class="us-name">${escapeHtml(u.display_name || u.username)}${me ? ' · ตัวคุณเอง' : ''}</div>
-        <div class="us-sub">${escapeHtml(u.username)} · ${escapeHtml(US_ROLE_TH[u.role] || u.role)}</div>
-      </div>
-      <div class="us-pin">${'•'.repeat((u.pin || '').length || 4)}</div>
-      <button class="us-btn" data-setpin="${escapeHtml(u.id)}">เปลี่ยนรหัส</button>
-    </div>`;
-  }).join('') || '<div class="us-note">ไม่มีผู้ใช้ให้แสดง</div>';
-
+  renderUsersList();
   document.getElementById('users-modal').classList.remove('hidden');
+}
+
+function usGroups() {
+  const known = US_ROLE_ORDER.map(role => ({ role, rows: usUsers.filter(u => u.role === role) }));
+  // A role nobody planned for still has to show up somewhere, at the end.
+  const extra = [...new Set(usUsers.map(u => u.role).filter(r => !US_ROLE_ORDER.includes(r)))]
+    .map(role => ({ role, rows: usUsers.filter(u => u.role === role) }));
+  return known.concat(extra).filter(g => g.rows.length);
+}
+
+function usPinText(u) {
+  const pin = u.pin || '';
+  return usShown.has(u.id) ? (pin || '—') : '•'.repeat(pin.length || 4);
+}
+
+function renderUsersList() {
+  const html = usGroups().map(g => `
+    <div class="us-group">
+      <span class="usg-name">${escapeHtml(US_ROLE_TH[g.role] || g.role)}</span>
+      <span class="usg-meta">${g.rows.length} คน</span>
+    </div>
+    ${g.rows.map(u => {
+      const me = u.id === currentUser.id;
+      const on = usShown.has(u.id);
+      return `<div class="us-row${me ? ' is-me' : ''}">
+        <div class="us-who">
+          <div class="us-name">${escapeHtml(u.display_name || u.username)}${me ? ' · ตัวคุณเอง' : ''}</div>
+          <div class="us-sub">${escapeHtml(u.username)} · ${escapeHtml(US_ROLE_TH[u.role] || u.role)}</div>
+        </div>
+        <div class="us-pin" id="uspin-${escapeHtml(u.id)}">${escapeHtml(usPinText(u))}</div>
+        <button class="us-eye${on ? ' on' : ''}" data-eye="${escapeHtml(u.id)}" type="button"
+                title="${on ? 'ซ่อนรหัส' : 'แสดงรหัส'}">👁</button>
+        <button class="us-btn" data-setpin="${escapeHtml(u.id)}">เปลี่ยนรหัส</button>
+      </div>`;
+    }).join('')}`).join('') || '<div class="us-note">ไม่มีผู้ใช้ให้แสดง</div>';
+
+  document.getElementById('users-list').innerHTML = html;
+  const all = document.getElementById('users-eye-all');
+  const everyShown = usUsers.length > 0 && usUsers.every(u => usShown.has(u.id));
+  all.textContent = everyShown ? '🙈 ซ่อนรหัสทั้งหมด' : '👁 แสดงรหัสทั้งหมด';
+  all.classList.toggle('on', everyShown);
+}
+
+function toggleUsPin(id) {
+  if (usShown.has(id)) usShown.delete(id); else usShown.add(id);
+  renderUsersList();
+}
+
+function toggleUsPinAll() {
+  const everyShown = usUsers.length > 0 && usUsers.every(u => usShown.has(u.id));
+  usShown = everyShown ? new Set() : new Set(usUsers.map(u => u.id));
+  renderUsersList();
 }
 
 // A PIN must not be a prefix of another, in either direction. With four- and
@@ -2381,11 +2465,18 @@ async function savePin() {
 }
 
 document.getElementById('users-list').addEventListener('click', (e) => {
+  const eye = e.target.closest('[data-eye]');
+  if (eye) { toggleUsPin(eye.dataset.eye); return; }
   const b = e.target.closest('[data-setpin]');
   if (b) openPinModal(b.dataset.setpin);
 });
-document.getElementById('users-close').onclick = () =>
+document.getElementById('users-eye-all').onclick = toggleUsPinAll;
+document.getElementById('users-close').onclick = () => {
+  // Cover everything again on the way out — the next person to open this
+  // screen should have to ask for each PIN, not inherit them uncovered.
+  usShown = new Set();
   document.getElementById('users-modal').classList.add('hidden');
+};
 document.getElementById('pin-modal-close').onclick = () =>
   document.getElementById('pin-modal').classList.add('hidden');
 document.getElementById('pin-save').onclick = savePin;
