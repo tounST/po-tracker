@@ -235,6 +235,8 @@
     border-radius: var(--r-sm); margin-bottom: 8px; background: var(--bg);
   }
   .us-row.is-me { border-color: var(--accent); }
+  .us-row.is-stale { border-color: var(--danger); background: var(--danger-bg); }
+  .us-warn { color: var(--danger); font-weight: 700; }
   .us-who { flex: 1; min-width: 0; }
   .us-name { font-size: 14px; font-weight: 700; color: var(--ink); }
   .us-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
@@ -1020,7 +1022,7 @@
       <div class="pin-dot" id="pin-dot-4"></div>
       <div class="pin-dot" id="pin-dot-5"></div>
     </div>
-    <div class="pin-hint">ใส่ PIN 4 หรือ 6 หลัก · Enter 4 or 6-digit PIN</div>
+    <div class="pin-hint">ใส่ PIN 6 หลัก · Enter 6-digit PIN</div>
     <div class="pin-error" id="pin-error"></div>
     <div class="pin-keypad" id="pin-keypad"></div>
     <div class="pin-info">ERP · secured by Supabase</div>
@@ -1256,7 +1258,7 @@
       <button class="icon-btn" id="pin-modal-close" aria-label="ปิด">✕</button>
     </div>
     <div class="us-field">
-      <label for="pin-new">รหัสใหม่ (4–6 หลัก)</label>
+      <label for="pin-new">รหัสใหม่ (6 หลัก)</label>
       <input id="pin-new" type="text" inputmode="numeric" autocomplete="off"
              maxlength="6" placeholder="เช่น 111222">
     </div>
@@ -1481,7 +1483,7 @@ function initPINKeypad() {
       } else if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
         backspacePIN();
-      } else if (e.key === 'Enter' && pinInput.length >= PIN_MIN) {
+      } else if (e.key === 'Enter' && pinInput.length === PIN_LEN) {
         e.preventDefault();
         submitPIN();
       }
@@ -1494,66 +1496,39 @@ function initPINKeypad() {
 // through and wait for the fifth digit. Only six ends the attempt for good.
 // (setUserPin refuses a PIN that is a prefix of another, so no four-digit
 // user can shadow the first four digits of somebody's six.)
-const PIN_MIN = 4, PIN_MAX = 6;
-
-// A four-digit try that misses cannot report anything yet — the fifth digit
-// may still be coming. But it cannot stay silent forever either, or someone
-// with a plain wrong four-digit PIN sees nothing happen at all and their
-// digits sit there poisoning whatever they type next. So a miss at four waits
-// briefly for a fifth keypress; if none arrives, it becomes a normal failure.
-let pinPendingTimer = null;
-function cancelPinPending() {
-  if (pinPendingTimer) { clearTimeout(pinPendingTimer); pinPendingTimer = null; }
-}
-function pinTentativeMiss() {
-  cancelPinPending();
-  pinPendingTimer = setTimeout(() => {
-    pinPendingTimer = null;
-    if (pinInput.length !== PIN_MIN) return;   // they kept typing after all
-    const errEl = document.getElementById('pin-error');
-    if (errEl) errEl.textContent = '❌ PIN ไม่ถูกต้อง';
-    playShakeAnimation();
-    pinInput = '';
-    updatePINDots();
-  }, 1500);
-}
+// Every PIN is six digits, full stop. It was four for years, then briefly
+// either length while the changeover ran — that in-between state is over, so
+// a four-digit PIN still sitting in the table simply cannot log in any more.
+const PIN_LEN = 6;
 
 function addPINDigit(digit) {
-  if (pinInput.length >= PIN_MAX) return;
-  cancelPinPending();
+  if (pinInput.length >= PIN_LEN) return;
   const errEl = document.getElementById('pin-error');
   if (errEl) errEl.textContent = '';
   pinInput += String(digit);
   updatePINDots();
-  if (pinInput.length === PIN_MIN || pinInput.length === PIN_MAX) {
-    setTimeout(() => submitPIN(pinInput.length < PIN_MAX), 200);
-  }
+  if (pinInput.length === PIN_LEN) setTimeout(submitPIN, 200);
 }
 
 function backspacePIN() {
-  cancelPinPending();
   if (pinInput.length > 0) {
     pinInput = pinInput.slice(0, -1);
     updatePINDots();
   }
 }
 
-// The last two dots only appear once they are needed, so a four-digit user
-// never sees two empty slots wondering what is missing.
 function updatePINDots() {
-  for (let i = 0; i < PIN_MAX; i++) {
+  for (let i = 0; i < PIN_LEN; i++) {
     const dot = document.getElementById(`pin-dot-${i}`);
     if (!dot) continue;
     dot.classList.toggle('filled', i < pinInput.length);
   }
 }
 
-// Authenticates against the Supabase `users` table exactly like po-mobile.html.
-// tentative = a four-digit attempt that may still become a six-digit one, so a
-// miss must stay silent and leave the digits on screen rather than clearing.
-async function submitPIN(tentative = false) {
+// Authenticates against the Supabase `users` table.
+async function submitPIN() {
   const pin = pinInput;
-  if (!tentative) { pinInput = ''; updatePINDots(); }
+  pinInput = ''; updatePINDots();
 
   const errEl = document.getElementById('pin-error');
   errEl.textContent = '';
@@ -1570,7 +1545,6 @@ async function submitPIN(tentative = false) {
 
     if (error || !data) {
       showLoading(false);
-      if (tentative) { pinTentativeMiss(); return; }   // maybe a six is coming
       errEl.textContent = '❌ PIN ไม่ถูกต้อง';
       playShakeAnimation();
       pinInput = '';
@@ -1579,7 +1553,6 @@ async function submitPIN(tentative = false) {
     }
 
     // Login successful
-    cancelPinPending();
     pinInput = ''; updatePINDots();
     currentUser = data;
     sessionStorage.setItem('po_user_id', currentUser.id);
@@ -2338,8 +2311,12 @@ async function openUserSettings() {
     return;
   }
 
+  // Anyone still holding a four-digit PIN cannot log in at all now, so the
+  // screen has to say how many are stranded — not leave admin to spot it.
+  const stale = usUsers.filter(u => (u.pin || '').length !== PIN_LEN).length;
   document.getElementById('users-note').innerHTML =
-    'ตั้งรหัสได้ทุกคน · รหัสยาว <strong>4–6 หลัก</strong> · ระบบจะกันไม่ให้ตั้งรหัสที่ซ้ำหรือชนกับของคนอื่น · กด 👁 เพื่อดูรหัส';
+    `ตั้งรหัสได้ทุกคน · รหัสต้องยาว <strong>${PIN_LEN} หลัก</strong> · ระบบจะกันไม่ให้ตั้งรหัสซ้ำกับของคนอื่น · กด 👁 เพื่อดูรหัส`
+    + (stale ? `<br><span class="us-warn">⚠️ ยังมี ${stale} คนใช้รหัสเก่าที่ไม่ครบ ${PIN_LEN} หลัก — เข้าระบบไม่ได้จนกว่าจะตั้งรหัสใหม่ให้</span>` : '');
 
   renderUsersList();
   document.getElementById('users-modal').classList.remove('hidden');
@@ -2367,10 +2344,12 @@ function renderUsersList() {
     ${g.rows.map(u => {
       const me = u.id === currentUser.id;
       const on = usShown.has(u.id);
-      return `<div class="us-row${me ? ' is-me' : ''}">
+      const stale = (u.pin || '').length !== PIN_LEN;
+      return `<div class="us-row${me ? ' is-me' : ''}${stale ? ' is-stale' : ''}">
         <div class="us-who">
           <div class="us-name">${escapeHtml(u.display_name || u.username)}${me ? ' · ตัวคุณเอง' : ''}</div>
-          <div class="us-sub">${escapeHtml(u.username)} · ${escapeHtml(US_ROLE_TH[u.role] || u.role)}</div>
+          <div class="us-sub">${escapeHtml(u.username)} · ${escapeHtml(US_ROLE_TH[u.role] || u.role)}${
+            stale ? ' · <span class="us-warn">เข้าระบบไม่ได้ ต้องตั้งรหัสใหม่</span>' : ''}</div>
         </div>
         <div class="us-pin" id="uspin-${escapeHtml(u.id)}">${escapeHtml(usPinText(u))}</div>
         <button class="us-eye${on ? ' on' : ''}" data-eye="${escapeHtml(u.id)}" type="button"
@@ -2397,16 +2376,15 @@ function toggleUsPinAll() {
   renderUsersList();
 }
 
-// A PIN must not be a prefix of another, in either direction. With four- and
-// six-digit PINs both in use the login pad tries at four before waiting for a
-// fifth digit, so if someone held 1112 while admin held 111222, typing the
-// admin PIN would log in as that someone on the fourth keypress.
+// Two people must never share a PIN — the login looks a user up by PIN alone,
+// so a duplicate would sign one of them in as the other. The old rule also
+// refused a PIN that merely started like someone else's; that guarded the pad
+// while it submitted at four digits and is gone with it. A leftover four-digit
+// PIN cannot log in any more, so it has no first four digits left to shadow.
 function pinClash(pin, exceptId) {
   for (const u of usUsers) {
     if (u.id === exceptId || !u.pin) continue;
     if (u.pin === pin) return `รหัสนี้ซ้ำกับของ ${u.display_name || u.username}`;
-    if (u.pin.startsWith(pin) || pin.startsWith(u.pin))
-      return `รหัสนี้ชนกับของ ${u.display_name || u.username} (ขึ้นต้นเหมือนกัน) — เปลี่ยนตัวแรกให้ต่างออกไป`;
   }
   return null;
 }
@@ -2434,8 +2412,7 @@ async function savePin() {
   const a = document.getElementById('pin-new').value.trim();
   const b = document.getElementById('pin-new2').value.trim();
 
-  if (!/^\d{4,6}$/.test(a))      return set('รหัสต้องเป็นตัวเลข 4–6 หลัก');
-  if (a.length === 5)            return set('ใช้ได้เฉพาะ 4 หลัก หรือ 6 หลัก');
+  if (!new RegExp(`^\\d{${PIN_LEN}}$`).test(a)) return set(`รหัสต้องเป็นตัวเลข ${PIN_LEN} หลักพอดี`);
   if (a !== b)                   return set('รหัสสองช่องไม่ตรงกัน');
   const clash = pinClash(a, usTarget.id);
   if (clash)                     return set(clash);

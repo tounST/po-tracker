@@ -1217,7 +1217,7 @@
       <div class="pin-dot" id="pin-dot-4"></div>
       <div class="pin-dot" id="pin-dot-5"></div>
     </div>
-    <div class="pin-hint">ใส่ PIN 4 หรือ 6 หลัก · Enter 4 or 6-digit PIN</div>
+    <div class="pin-hint">ใส่ PIN 6 หลัก · Enter 6-digit PIN</div>
     <div class="pin-error" id="pin-error"></div>
     <div class="pin-keypad" id="pin-keypad"></div>
     <div class="pin-info">ERP · secured by Supabase</div>
@@ -1885,7 +1885,7 @@ function initPINKeypad() {
       } else if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
         backspacePIN();
-      } else if (e.key === 'Enter' && pinInput.length >= PIN_MIN) {
+      } else if (e.key === 'Enter' && pinInput.length === PIN_LEN) {
         e.preventDefault();
         submitPIN();
       }
@@ -1898,54 +1898,29 @@ function initPINKeypad() {
 // through and wait for the fifth digit. Only six ends the attempt for good.
 // (setUserPin refuses a PIN that is a prefix of another, so no four-digit
 // user can shadow the first four digits of somebody's six.)
-const PIN_MIN = 4, PIN_MAX = 6;
-
-// A four-digit try that misses cannot report anything yet — the fifth digit
-// may still be coming. But it cannot stay silent forever either, or someone
-// with a plain wrong four-digit PIN sees nothing happen at all and their
-// digits sit there poisoning whatever they type next. So a miss at four waits
-// briefly for a fifth keypress; if none arrives, it becomes a normal failure.
-let pinPendingTimer = null;
-function cancelPinPending() {
-  if (pinPendingTimer) { clearTimeout(pinPendingTimer); pinPendingTimer = null; }
-}
-function pinTentativeMiss() {
-  cancelPinPending();
-  pinPendingTimer = setTimeout(() => {
-    pinPendingTimer = null;
-    if (pinInput.length !== PIN_MIN) return;   // they kept typing after all
-    const errEl = document.getElementById('pin-error');
-    if (errEl) errEl.textContent = '❌ PIN ไม่ถูกต้อง';
-    playShakeAnimation();
-    pinInput = '';
-    updatePINDots();
-  }, 1500);
-}
+// Every PIN is six digits, full stop. It was four for years, then briefly
+// either length while the changeover ran — that in-between state is over, so
+// a four-digit PIN still sitting in the table simply cannot log in any more.
+const PIN_LEN = 6;
 
 function addPINDigit(digit) {
-  if (pinInput.length >= PIN_MAX) return;
-  cancelPinPending();
+  if (pinInput.length >= PIN_LEN) return;
   const errEl = document.getElementById('pin-error');
   if (errEl) errEl.textContent = '';
   pinInput += String(digit);
   updatePINDots();
-  if (pinInput.length === PIN_MIN || pinInput.length === PIN_MAX) {
-    setTimeout(() => submitPIN(pinInput.length < PIN_MAX), 200);
-  }
+  if (pinInput.length === PIN_LEN) setTimeout(submitPIN, 200);
 }
 
 function backspacePIN() {
-  cancelPinPending();
   if (pinInput.length > 0) {
     pinInput = pinInput.slice(0, -1);
     updatePINDots();
   }
 }
 
-// The last two dots only appear once they are needed, so a four-digit user
-// never sees two empty slots wondering what is missing.
 function updatePINDots() {
-  for (let i = 0; i < PIN_MAX; i++) {
+  for (let i = 0; i < PIN_LEN; i++) {
     const dot = document.getElementById(`pin-dot-${i}`);
     if (!dot) continue;
     dot.classList.toggle('filled', i < pinInput.length);
@@ -1953,11 +1928,9 @@ function updatePINDots() {
 }
 
 // Authenticates against the Supabase `users` table exactly like erp.html.
-// tentative = a four-digit attempt that may still become a six-digit one, so a
-// miss must stay silent and leave the digits on screen rather than clearing.
-async function submitPIN(tentative = false) {
+async function submitPIN() {
   const pin = pinInput;
-  if (!tentative) { pinInput = ''; updatePINDots(); }
+  pinInput = ''; updatePINDots();
 
   const errEl = document.getElementById('pin-error');
   errEl.textContent = '';
@@ -1974,7 +1947,6 @@ async function submitPIN(tentative = false) {
 
     if (error || !data) {
       showLoading(false);
-      if (tentative) { pinTentativeMiss(); return; }   // maybe a six is coming
       errEl.textContent = '❌ PIN ไม่ถูกต้อง';
       playShakeAnimation();
       pinInput = '';
@@ -1983,7 +1955,6 @@ async function submitPIN(tentative = false) {
     }
 
     // Login successful
-    cancelPinPending();
     pinInput = ''; updatePINDots();
     currentUser = data;
     sessionStorage.setItem('po_user_id', currentUser.id);
