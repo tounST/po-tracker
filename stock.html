@@ -1026,6 +1026,103 @@
   .perm-line-label { font-size: 13.5px; font-weight: 700; color: var(--ink); }
   .perm-line-hint { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
 
+  /* ── ตั้งต้น & นับสต๊อก ──
+     Same card grammar as the permission cards above it, since it lives on
+     the same admin screen; the reset mode borrows the danger tokens. */
+  .bl-wrap {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-card); padding: 14px 16px; margin-top: 22px;
+  }
+  .bl-wrap.is-reset { border-color: var(--danger); }
+  .bl-head { padding-bottom: 11px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  .bl-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+  .bl-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+
+  .bl-modes { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .bl-mode {
+    flex: 1 1 200px; text-align: left; font-family: inherit; cursor: pointer;
+    padding: 10px 12px; border-radius: var(--r-sm);
+    border: 1px solid var(--line); background: var(--bg);
+    min-height: var(--touch-min); touch-action: manipulation;
+  }
+  .bl-mode.active { border-color: var(--accent); background: var(--accent-soft); }
+  .bl-mode[data-blmode="reset"].active { border-color: var(--danger); background: var(--danger-bg); }
+  .bl-mode-name { display: block; font-size: 13.5px; font-weight: 800; color: var(--ink); }
+  .bl-mode-hint { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 2px; line-height: 1.5; }
+
+  .bl-note {
+    font-size: 12.5px; line-height: 1.65; color: var(--ink-2);
+    background: var(--bg-deep); border-radius: var(--r-sm);
+    padding: 10px 12px; margin-bottom: 12px;
+  }
+  .bl-note.danger { background: var(--danger-bg); color: var(--danger); }
+
+  /* Two bare number boxes side by side say nothing about which is which. */
+  .bl-cols {
+    display: flex; align-items: flex-end; gap: 10px;
+    font-size: 11px; font-weight: 700; color: var(--ink-3);
+    letter-spacing: .02em; padding-bottom: 6px;
+    border-bottom: 1px solid var(--line-deep);
+  }
+  .bl-cols .bl-who { visibility: hidden; }
+  .bl-cols span.h { width: 92px; flex: none; text-align: right; }
+  .bl-cols span.hd { width: 78px; flex: none; text-align: right; }
+  .bl-cols span.hx { width: 44px; flex: none; }
+  /* The header row cannot follow the inputs once they wrap, so on a phone
+     each field carries its own caption instead. */
+  .bl-field { flex: none; }
+  .bl-cap { display: none; }
+  @media (max-width: 430px) {
+    .bl-cols { display: none; }
+    .bl-cap { display: block; font-size: 10.5px; font-weight: 700; color: var(--ink-3); margin-bottom: 2px; }
+  }
+
+  .bl-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .bl-row:last-child { border-bottom: 0; }
+  .bl-row.is-drop { opacity: .5; }
+  .bl-who { flex: 1 1 150px; min-width: 0; }
+  .bl-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+  .bl-sub2 { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+  .bl-in {
+    width: 92px; flex: none; font-family: var(--font-mono); font-size: 14px;
+    text-align: right; padding: 9px 10px; min-height: var(--touch-min);
+    border: 1px solid var(--line); border-radius: var(--r-sm);
+    background: var(--bg); color: var(--ink);
+  }
+  .bl-in:focus { outline: none; border-color: var(--accent); }
+  .bl-in.changed { border-color: var(--accent); background: var(--accent-soft); }
+  .bl-diff { font-size: 11.5px; font-weight: 700; width: 78px; flex: none; text-align: right; }
+  .bl-diff.up { color: var(--success); }
+  .bl-diff.down { color: var(--danger); }
+  .bl-drop {
+    font-family: inherit; font-size: 12.5px; font-weight: 700; flex: none;
+    padding: 8px 10px; min-height: var(--touch-min); border-radius: var(--r-sm);
+    border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink-3); cursor: pointer; touch-action: manipulation;
+  }
+  .bl-drop.on { border-color: var(--danger); background: var(--danger-bg); color: var(--danger); }
+
+  .bl-foot { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+  .bl-sum { font-size: 12.5px; color: var(--ink-2); line-height: 1.7; margin-bottom: 10px; }
+  .bl-confirm { margin-bottom: 10px; }
+  .bl-confirm label { display: block; font-size: 12.5px; color: var(--danger); font-weight: 700; margin-bottom: 6px; }
+  .bl-confirm input {
+    width: 100%; padding: 11px 12px; font-family: inherit; font-size: 15px;
+    border: 1px solid var(--danger); border-radius: var(--r-sm);
+    background: var(--bg); color: var(--ink);
+  }
+  .bl-go {
+    width: 100%; min-height: 46px; padding: 13px; font-family: inherit;
+    font-size: 15px; font-weight: 800; border: 0; border-radius: var(--r-sm);
+    background: var(--accent); color: #fff; cursor: pointer;
+    touch-action: manipulation;
+  }
+  .bl-go.danger { background: var(--danger); }
+  .bl-go:disabled { opacity: .45; cursor: not-allowed; }
+
   /* Switch — big enough to hit with a thumb */
   .sw {
     position: relative; flex: none;
@@ -1251,7 +1348,7 @@
       <button class="vs-btn active" data-view="current">📦 คลังปัจจุบัน</button>
       <button class="vs-btn" data-view="daily">🧾 รายวัน</button>
       <button class="vs-btn" data-view="monthly">📈 รายเดือน</button>
-      <button class="vs-btn role-admin-only" data-view="perms" style="display:none;">🔐 สิทธิ์</button>
+      <button class="vs-btn role-admin-only" data-view="perms" style="display:none;">🔐 ผู้ดูแล</button>
     </div>
 
     <div id="view-current">
@@ -1479,7 +1576,40 @@
           <strong>ค่าเริ่มต้น: Admin เท่านั้น</strong> — เปิดให้คนอื่นเมื่อพร้อม
         </div>
       </div>
+      <!-- ═══ ตั้งต้น / นับสต๊อก — admin only, never a permission flag ═══ -->
+      <div class="bl-wrap">
+        <div class="bl-head">
+          <div class="bl-title">🧮 ตั้งต้น &amp; นับสต๊อก</div>
+          <div class="bl-sub">นับของจริงบนชั้น แล้วกรอกลงที่นี่ทีเดียวทั้งคลัง</div>
+        </div>
+
+        <div class="bl-modes">
+          <button class="bl-mode active" data-blmode="count" type="button">
+            <span class="bl-mode-name">📋 นับสต๊อก</span>
+            <span class="bl-mode-hint">ปรับยอดให้ตรงของจริง · <strong>เก็บประวัติไว้</strong> · ใช้ได้ทุกเดือน</span>
+          </button>
+          <button class="bl-mode" data-blmode="reset" type="button">
+            <span class="bl-mode-name">🧹 ตั้งต้นใหม่</span>
+            <span class="bl-mode-hint">ล้างประวัติทั้งหมดแล้วเริ่มนับ 1 · <strong>ย้อนกลับไม่ได้</strong></span>
+          </button>
+        </div>
+
+        <div class="bl-note" id="bl-note"></div>
+        <div class="bl-cols" id="bl-cols"></div>
+        <div class="bl-list" id="bl-list"></div>
+
+        <div class="bl-foot">
+          <div class="bl-sum" id="bl-sum"></div>
+          <div class="bl-confirm hidden" id="bl-confirm">
+            <label for="bl-word">พิมพ์คำว่า <strong>ล้างข้อมูล</strong> เพื่อปลดล็อกปุ่ม</label>
+            <input id="bl-word" type="text" autocomplete="off" placeholder="ล้างข้อมูล">
+          </div>
+          <button class="bl-go" id="bl-go" type="button">บันทึกการนับ</button>
+        </div>
+      </div>
+
       <div id="perm-cards"></div>
+
     </div>
 
   </div>
@@ -2718,7 +2848,10 @@ function switchStockView(view) {
   if (fab && hasPermission('manageDataAdd')) fab.style.display = view === 'current' ? '' : 'none';
   if (view === 'daily')   renderDailyView();
   if (view === 'monthly') renderMonthlyView();
-  if (view === 'perms')   renderPermsView();
+  // blSetMode rather than a plain re-render: leaving the tab with the
+  // confirmation word already typed must not leave the wipe button armed
+  // for whoever opens the screen next.
+  if (view === 'perms') { renderPermsView(); blSetMode(blMode); }
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -2761,8 +2894,13 @@ function dailyKindOf(m) {
 
 // Signed change taken from the balance chain, because an 'adjust' row stores
 // the new absolute balance in qty, not a delta (BUG34).
-function dailyRows() {
-  const { from, to } = dailyBounds();
+// The ledger turned into display rows: each one carries its own delta, worked
+// out from the balance chain rather than `qty`, because `adjust` stores an
+// absolute and a reversal is the opposite type of the row it undoes (BUG34,
+// BUG39). Split out from dailyRows() so the whole-ledger backup written
+// before a baseline reset is built by exactly the same code the daily log
+// and the Excel export use — one place where a row becomes a line.
+function movementRows(from, to) {
   const byItem = new Map();
   allMovements.forEach(m => {
     if (!byItem.has(m.item_id)) byItem.set(m.item_id, []);
@@ -2790,6 +2928,12 @@ function dailyRows() {
     });
   });
 
+  return out;
+}
+
+function dailyRows() {
+  const { from, to } = dailyBounds();
+  const out = movementRows(from, to);
   const q = dailySearch.trim().toLowerCase();
   return out
     .filter(r => dailyType === 'all' || r.kind === dailyType)
@@ -3379,6 +3523,280 @@ async function savePerm(btn) {
 document.getElementById('perm-cards').addEventListener('click', (e) => {
   const btn = e.target.closest('.sw');
   if (btn && !btn.disabled) savePerm(btn);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+//  ตั้งต้น & นับสต๊อก  —  admin only, on purpose and permanently
+//
+//  Two jobs that look almost the same on screen and must never be mixed up:
+//
+//    นับสต๊อก    writes one 'adjust' per material whose count moved. The
+//                ledger keeps every earlier row, so last month's ministry
+//                report still reads exactly the same. Used every month.
+//    ตั้งต้นใหม่  deletes the ledger and re-opens it from today's count. It
+//                exists because what is in there now was typed while the
+//                module was being built — six materials that never existed,
+//                a receipt with delivery note "2", an issue of 111 litres
+//                of primer. Correct exactly once, then never again.
+//
+//  Neither has a permission flag: `currentUser.role` is read directly, so
+//  the 🔐 panel above physically cannot hand this to anyone. That is a
+//  deliberate exception to the "use hasPermission()" rule — a flag exists
+//  to be granted, and this one must not be.
+// ══════════════════════════════════════════════════════════════════════
+let blMode = 'count';          // count | reset
+let blDrop = new Set();        // ids ticked for removal (reset mode only)
+
+const blAdmin = () => !!currentUser && currentUser.role === 'admin';
+const blNum = v => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return isFinite(n) ? n : NaN; };
+
+function blSetMode(mode) {
+  blMode = mode === 'reset' ? 'reset' : 'count';
+  if (blMode === 'count') blDrop.clear();      // dropping a material is a reset-only act
+  document.querySelectorAll('.bl-mode').forEach(b =>
+    b.classList.toggle('active', b.dataset.blmode === blMode));
+  document.querySelector('.bl-wrap').classList.toggle('is-reset', blMode === 'reset');
+  document.getElementById('bl-confirm').classList.toggle('hidden', blMode !== 'reset');
+  document.getElementById('bl-word').value = '';
+  renderBaselinePanel();
+}
+
+function blRows() {
+  return stockItems.filter(i => i.is_active !== false)
+    .slice().sort((a, b) => (a.ministry_seq || 999) - (b.ministry_seq || 999)
+                          || String(a.name).localeCompare(String(b.name), 'th'));
+}
+
+function renderBaselinePanel() {
+  if (!blAdmin()) return;
+  const reset = blMode === 'reset';
+
+  document.getElementById('bl-note').className = 'bl-note' + (reset ? ' danger' : '');
+  document.getElementById('bl-note').innerHTML = reset
+    ? `<strong>ล้างประวัติทั้งหมดทิ้ง</strong> แล้วเริ่มนับใหม่จากยอดที่กรอกด้านล่าง —
+       รายการรับเข้า/เบิกออก/ปรับยอดที่เคยบันทึกไว้จะหายหมด กู้คืนจากในระบบไม่ได้<br>
+       ระบบจะ<strong>ดาวน์โหลดไฟล์ Excel สำรองให้ก่อนอัตโนมัติ</strong> เก็บไฟล์นั้นไว้ให้ดี<br>
+       วัสดุที่กด 🗑 จะถูกลบออกจากคลังไปเลย — ใช้กับของที่ใส่ไว้ตอนทดลองระบบ`
+    : `กรอก<strong>ยอดที่นับได้จริง</strong>ของแต่ละอย่าง ช่องไหนไม่แตะ = ไม่เปลี่ยน<br>
+       ส่วนต่างจะถูกบันทึกเป็นรายการ <strong>“ปรับยอด”</strong> — ประวัติเดิมยังอยู่ครบ
+       รายงานของเดือนที่ปิดไปแล้วไม่เปลี่ยนตาม`;
+
+  document.getElementById('bl-cols').innerHTML =
+    `<span class="bl-who">.</span><span class="h">นับได้จริง</span>` +
+    (reset ? '<span class="h">ราคา/หน่วย</span>' : '') +
+    `<span class="hd">ต่างจากเดิม</span>` + (reset ? '<span class="hx"></span>' : '');
+
+  document.getElementById('bl-list').innerHTML = blRows().map(i => {
+    const drop = blDrop.has(i.id);
+    return `<div class="bl-row${drop ? ' is-drop' : ''}" data-blrow="${escapeHtml(i.id)}">
+      <div class="bl-who">
+        <div class="bl-name">${escapeHtml(i.name)}</div>
+        <div class="bl-sub2">ในระบบ ${fmtNum(i.qty_current)} ${escapeHtml(i.unit)}${
+          i.ministry_seq ? '' : ' · <strong>ไม่อยู่ในรายงานกระทรวง</strong>'}</div>
+      </div>
+      <label class="bl-field"><span class="bl-cap">นับได้จริง</span>
+        <input class="bl-in" type="text" inputmode="decimal" data-blqty="${escapeHtml(i.id)}"
+               value="${i.qty_current}" ${drop ? 'disabled' : ''}
+               aria-label="ยอดนับจริง ${escapeHtml(i.name)}"></label>
+      ${reset ? `<label class="bl-field"><span class="bl-cap">ราคา/หน่วย</span>
+        <input class="bl-in" type="text" inputmode="decimal" data-blcost="${escapeHtml(i.id)}"
+               value="${i.cost_per_unit || 0}" ${drop ? 'disabled' : ''}
+               aria-label="ราคาต่อหน่วย ${escapeHtml(i.name)}"></label>` : ''}
+      <span class="bl-diff" data-bldiff="${escapeHtml(i.id)}"></span>
+      ${reset ? `<button class="bl-drop${drop ? ' on' : ''}" data-bldrop="${escapeHtml(i.id)}"
+             type="button">${drop ? 'ลบทิ้ง' : '🗑'}</button>` : ''}
+    </div>`;
+  }).join('') || '<div class="bl-note">ยังไม่มีวัสดุในคลัง</div>';
+
+  blRefreshSummary();
+}
+
+// Recomputed on every keystroke: the person has to see the consequence of
+// the number they just typed before they reach the button, not after.
+function blRefreshSummary() {
+  const reset = blMode === 'reset';
+  let changed = 0, diffValue = 0, keep = 0, dropped = 0, newValue = 0, bad = 0;
+
+  blRows().forEach(i => {
+    const qEl = document.querySelector(`[data-blqty="${CSS.escape(i.id)}"]`);
+    const dEl = document.querySelector(`[data-bldiff="${CSS.escape(i.id)}"]`);
+    if (!qEl || !dEl) return;
+
+    if (blDrop.has(i.id)) { dropped++; dEl.textContent = 'ลบทิ้ง'; dEl.className = 'bl-diff down'; return; }
+
+    const q = blNum(qEl.value);
+    if (!isFinite(q) || q < 0) {
+      bad++; qEl.classList.remove('changed');
+      dEl.textContent = 'ไม่ถูกต้อง'; dEl.className = 'bl-diff down'; return;
+    }
+    const delta = q - Number(i.qty_current);
+    qEl.classList.toggle('changed', delta !== 0);
+    dEl.textContent = delta === 0 ? '—' : (delta > 0 ? '+' : '−') + fmtNum(Math.abs(delta));
+    dEl.className = 'bl-diff' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '');
+
+    if (reset) {
+      const cEl = document.querySelector(`[data-blcost="${CSS.escape(i.id)}"]`);
+      const c = blNum(cEl ? cEl.value : i.cost_per_unit);
+      if (!isFinite(c) || c < 0) { bad++; return; }
+      keep++; newValue += q * c;
+    } else if (delta !== 0) {
+      changed++; diffValue += delta * Number(i.cost_per_unit || 0);
+    }
+  });
+
+  const sum = document.getElementById('bl-sum');
+  sum.innerHTML = reset
+    ? `จะลบประวัติ <strong>${fmtNum(allMovements.length)}</strong> รายการ ·
+       เก็บวัสดุ <strong>${keep}</strong> · ลบทิ้ง <strong>${dropped}</strong><br>
+       มูลค่าคลังหลังตั้งต้นใหม่ <strong>${fmtBaht(newValue)}</strong> บาท`
+    : (changed === 0
+        ? 'ยังไม่มีช่องไหนเปลี่ยน — แก้ตัวเลขที่นับได้แล้วปุ่มจะทำงาน'
+        : `จะปรับ <strong>${changed}</strong> รายการ · มูลค่าต่างจากเดิม
+           <strong>${diffValue >= 0 ? '+' : '−'}${fmtBaht(Math.abs(diffValue))}</strong> บาท`);
+  if (bad) sum.innerHTML += `<br><span style="color:var(--danger);font-weight:700">มี ${bad} ช่องที่กรอกไม่ถูกต้อง</span>`;
+
+  const go = document.getElementById('bl-go');
+  go.textContent = reset ? '🧹 ล้างและตั้งต้นใหม่' : 'บันทึกการนับ';
+  go.classList.toggle('danger', reset);
+  const word = (document.getElementById('bl-word').value || '').trim();
+  go.disabled = bad > 0 || (reset ? word !== 'ล้างข้อมูล' : changed === 0);
+}
+
+// ── นับสต๊อก: one 'adjust' per material that moved ────────────────────
+// Each row goes through apply_stock_movement on its own, so a material that
+// somebody else touched mid-count fails alone instead of taking the batch
+// with it — and the report at the end names exactly which ones failed.
+async function blRunStocktake() {
+  const jobs = [];
+  blRows().forEach(i => {
+    const el = document.querySelector(`[data-blqty="${CSS.escape(i.id)}"]`);
+    const q = blNum(el ? el.value : NaN);
+    if (isFinite(q) && q >= 0 && q !== Number(i.qty_current)) jobs.push({ item: i, qty: q });
+  });
+  if (!jobs.length) { toast('ไม่มีรายการที่เปลี่ยน'); return; }
+
+  if (!confirm(`ปรับยอด ${jobs.length} รายการให้ตรงกับที่นับได้\n\nประวัติเดิมยังอยู่ครบ — บันทึกเป็นรายการ "ปรับยอด"\n\nยืนยันไหม?`)) return;
+
+  showLoading(true);
+  const failed = [];
+  for (const j of jobs) {
+    try {
+      // 'adjust' carries the NEW ABSOLUTE balance, not a difference (BUG34).
+      const { error } = await sb.rpc('apply_stock_movement', {
+        p_item_id: j.item.id, p_type: 'adjust', p_qty: j.qty, p_unit_cost: null,
+        p_po_number: null, p_note: 'นับสต๊อก',
+        p_created_by: currentUser.display_name || currentUser.username,
+        p_doc_no: null, p_supplier: null, p_photo_url: null
+      });
+      if (error) throw error;
+    } catch(e) {
+      console.error('[stocktake]', j.item.name, e);
+      failed.push(j.item.name);
+    }
+  }
+  await logActivity('stock_stocktake', 'stock_item',
+    { adjusted: jobs.length - failed.length, failed: failed.length, by: currentUser.username });
+  showLoading(false);
+
+  await loadStock();
+  await loadAllMovements();
+  renderBaselinePanel();
+  toast(failed.length
+    ? `ปรับได้ ${jobs.length - failed.length} จาก ${jobs.length} — ไม่สำเร็จ: ${failed.join(', ')}`
+    : `นับสต๊อกเรียบร้อย — ปรับ ${jobs.length} รายการ`, failed.length ? 7000 : 4000);
+}
+
+// ── ตั้งต้นใหม่: back up, then wipe ───────────────────────────────────
+async function blRunReset() {
+  const rows = [];
+  let bad = false;
+  blRows().forEach(i => {
+    if (blDrop.has(i.id)) { rows.push({ item_id: i.id, keep: false }); return; }
+    const q = blNum((document.querySelector(`[data-blqty="${CSS.escape(i.id)}"]`) || {}).value);
+    const c = blNum((document.querySelector(`[data-blcost="${CSS.escape(i.id)}"]`) || {}).value);
+    if (!isFinite(q) || q < 0 || !isFinite(c) || c < 0) { bad = true; return; }
+    rows.push({ item_id: i.id, keep: true, qty: q, cost: c });
+  });
+  if (bad || !rows.length) { toast('มีช่องที่กรอกไม่ถูกต้อง'); return; }
+
+  const dropped = rows.filter(r => !r.keep).length;
+  if (!confirm(
+      `ล้างประวัติสต๊อกทั้งหมด ${allMovements.length} รายการ` +
+      (dropped ? `\nและลบวัสดุ ${dropped} รายการออกจากคลังถาวร` : '') +
+      `\n\nแล้วเริ่มนับใหม่จากยอดที่กรอกไว้\n\n` +
+      `ย้อนกลับไม่ได้ — ระบบจะดาวน์โหลดไฟล์สำรองให้ก่อน\n\nยืนยันจะทำจริงไหม?`)) return;
+
+  // The backup is not optional: it is what turns this from irreversible into
+  // merely painful. If it cannot be written, the wipe does not happen.
+  try {
+    showLoading(true);
+    // Whole ledger, oldest first — xlRowFromMovement needs the display shape
+    // (delta from the balance chain, material name, unit), not the raw row.
+    const backup = movementRows('0000-01-01', '9999-12-31')
+      .sort((a, b) => new Date(a.mv.created_at) - new Date(b.mv.created_at))
+      .map(xlRowFromMovement);
+    if (backup.length) {
+      const { XLSX, wb } = await buildWorkbook(backup);
+      XLSX.writeFile(wb, `สำรองก่อนตั้งต้นใหม่-${todayISO()}.xlsx`, { compression: true });
+    }
+  } catch(e) {
+    showLoading(false);
+    console.error('[blRunReset backup]', e);
+    toast('สำรองข้อมูลไม่สำเร็จ — ยังไม่ได้ล้างอะไรทั้งนั้น ลองใหม่อีกครั้ง', 7000);
+    return;
+  }
+
+  try {
+    const { data, error } = await sb.rpc('reset_stock_baseline', {
+      p_rows: rows,
+      p_created_by: currentUser.display_name || currentUser.username,
+      p_confirm: 'RESET-STOCK'
+    });
+    if (error) throw error;
+    const res = data || {};
+    await logActivity('stock_baseline_reset', 'stock_item', {
+      deleted_movements: res.deleted_movements, kept_items: res.kept_items,
+      removed_items: res.removed_items, total_value: res.total_value,
+      by: currentUser.username
+    });
+    showLoading(false);
+
+    blDrop.clear();
+    document.getElementById('bl-word').value = '';
+    await loadStock();
+    await loadAllMovements();
+    blSetMode('count');
+    renderStockList();
+    toast(`ตั้งต้นใหม่เรียบร้อย — ล้างประวัติ ${res.deleted_movements} รายการ · ` +
+          `เหลือวัสดุ ${res.kept_items} รายการ · มูลค่า ${fmtBaht(res.total_value)} บาท`, 7000);
+  } catch(e) {
+    showLoading(false);
+    console.error('[blRunReset]', e);
+    const msg = String(e.message || '');
+    toast(/CONFIRM_REQUIRED/.test(msg) ? 'ยืนยันไม่ผ่าน — ยังไม่ได้ล้างอะไร'
+        : /NEGATIVE_VALUE/.test(msg)   ? 'มีตัวเลขติดลบ — ยังไม่ได้ล้างอะไร'
+        : 'ตั้งต้นใหม่ไม่สำเร็จ: ' + msg, 7000);
+  }
+}
+
+document.querySelector('.bl-modes').addEventListener('click', (e) => {
+  const b = e.target.closest('.bl-mode');
+  if (b) blSetMode(b.dataset.blmode);
+});
+document.getElementById('bl-list').addEventListener('input', (e) => {
+  if (e.target.matches('[data-blqty],[data-blcost]')) blRefreshSummary();
+});
+document.getElementById('bl-list').addEventListener('click', (e) => {
+  const d = e.target.closest('[data-bldrop]');
+  if (!d) return;
+  const id = d.dataset.bldrop;
+  if (blDrop.has(id)) blDrop.delete(id); else blDrop.add(id);
+  renderBaselinePanel();
+});
+document.getElementById('bl-word').addEventListener('input', blRefreshSummary);
+document.getElementById('bl-go').addEventListener('click', () => {
+  if (!blAdmin()) { toast('หน้านี้ใช้ได้เฉพาะ Admin'); return; }
+  if (blMode === 'reset') blRunReset(); else blRunStocktake();
 });
 
 function renderMonthlyView() {
