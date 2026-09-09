@@ -1214,10 +1214,10 @@
       <div class="pin-dot" id="pin-dot-1"></div>
       <div class="pin-dot" id="pin-dot-2"></div>
       <div class="pin-dot" id="pin-dot-3"></div>
-      <div class="pin-dot pin-dot-extra" id="pin-dot-4" style="display:none;"></div>
-      <div class="pin-dot pin-dot-extra" id="pin-dot-5" style="display:none;"></div>
+      <div class="pin-dot" id="pin-dot-4"></div>
+      <div class="pin-dot" id="pin-dot-5"></div>
     </div>
-    <div class="pin-hint">ใส่ PIN 4 หลัก · Enter 4-digit PIN</div>
+    <div class="pin-hint">ใส่ PIN 4 หรือ 6 หลัก · Enter 4 or 6-digit PIN</div>
     <div class="pin-error" id="pin-error"></div>
     <div class="pin-keypad" id="pin-keypad"></div>
     <div class="pin-info">ERP · secured by Supabase</div>
@@ -1948,7 +1948,6 @@ function updatePINDots() {
   for (let i = 0; i < PIN_MAX; i++) {
     const dot = document.getElementById(`pin-dot-${i}`);
     if (!dot) continue;
-    if (i >= PIN_MIN) dot.style.display = pinInput.length > PIN_MIN ? '' : 'none';
     dot.classList.toggle('filled', i < pinInput.length);
   }
 }
