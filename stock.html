@@ -320,6 +320,27 @@
     display: flex; flex-direction: column; gap: 10px;
   }
   .stock-card.is-low { border-left: 3px solid var(--danger); }
+  /* Report group: one frame around the shades, the total on top. Same card
+     tokens as .stock-card; the shades inside sit on the deeper background. */
+  .stock-group {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-card); padding: 14px 14px 4px; margin-bottom: 10px;
+  }
+  .sg-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .sg-count {
+    font-size: 11px; font-weight: 700; color: var(--ink-3);
+    background: var(--bg-deep); padding: 2px 8px; border-radius: var(--r-pill);
+  }
+  .sg-head { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: rgba(184,92,60,.10); }
+  .sg-caret { font-size: 11.5px; font-weight: 700; color: var(--ink-3); }
+  .stock-group.is-folded { padding-bottom: 14px; }
+  .stock-group.is-folded .sg-head { margin-bottom: 0; }
+  .stock-group.is-folded .sg-children { display: none; }
+  .sg-children { border-left: 2px solid var(--line); padding-left: 10px; }
+  .sg-children .stock-card { background: var(--bg); }
+  .stock-table tr.sub-group-row td { background: var(--bg-deep); font-weight: 700; }
+  .stock-table tr.is-child .td-name { padding-left: 22px; }
+  .child-mark { color: var(--ink-3); margin-right: 6px; font-weight: 400; }
   .stock-card-body {
     display: flex; justify-content: space-between; gap: 12px;
     cursor: pointer; touch-action: manipulation;
@@ -1690,6 +1711,13 @@
         </datalist>
       </div>
     </div>
+    <div class="field">
+      <label>รวมยอดกับ</label>
+      <select id="st-group"></select>
+      <div class="field-hint" id="st-group-hint">
+        เช่น สีจริงเฉด 801, 802 → เลือก "สีจริง" · ในคลังยังแยกเฉดเหมือนเดิม แต่หัวกลุ่มกับรายงานกระทรวงจะรวมเป็นรายการเดียว
+      </div>
+    </div>
     <div class="field-row">
       <div class="field" id="st-qty-field">
         <label>จำนวนเริ่มต้น</label>
@@ -2358,6 +2386,43 @@ function catClass(cat) {
   return def ? def.cls : 'cat-other';
 }
 
+// ── Report groups (toun 2026-09-25) ────────────────────────────────────
+// A paint shop keeps many shades of one material (สีจริง 801, 802, 803…).
+// Each shade is its own row — its own stock, its own average cost — but the
+// ministry form and the office only care about "สีจริง, how much in total".
+// A group is plain text: the shade's report_group, or for an item that has
+// none, its own name. So shades pointing at an existing material ("สีจริง")
+// join it, and the group survives even if that original row is retired.
+function groupKey(i) { return String(i.report_group || '').trim() || String(i.name || '').trim(); }
+function groupMembers(key) { return stockItems.filter(i => groupKey(i) === key); }
+function groupSeq(key) {
+  const seqs = groupMembers(key).map(i => i.ministry_seq).filter(v => v != null);
+  return seqs.length ? Math.min(...seqs) : null;
+}
+// Totals across every active member, never just the ones a search left on
+// screen — the header must always answer "how much สีจริง do we have".
+function groupSum(key) {
+  const all = groupMembers(key);
+  const units = [...new Set(all.map(i => String(i.unit || '').trim()))];
+  const agg = all.map(i => monthAgg[i.id] || { in: 0, out: 0 });
+  return {
+    all, n: all.length,
+    unit: units.length === 1 ? units[0] : null,        // null = units disagree, don't add them up
+    qty: all.reduce((s, i) => s + (Number(i.qty_current) || 0), 0),
+    min: all.reduce((s, i) => s + (Number(i.qty_min) || 0), 0),
+    inQ: agg.reduce((s, a) => s + (a.in || 0), 0),
+    outQ: agg.reduce((s, a) => s + (a.out || 0), 0),
+    value: all.reduce((s, i) => s + itemValue(i), 0),
+    low: all.filter(isLowStock).length,
+  };
+}
+// Natural order inside a group: the original material first (it is the
+// "ยังไม่ระบุเฉด" bucket), then shades as numbers — 801 before 1001.
+function memberCompare(key) {
+  return (a, b) => (a.name === key ? -1 : b.name === key ? 1 : 0)
+    || String(a.name).localeCompare(String(b.name), 'th', { numeric: true });
+}
+
 function filterMatch(item) {
   if (!searchMatch(item)) return false;
   if (stockFilter === 'all') return true;
@@ -2401,7 +2466,7 @@ function evalQty(raw) {
 function searchMatch(item) {
   const q = (stockSearch || '').trim().toLowerCase();
   if (!q) return true;
-  return [item.name, item.category, item.unit, item.note]
+  return [item.name, item.category, item.unit, item.note, item.report_group]
     .filter(Boolean).join(' ').toLowerCase().includes(q);
 }
 
@@ -2854,11 +2919,16 @@ function renderStockTable(filtered) {
     if (dc !== 0) return dc;
     const ca = (a.category || '').localeCompare(b.category || '', 'th');
     if (catIndex(a.category) === CAT_ORDER.length && ca !== 0) return ca;
-    const sa = a.ministry_seq, sb2 = b.ministry_seq;
-    if (sa != null && sb2 != null) return sa - sb2;
+    // Members of one group sit together, ordered as a block by the group's seq.
+    const ka = groupKey(a), kb = groupKey(b);
+    const sa = ka !== kb ? groupSeq(ka) : null, sb2 = ka !== kb ? groupSeq(kb) : null;
+    if (ka === kb) return memberCompare(ka)(a, b);
+    if (sa != null && sb2 != null && sa !== sb2) return sa - sb2;
+    if (sa != null && sb2 != null) return ka.localeCompare(kb, 'th');
     if (sa != null) return -1;
     if (sb2 != null) return 1;
-    return String(a.name).localeCompare(String(b.name), 'th');
+    // By group name, not item name, so an unnumbered group still stays in one block.
+    return ka.localeCompare(kb, 'th');
   });
 
   // Reflect the active sort in the header
@@ -2878,6 +2948,7 @@ function renderStockTable(filtered) {
   });
 
   let lastCat = null;
+  const subDone = new Set();
   tbody.innerHTML = rows.map((i, idx) => {
     const thisCat = (i.category || '—');
     let groupRow = '';
@@ -2891,7 +2962,32 @@ function renderStockTable(filtered) {
       </td></tr>`;
       lastCat = thisCat;
     }
-    return groupRow + renderStockTableRow(i, idx);
+    // First member of a multi-shade group: a subtotal row, then the shades.
+    const key = groupKey(i);
+    const multi = !sorting && groupMembers(key).length > 1;
+    let subRow = '';
+    if (multi && !subDone.has(key)) {
+      subDone.add(key);
+      const t = groupSum(key);
+      const u = t.unit;
+      const num = v => u !== null ? fmtNum(v) : '–';
+      subRow = `<tr class="sub-group-row">
+        <td class="td-seq">${groupSeq(key) ?? ''}</td>
+        <td class="td-name">${escapeHtml(key)} <span class="cgr-count">· รวม ${t.n} เฉด</span>${
+          t.low ? `<span class="row-low-tag">ใกล้หมด ${t.low}</span>` : ''}</td>
+        <td></td>
+        <td class="td-unit">${u !== null ? escapeHtml(u) : 'หน่วยไม่ตรงกัน'}</td>
+        <td class="num">${num(t.qty - t.inQ + t.outQ)}</td>
+        <td class="num" style="color:var(--success);">${u !== null ? signedIn(t.inQ) : '–'}</td>
+        <td class="num" style="color:var(--warning);">${u !== null ? signedOut(t.outQ) : '–'}</td>
+        <td class="num td-bal">${num(t.qty)}</td>
+        <td class="num td-unit">${num(t.min)}</td>
+        <td class="num col-money">${u !== null && t.qty ? fmtBaht(t.value / t.qty) : '–'}</td>
+        <td class="num col-money">${fmtBaht(t.value)}</td>
+        <td></td>
+      </tr>`;
+    }
+    return groupRow + subRow + renderStockTableRow(i, idx, multi);
   }).join('');
 
   const sumValue = rows.reduce((s, i) => s + itemValue(i), 0);
@@ -4147,16 +4243,35 @@ const MINISTRY_COLS = [
   'แหล่งการนำเข้า', 'ปริมาณที่รับ/ซื้อ', 'ราคาเฉลี่ยต่อหน่วย (บาท)', 'หมายเหตุ'
 ];
 
+// The office files one line per material, not per shade — so members of a
+// report group are summed into a single line under the group's name. Price
+// is total paid ÷ total bought, i.e. a weighted average across shades.
 function buildMinistryRows() {
   const s = monthlySeries.find(x => x.month === selectedMonth);
   if (!s) return [];
-  return stockItems
-    .slice()
-    .sort((a, b) => (a.ministry_seq || 9999) - (b.ministry_seq || 9999)
-                 || String(a.name).localeCompare(String(b.name), 'th'))
-    .map((i, idx) => {
-      const it    = s.items[i.id] || { inQty: 0, outQty: 0, adjQty: 0, initQty: 0, inValue: 0 };
-      const close = s.closingQty[i.id] || 0;
+  const lines = new Map();
+  stockItems.forEach(i => {
+    const key = groupKey(i);
+    const it  = s.items[i.id] || { inQty: 0, outQty: 0, adjQty: 0, initQty: 0, inValue: 0 };
+    const L = lines.get(key) || { key, members: [], seq: groupSeq(key), inQty: 0, outQty: 0, adjQty: 0,
+                                  inValue: 0, close: 0, heldValue: 0, units: new Set(), country: null };
+    L.members.push(i);
+    L.inQty += it.inQty; L.outQty += it.outQty; L.adjQty += it.adjQty; L.inValue += it.inValue;
+    L.close += s.closingQty[i.id] || 0;
+    L.heldValue += (Number(i.qty_current) || 0) * (Number(i.cost_per_unit) || 0);
+    L.units.add(String(i.unit || '').trim());
+    L.country = L.country || i.source_country;
+    lines.set(key, L);
+  });
+  return [...lines.values()]
+    .sort((a, b) => (a.seq || 9999) - (b.seq || 9999) || a.key.localeCompare(b.key, 'th'))
+    .map((L, idx) => {
+      const heldQty = L.members.reduce((t, i) => t + (Number(i.qty_current) || 0), 0);
+      const i = { ministry_seq: L.seq, name: L.key, source_country: L.country,
+                  unit: L.units.size === 1 ? [...L.units][0] : [...L.units].join('/'),
+                  cost_per_unit: heldQty ? L.heldValue / heldQty : (Number(L.members[0].cost_per_unit) || 0) };
+      const it    = { inQty: L.inQty, outQty: L.outQty, adjQty: L.adjQty, inValue: L.inValue };
+      const close = L.close;
       const open  = close - it.inQty + it.outQty - it.adjQty;
 
       // The form has no column for a stocktake correction, and it must satisfy
@@ -4347,7 +4462,7 @@ function renderStockCardsGrouped(filtered) {
     return d !== 0 ? d : a.localeCompare(b, 'th');
   });
   // One category on screen needs no section heading.
-  if (names.length <= 1) return filtered.map(renderStockCard).join('');
+  if (names.length <= 1) return renderCardBlocks(filtered);
 
   return names.map(name => {
     const rows  = groups.get(name);
@@ -4355,21 +4470,21 @@ function renderStockCardsGrouped(filtered) {
     return `<div class="cat-section-head">
         <span class="csh-name">${escapeHtml(name)}</span>
         <span class="csh-meta">${rows.length} รายการ${canSeeMoney() ? ` · ${fmtBaht(value)} บาท` : ''}</span>
-      </div>` + rows.map(renderStockCard).join('');
+      </div>` + renderCardBlocks(rows);
   }).join('');
 }
 
-function renderStockTableRow(i, idx) {
+function renderStockTableRow(i, idx, child = false) {
     const low  = isLowStock(i);
     const agg  = monthAgg[i.id] || { in: 0, out: 0 };
     const bal  = Number(i.qty_current) || 0;
     const open = bal - agg.in + agg.out;      // ยอดยกมา ที่ย้อนจากยอดจริง
     const unit = escapeHtml(i.unit || '');
     const cat  = i.category || '—';
-    return `<tr class="${low ? 'is-low' : ''}">
-      <td class="td-seq">${i.ministry_seq != null ? i.ministry_seq : idx + 1}</td>
+    return `<tr class="${low ? 'is-low' : ''}${child ? ' is-child' : ''}">
+      <td class="td-seq">${child ? '' : (i.ministry_seq != null ? i.ministry_seq : idx + 1)}</td>
       <td class="td-name" data-action="detail" data-id="${escapeHtml(i.id)}" style="cursor:pointer;">
-        ${escapeHtml(i.name)}${low ? '<span class="row-low-tag">ใกล้หมด</span>' : ''}${
+        ${child ? '<span class="child-mark">└</span>' : ''}${escapeHtml(i.name)}${low ? '<span class="row-low-tag">ใกล้หมด</span>' : ''}${
           reorderQty(i) ? `<span class="reorder-tag">ควรสั่ง ${fmtNum(reorderQty(i))}</span>` : ''}
       </td>
       <td><span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span></td>
@@ -4389,6 +4504,45 @@ function renderStockTableRow(i, idx) {
         </div>
       </td>
     </tr>`;
+}
+
+// Plain cards, except that the members of a group are gathered under one
+// header showing the group total. The block sits where its first member
+// would have been, so the surrounding order does not move.
+function renderCardBlocks(rows) {
+  const done = new Set();
+  return rows.map(i => {
+    const key = groupKey(i);
+    if (groupMembers(key).length < 2) return renderStockCard(i);
+    if (done.has(key)) return '';
+    done.add(key);
+    const shown = rows.filter(r => groupKey(r) === key).sort(memberCompare(key));
+    return renderGroupBlock(key, shown);
+  }).join('');
+}
+
+// Tap the group header to fold its shades away — with twenty shades the
+// block is longer than the screen. Folding is per session and ignored while
+// searching, so a search never hides the shade it just found.
+const sgCollapsed = new Set();
+function renderGroupBlock(key, shown) {
+  const t = groupSum(key);
+  const folded = sgCollapsed.has(key) && !(stockSearch || '').trim();
+  const qtyHTML = t.unit !== null
+    ? `<div class="stock-qty-num">${fmtNum(t.qty)}</div><div class="stock-qty-unit">${escapeHtml(t.unit)}</div>`
+    : `<div class="stock-qty-num">–</div><div class="stock-qty-unit">หน่วยไม่ตรงกัน</div>`;
+  return `<div class="stock-group${folded ? ' is-folded' : ''}">
+    <div class="sg-head" data-action="group-toggle" data-key="${escapeHtml(key)}">
+      <div class="stock-card-info">
+        <div class="stock-card-name">${escapeHtml(key)} <span class="sg-count">${t.n} เฉด</span><span class="sg-caret">${folded ? '▸ ดูทุกเฉด' : '▾ ย่อ'}</span></div>
+        <div class="stock-card-min">รวมทุกเฉด${canSeeMoney() ? ` · ${fmtBaht(t.value)} บาท` : ''}${
+          shown.length < t.n ? ` · แสดง ${shown.length} จาก ${t.n}` : ''}</div>
+        ${t.low ? `<span class="low-indicator">ใกล้หมด ${t.low} เฉด</span>` : ''}
+      </div>
+      <div class="stock-card-qty">${qtyHTML}</div>
+    </div>
+    <div class="sg-children">${shown.map(renderStockCard).join('')}</div>
+  </div>`;
 }
 
 function renderStockCard(i) {
@@ -4548,6 +4702,36 @@ document.getElementById('st-cat').addEventListener('change', (e) => {
   if (isCustom) setTimeout(() => custom.focus(), 50);
 });
 
+// Group picker: every group key in use (a material standing alone offers its
+// own name), minus the item being edited. An item others already point at
+// is a group head — it cannot join another group without orphaning them.
+function fillGroupSelect(current, selfItem) {
+  const sel = document.getElementById('st-group');
+  const hint = document.getElementById('st-group-hint');
+  const selfName = selfItem ? String(selfItem.name || '').trim() : null;
+  const keys = [...new Set(stockItems.map(groupKey))]
+    .filter(k => k && k !== selfName)
+    .sort((a, b) => a.localeCompare(b, 'th'));
+  sel.innerHTML = `<option value="">— ไม่รวม (รายการเดี่ยว) —</option>` +
+    keys.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join('');
+  sel.value = current || '';
+  const followers = selfItem ? stockItems.filter(i => i.id !== selfItem.id && String(i.report_group || '').trim() === selfName).length : 0;
+  sel.disabled = followers > 0;
+  hint.innerHTML = followers > 0
+    ? `วัสดุนี้เป็น<strong>หัวกลุ่ม</strong>ของอีก ${followers} เฉด — เปลี่ยนชื่อได้ (เฉดจะตามไปด้วย) แต่ย้ายไปกลุ่มอื่นไม่ได้`
+    : 'เช่น สีจริงเฉด 801, 802 → เลือก "สีจริง" · ในคลังยังแยกเฉดเหมือนเดิม แต่หัวกลุ่มกับรายงานกระทรวงจะรวมเป็นรายการเดียว';
+}
+// Joining a group copies its category and unit, so the shade lands in the
+// same section and its quantity can be added to the others.
+document.getElementById('st-group').addEventListener('change', (e) => {
+  const key = e.target.value;
+  if (!key) return;
+  const head = groupMembers(key).find(i => i.id !== editingStockId);
+  if (!head) return;
+  setCategorySelect(head.category || '');
+  document.getElementById('st-unit').value = head.unit || '';
+});
+
 function openAddStockModal() {
   if (!hasPermission('manageDataAdd')) { toast('ไม่มีสิทธิ์เพิ่มวัสดุ'); return; }
   editingStockId = null;
@@ -4560,6 +4744,7 @@ function openAddStockModal() {
   document.getElementById('st-target').value = '';
   document.getElementById('st-cost').value = '';
   document.getElementById('st-note').value = '';
+  fillGroupSelect('', null);
   document.getElementById('st-qty-field').style.display = '';   // qty only on add
   document.getElementById('st-delete-btn').style.display = 'none';
   document.getElementById('stock-modal').classList.remove('hidden');
@@ -4579,6 +4764,7 @@ function openEditStockModal(id) {
   document.getElementById('st-target').value = (item.qty_target === null || item.qty_target === undefined) ? '' : item.qty_target;
   document.getElementById('st-cost').value = (item.cost_per_unit === null || item.cost_per_unit === undefined) ? '' : item.cost_per_unit;
   document.getElementById('st-note').value = item.note || '';
+  fillGroupSelect(String(item.report_group || '').trim(), item);
   document.getElementById('st-qty-field').style.display = 'none';  // qty edited via movements only
   document.getElementById('st-delete-btn').style.display =
     hasPermission('manageDataDelete') ? '' : 'none';
@@ -4592,7 +4778,7 @@ function closeStockModal() {
 async function saveStock() {
   const name = document.getElementById('st-name').value.trim();
   if (!name) { toast('กรุณากรอกชื่อวัสดุ'); return; }
-  const category = readCategorySelect();
+  const categoryRaw = readCategorySelect();
   const unit = document.getElementById('st-unit').value.trim() || 'ชิ้น';
   const qtyMin = parseFloat(document.getElementById('st-min').value) || 0;
   const targetRaw = document.getElementById('st-target').value;
@@ -4600,6 +4786,22 @@ async function saveStock() {
   const costRaw = document.getElementById('st-cost').value;
   const cost = costRaw === '' ? null : (parseFloat(costRaw) || 0);
   const note = document.getElementById('st-note').value.trim() || null;
+  const groupSel = document.getElementById('st-group');
+  const reportGroup = groupSel.disabled ? null : (groupSel.value || null);
+  let category = categoryRaw, groupSeqInherit;
+  if (reportGroup) {
+    // Quantities are only added up inside a group, so the units must agree —
+    // "4 ถัง + 12 ลิตร" is not a number the ministry form can take.
+    const others = groupMembers(reportGroup).filter(i => i.id !== editingStockId);
+    const bad = others.find(i => String(i.unit || '').trim() !== unit);
+    if (bad) { toast(`หน่วยต้องตรงกับเฉดอื่นในกลุ่ม "${reportGroup}" (${bad.unit}) — ${bad.name} ใช้ ${bad.unit}`); return; }
+    if (others[0]) category = others[0].category || category;
+    groupSeqInherit = groupSeq(reportGroup);
+  }
+  const editing = editingStockId ? stockItems.find(i => i.id === editingStockId) : null;
+  const oldName = editing ? String(editing.name || '').trim() : null;
+  const extra = { report_group: reportGroup };
+  if (reportGroup && groupSeqInherit != null) extra.ministry_seq = groupSeqInherit;
 
   try {
     showLoading(true);
@@ -4607,9 +4809,17 @@ async function saveStock() {
       if (!hasPermission('manageDataAdd')) { showLoading(false); toast('ไม่มีสิทธิ์แก้ไข'); return; }
       const { error } = await sb.from('stock_items').update({
         name, category, unit, qty_min: qtyMin, qty_target: qtyTarget,
-        cost_per_unit: cost, note, updated_at: nowTS()
+        cost_per_unit: cost, note, updated_at: nowTS(), ...extra
       }).eq('id', editingStockId);
       if (error) throw error;
+      // Renaming a group head: its shades point at the old name, so they
+      // follow — otherwise the group silently splits in two.
+      if (oldName && oldName !== name) {
+        const { error: e2 } = await sb.from('stock_items')
+          .update({ report_group: name, updated_at: nowTS() })
+          .eq('report_group', oldName).eq('is_active', true);
+        if (e2) throw e2;
+      }
       await logActivity('stock_edit', 'stock_item', { item_id: editingStockId, name });
     } else {
       if (!hasPermission('manageDataAdd')) { showLoading(false); toast('ไม่มีสิทธิ์เพิ่มวัสดุ'); return; }
@@ -4617,7 +4827,7 @@ async function saveStock() {
       const { data, error } = await sb.from('stock_items').insert({
         name, category, unit,
         qty_current: qtyCur, qty_min: qtyMin, qty_target: qtyTarget,
-        cost_per_unit: cost, note, is_active: true
+        cost_per_unit: cost, note, is_active: true, ...extra
       }).select().single();
       if (error) throw error;
       // Initial opening balance → seed a movement row so history is complete.
@@ -4863,6 +5073,8 @@ function openDetailSheet(id) {
         <div class="detail-summary-meta">
           ขั้นต่ำ ${fmtNum(item.qty_min)} ${escapeHtml(item.unit || '')}<br>
           ${costLine ? escapeHtml(costLine) + '<br>' : ''}
+          ${groupMembers(groupKey(item)).length > 1
+            ? `รวมยอดในรายงานกับ <strong>${escapeHtml(groupKey(item))}</strong> (${groupMembers(groupKey(item)).length} เฉด)<br>` : ''}
           ${item.note ? escapeHtml(item.note) : ''}
         </div>
       </div>
@@ -5086,6 +5298,12 @@ function onStockRowClick(e) {
   if (!btn) return;
   const id = btn.dataset.id;
   const action = btn.dataset.action;
+  if (action === 'group-toggle') {
+    const key = btn.dataset.key;
+    if (sgCollapsed.has(key)) sgCollapsed.delete(key); else sgCollapsed.add(key);
+    renderStockList();
+    return;
+  }
   if (action === 'detail')   openDetailSheet(id);
   else if (action === 'in')  openMovementModal(id, 'in');
   else if (action === 'out') openMovementModal(id, 'out');
