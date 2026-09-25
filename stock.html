@@ -737,6 +737,7 @@
   .vs-btn.active { background: var(--surface-2); color: var(--ink); box-shadow: var(--shadow-card); }
   .vs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
   .vs-lb { white-space: nowrap; }
+  body.no-money .col-money { display: none; }
   /* Phones: four labels side by side do not fit on one line, and letting
      them wrap broke Thai words in half ("ผู้ / ดูแล"). Icon goes on top,
      the label stays whole on its own line. */
@@ -1289,6 +1290,8 @@
     #period-bar { display: flex; }
 
     .stock-summary { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    /* quantities-only view has 2 tiles, not 4 — let them share the row */
+    .stock-summary.two-up { grid-template-columns: repeat(2, 1fr); }
     .sum-tile { padding: 16px 18px; }
     .sum-num { font-size: 26px; }
 
@@ -1377,7 +1380,7 @@
     <div class="view-switch" id="stock-view-switch">
       <button class="vs-btn active" data-view="current"><span class="vs-ic">📦</span><span class="vs-lb">คลังปัจจุบัน</span></button>
       <button class="vs-btn" data-view="daily"><span class="vs-ic">🧾</span><span class="vs-lb">รายวัน</span></button>
-      <button class="vs-btn" data-view="monthly"><span class="vs-ic">📈</span><span class="vs-lb">รายเดือน</span></button>
+      <button class="vs-btn money-only" data-view="monthly"><span class="vs-ic">📈</span><span class="vs-lb">รายเดือน</span></button>
       <button class="vs-btn role-admin-only" data-view="perms" style="display:none;"><span class="vs-ic">🔐</span><span class="vs-lb">ผู้ดูแล</span></button>
     </div>
 
@@ -1425,8 +1428,8 @@
                 <th class="num">ใช้ไป</th>
                 <th class="num sortable" data-sort="qty">คงเหลือ<span class="sort-caret">▲▼</span></th>
                 <th class="num">ห้ามต่ำกว่า</th>
-                <th class="num sortable" data-sort="cost">ราคา/หน่วย<span class="sort-caret">▲▼</span></th>
-                <th class="num sortable" data-sort="value">มูลค่า<span class="sort-caret">▲▼</span></th>
+                <th class="num sortable col-money" data-sort="cost">ราคา/หน่วย<span class="sort-caret">▲▼</span></th>
+                <th class="num sortable col-money" data-sort="value">มูลค่า<span class="sort-caret">▲▼</span></th>
                 <th></th>
               </tr>
             </thead>
@@ -1963,7 +1966,7 @@ const STOCK_PERMS = [
   { key: 'stockOut',     label: 'เบิกออก',      hint: 'เบิกของไปใช้ในงาน' },
   { key: 'stockAdjust',  label: 'ปรับยอด',      hint: 'แก้ยอดคงเหลือให้ตรงของจริง' },
   { key: 'stockReverse', label: 'ยกเลิกรายการ', hint: 'ยกเลิกรายการที่บันทึกผิด' },
-  { key: 'viewStockDocs', label: 'ดูเอกสาร/ราคา', hint: 'เห็นเลขใบส่งของ ผู้ขาย รูป และราคาที่ซื้อ' },
+  { key: 'viewStockDocs', label: 'ดูราคา · มูลค่า · เอกสาร', hint: 'ปิด = เห็นแค่จำนวน ไม่เห็นตัวเลขเงินเลย (มูลค่าคลัง ราคา แท็บรายเดือน ใบส่งของ)' },
 ];
 const PERM_ROLES = [
   { role: 'admin',      label: 'Admin',      note: 'เจ้าของ — ล็อกไว้ แก้ไม่ได้' },
@@ -1999,6 +2002,13 @@ async function loadRolePermissions() {
     console.warn('[loadRolePermissions] keeping code defaults:', e?.message || e);
   }
 }
+
+// One switch for every baht figure on this page (toun 2026-09-25: "ซ่อนตัวเลข
+// จากพนักงาน"). viewStockDocs already hid purchase prices and paperwork; the
+// inventory value, the price/value columns, the per-category totals, the
+// monthly tab and the average shown while receiving now follow it too, so a
+// role either sees money or it sees quantities only — never half of each.
+function canSeeMoney() { return hasPermission('viewStockDocs'); }
 
 function hasPermission(permission) {
   if (!currentUser) return false;
@@ -2250,8 +2260,14 @@ function applyPermissions() {
   // to PO (see goBack).
   const sub = document.getElementById('stock-topbar-sub');
   if (sub) sub.textContent = hasPermission('viewERP') ? 'ERP · คลังสต๊อก' : 'PO Tracker · คลังสต๊อก';
+  // Money: the monthly tab is hidden outright, the table's price/value
+  // columns via a class on <body> (they are static <th> + rendered <td>).
+  const money = canSeeMoney();
+  document.querySelectorAll('.money-only').forEach(el => { el.style.display = money ? '' : 'none'; });
+  document.body.classList.toggle('no-money', !money);
   // If a permission was just revoked while sitting on a hidden tab, fall back.
   if (!isAdmin && stockView === 'perms') switchStockView('current');
+  if (!money && stockView === 'monthly') switchStockView('current');
 }
 
 async function logActivity(action, targetType, detail) {
@@ -2766,6 +2782,23 @@ function renderStockSummary(lowItems) {
   });
   const el = document.getElementById('stock-summary');
   if (!el) return;
+  el.classList.toggle('two-up', !canSeeMoney());
+  if (!canSeeMoney()) {
+    // Quantities-only view: the two baht tiles go, and "how many materials
+    // were issued this month" takes their place — a count, not a value.
+    el.innerHTML = `
+    <div class="sum-tile">
+      <div class="sum-label">รายการวัสดุ</div>
+      <div class="sum-num">${stockItems.length}</div>
+      <div class="sum-sub">${presentCats().length} หมวด</div>
+    </div>
+    <div class="sum-tile">
+      <div class="sum-label">ใกล้หมด</div>
+      <div class="sum-num${lowItems.length ? ' is-warn' : ''}">${lowItems.length}</div>
+      <div class="sum-sub">${lowItems.length ? 'ควรสั่งเพิ่ม' : 'ยอดปกติทุกรายการ'}</div>
+    </div>`;
+    return;
+  }
   el.innerHTML = `
     <div class="sum-tile">
       <div class="sum-label">รายการวัสดุ</div>
@@ -2854,7 +2887,7 @@ function renderStockTable(filtered) {
       const g = groupTotals[thisCat];
       groupRow = `<tr class="cat-group-row"><td colspan="12">
         ${escapeHtml(thisCat)} <span class="cgr-count">· ${g.n} รายการ</span>
-        <span class="cgr-value">${fmtBaht(g.value)} บาท</span>
+        ${canSeeMoney() ? `<span class="cgr-value">${fmtBaht(g.value)} บาท</span>` : ''}
       </td></tr>`;
       lastCat = thisCat;
     }
@@ -2862,7 +2895,8 @@ function renderStockTable(filtered) {
   }).join('');
 
   const sumValue = rows.reduce((s, i) => s + itemValue(i), 0);
-  if (tfoot) {
+  if (tfoot && !canSeeMoney()) tfoot.innerHTML = '';
+  else if (tfoot) {
     tfoot.innerHTML = `<tr>
       <td colspan="10" style="text-align:right;">รวมมูลค่าคงคลัง (${rows.length} รายการ)</td>
       <td class="num">${fmtBaht(sumValue)}</td>
@@ -2877,6 +2911,7 @@ function renderStockTable(filtered) {
 
 function switchStockView(view) {
   if (view === 'perms' && currentUser.role !== 'admin') return;   // admin-only tab
+  if (view === 'monthly' && !canSeeMoney()) return;               // baht from top to bottom
   stockView = view;
   document.querySelectorAll('#stock-view-switch .vs-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.view === view));
@@ -2986,7 +3021,7 @@ function dailyRows() {
 function renderDailyView() {
   const rows = dailyRows();
   const { from, to } = dailyBounds();
-  const canSeeMoney = hasPermission('viewStockDocs');
+  const seeMoney = canSeeMoney();
 
   // Range summary. Quantities are never summed across materials — the units
   // differ (กก. / ลิตร / แผ่น) so only baht can be added up meaningfully.
@@ -3006,12 +3041,12 @@ function renderDailyView() {
     <div class="sum-tile">
       <div class="sum-label">รับเข้า</div>
       <div class="sum-num" style="color:var(--success);">${inN}</div>
-      <div class="sum-sub">${canSeeMoney ? fmtBaht(inVal) + ' บาท' : 'รายการ'}</div>
+      <div class="sum-sub">${seeMoney ? fmtBaht(inVal) + ' บาท' : 'รายการ'}</div>
     </div>
     <div class="sum-tile">
       <div class="sum-label">เบิกออก</div>
       <div class="sum-num" style="color:var(--warning);">${outN}</div>
-      <div class="sum-sub">${canSeeMoney ? fmtBaht(outVal) + ' บาท' : 'รายการ'}</div>
+      <div class="sum-sub">${seeMoney ? fmtBaht(outVal) + ' บาท' : 'รายการ'}</div>
     </div>
     <div class="sum-tile">
       <div class="sum-label">ปรับยอด · ยกเลิก</div>
@@ -3038,15 +3073,15 @@ function renderDailyView() {
     let dIn = 0, dOut = 0;
     g.rows.forEach(r => { if (r.kind === 'in') dIn += r.value; else if (r.kind === 'out') dOut += r.value; });
     const sums = [];
-    if (canSeeMoney && dIn)  sums.push(`<span class="d-in">+${fmtBaht(dIn)}</span>`);
-    if (canSeeMoney && dOut) sums.push(`<span class="d-out">−${fmtBaht(dOut)}</span>`);
+    if (seeMoney && dIn)  sums.push(`<span class="d-in">+${fmtBaht(dIn)}</span>`);
+    if (seeMoney && dOut) sums.push(`<span class="d-out">−${fmtBaht(dOut)}</span>`);
     sums.push(`${g.rows.length} รายการ`);
 
     return `<div class="day-head">
         <span class="day-head-date">${escapeHtml(dayLabelTH(g.day))}</span>
         <span class="day-head-sum">${sums.join(' · ')}</span>
       </div>
-      <div class="day-card">${g.rows.map(r => dailyRowHTML(r, canSeeMoney)).join('')}</div>`;
+      <div class="day-card">${g.rows.map(r => dailyRowHTML(r, seeMoney)).join('')}</div>`;
   }).join('');
 }
 
@@ -3210,16 +3245,16 @@ async function buildWorkbook(rows) {
 
 function xlRowFromMovement(r) {
   const m = r.mv;
-  const canSeeMoney = hasPermission('viewStockDocs');
+  const seeMoney = canSeeMoney();
   return {
     'วันที่': monthDayTH(r.day), 'เวลา': timeTH(m.created_at),
     'ชื่อวัสดุ': r.name,
     'ประเภท': m.reverses_id ? 'ยกเลิกรายการ'
             : m.movement_type === 'initial' ? 'ยอดตั้งต้น' : XL_TYPE_TH[r.kind] || r.kind,
     'จำนวน': Math.abs(r.delta), 'หน่วย': r.unit,
-    'ราคา/หน่วย': canSeeMoney ? (m.unit_cost ?? '') : '',
-    'ผู้ขาย': canSeeMoney ? (m.supplier || '') : '',
-    'เลขใบส่งของ': canSeeMoney ? (m.doc_no || '') : '',
+    'ราคา/หน่วย': seeMoney ? (m.unit_cost ?? '') : '',
+    'ผู้ขาย': seeMoney ? (m.supplier || '') : '',
+    'เลขใบส่งของ': seeMoney ? (m.doc_no || '') : '',
     'งาน/PO': (m.ref_type === 'po' && m.ref_id) ? m.ref_id : '',
     'ผู้บันทึก': m.created_by || '', 'หมายเหตุ': m.note || '',
   };
@@ -4319,7 +4354,7 @@ function renderStockCardsGrouped(filtered) {
     const value = rows.reduce((s, i) => s + itemValue(i), 0);
     return `<div class="cat-section-head">
         <span class="csh-name">${escapeHtml(name)}</span>
-        <span class="csh-meta">${rows.length} รายการ · ${fmtBaht(value)} บาท</span>
+        <span class="csh-meta">${rows.length} รายการ${canSeeMoney() ? ` · ${fmtBaht(value)} บาท` : ''}</span>
       </div>` + rows.map(renderStockCard).join('');
   }).join('');
 }
@@ -4344,8 +4379,8 @@ function renderStockTableRow(i, idx) {
       <td class="num" style="color:var(--warning);">${signedOut(agg.out)}</td>
       <td class="num td-bal">${fmtNum(bal)}</td>
       <td class="num td-unit">${fmtNum(i.qty_min)}</td>
-      <td class="num">${fmtBaht(i.cost_per_unit)}</td>
-      <td class="num">${fmtBaht(itemValue(i))}</td>
+      <td class="num col-money">${fmtBaht(i.cost_per_unit)}</td>
+      <td class="num col-money">${fmtBaht(itemValue(i))}</td>
       <td>
         <div class="row-actions">
           ${canMove('in')  ? `<button class="row-btn rb-in"  data-action="in"  data-id="${escapeHtml(i.id)}">รับเข้า</button>` : ''}
@@ -4665,7 +4700,11 @@ function openMovementModal(id, type) {
   const priceField = document.getElementById('mv-price-field');
   const priceInput = document.getElementById('mv-price');
   if (type === 'in') {
-    priceInput.value = (Number(item.cost_per_unit) || 0) || '';
+    // Without money access the field starts empty — pre-filling it would show
+    // the current average. Left blank, the server stamps the current average
+    // (COALESCE(p_unit_cost, avg)), so the books stay consistent either way.
+    priceInput.value = canSeeMoney() ? ((Number(item.cost_per_unit) || 0) || '') : '';
+    priceInput.placeholder = canSeeMoney() ? '' : 'ดูจากใบส่งของ · ไม่ทราบให้เว้นว่าง';
     priceField.style.display = '';
     updatePriceHint();
   } else {
@@ -4814,7 +4853,7 @@ function openDetailSheet(id) {
   const low = isLowStock(item);
   const cat = item.category || 'อื่นๆ';
   const canEdit = hasPermission('manageDataAdd');
-  const costLine = (item.cost_per_unit !== null && item.cost_per_unit !== undefined && item.cost_per_unit !== '')
+  const costLine = canSeeMoney() && (item.cost_per_unit !== null && item.cost_per_unit !== undefined && item.cost_per_unit !== '')
     ? `ต้นทุน/หน่วย ${fmtNum(item.cost_per_unit)} บาท` : '';
 
   document.getElementById('detail-body').innerHTML = `
@@ -4853,6 +4892,9 @@ function updatePriceHint() {
   const hint = document.getElementById('mv-price-hint');
   const item = stockItems.find(i => i.id === _mvItemId);
   if (!hint || !item) return;
+  // Every line below compares against the average — that is the number
+  // being hidden, so say nothing rather than a vaguer version of it.
+  if (!canSeeMoney()) { hint.className = 'price-hint same'; hint.textContent = ''; return; }
 
   const oldAvg = Number(item.cost_per_unit) || 0;
   const price  = parseFloat(document.getElementById('mv-price').value);
@@ -5191,7 +5233,7 @@ document.getElementById('daily-search').addEventListener('input', (e) => {
 function buildPrintReport() {
   const rows = dailyRows().slice().reverse();     // oldest first reads correctly on paper
   const { from, to } = dailyBounds();
-  const canSeeMoney = hasPermission('viewStockDocs');
+  const seeMoney = canSeeMoney();
   const host = document.getElementById('print-report');
   if (!rows.length) { host.innerHTML = '<div class="pr-head"><div class="pr-title">ไม่มีรายการในช่วงที่เลือก</div></div>'; return; }
 
@@ -5200,7 +5242,7 @@ function buildPrintReport() {
                       else if (r.kind === 'out') { outVal += r.value; outN++; } });
 
   const cols = ['วันที่', 'เวลา', 'วัสดุ', 'ประเภท', 'จำนวน', 'หน่วย']
-    .concat(canSeeMoney ? ['มูลค่า'] : [])
+    .concat(seeMoney ? ['มูลค่า'] : [])
     .concat(['คงเหลือ', 'ผู้บันทึก', 'งาน / ใบส่งของ / หมายเหตุ']);
 
   let lastDay = null;
@@ -5208,8 +5250,8 @@ function buildPrintReport() {
     const m = r.mv;
     const bits = [];
     if (m.ref_type === 'po' && m.ref_id) bits.push(m.ref_id);
-    if (canSeeMoney && m.doc_no) bits.push(m.doc_no);
-    if (canSeeMoney && m.supplier) bits.push(m.supplier);
+    if (seeMoney && m.doc_no) bits.push(m.doc_no);
+    if (seeMoney && m.supplier) bits.push(m.supplier);
     if (m.note) bits.push(m.note);
     const label = m.reverses_id ? 'ยกเลิก'
       : m.movement_type === 'initial' ? 'ยอดตั้งต้น' : (XL_TYPE_TH[r.kind] || r.kind);
@@ -5223,7 +5265,7 @@ function buildPrintReport() {
       <td>${escapeHtml(label)}</td>
       <td class="num">${r.delta > 0 ? '+' : r.delta < 0 ? '−' : ''}${fmtNum(Math.abs(r.delta))}</td>
       <td>${escapeHtml(r.unit)}</td>
-      ${canSeeMoney ? `<td class="num">${r.value ? fmtBaht(r.value) : '–'}</td>` : ''}
+      ${seeMoney ? `<td class="num">${r.value ? fmtBaht(r.value) : '–'}</td>` : ''}
       <td class="num">${fmtNum(m.balance_after)}</td>
       <td>${escapeHtml(m.created_by || '-')}</td>
       <td>${escapeHtml(bits.join(' · '))}</td>
@@ -5237,8 +5279,8 @@ function buildPrintReport() {
         · พิมพ์เมื่อ ${escapeHtml(monthDayTH(todayISO()))} ${escapeHtml(timeTH(new Date().toISOString()))} น.
         · โดย ${escapeHtml(currentUser.display_name || currentUser.username)}</div>
       <div class="pr-tot">รวม ${rows.length} รายการ · รับเข้า ${inN} รายการ${
-        canSeeMoney ? ' (' + fmtBaht(inVal) + ' บาท)' : ''} · เบิกออก ${outN} รายการ${
-        canSeeMoney ? ' (' + fmtBaht(outVal) + ' บาท)' : ''}</div>
+        seeMoney ? ' (' + fmtBaht(inVal) + ' บาท)' : ''} · เบิกออก ${outN} รายการ${
+        seeMoney ? ' (' + fmtBaht(outVal) + ' บาท)' : ''}</div>
     </div>
     <table class="pr-table">
       <thead><tr>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead>
@@ -5269,11 +5311,11 @@ document.getElementById('import-apply').addEventListener('click', applyImport);
 document.getElementById('daily-csv').addEventListener('click', () => {
   const rows = dailyRows();
   if (!rows.length) { toast('ช่วงที่เลือกไม่มีรายการให้ดาวน์โหลด'); return; }
-  const canSeeMoney = hasPermission('viewStockDocs');
+  const seeMoney = canSeeMoney();
   const head = ['วันที่', 'เวลา', 'วัสดุ', 'ประเภท', 'จำนวน', 'หน่วย', 'คงเหลือหลังทำรายการ']
-    .concat(canSeeMoney ? ['ราคา/หน่วย', 'มูลค่า'] : [])
+    .concat(seeMoney ? ['ราคา/หน่วย', 'มูลค่า'] : [])
     .concat(['ผู้บันทึก', 'งาน/PO'])
-    .concat(canSeeMoney ? ['ผู้ขาย', 'เลขใบส่งของ'] : [])
+    .concat(seeMoney ? ['ผู้ขาย', 'เลขใบส่งของ'] : [])
     .concat(['หมายเหตุ', 'ถูกยกเลิกแล้ว']);
   const kindTH = { in: 'รับเข้า', out: 'เบิกออก', adjust: 'ปรับยอด', reversal: 'ยกเลิกรายการ' };
   const body = rows.map(r => {
@@ -5282,9 +5324,9 @@ document.getElementById('daily-csv').addEventListener('click', () => {
     return [monthDayTH(r.day), timeTH(m.created_at), r.name,
             m.movement_type === 'initial' ? 'ยอดตั้งต้น' : (kindTH[r.kind] || r.kind),
             r.delta, r.unit, m.balance_after]
-      .concat(canSeeMoney ? [m.unit_cost ?? '', Math.round(r.value * 100) / 100] : [])
+      .concat(seeMoney ? [m.unit_cost ?? '', Math.round(r.value * 100) / 100] : [])
       .concat([m.created_by || '', (m.ref_type === 'po' && m.ref_id) ? m.ref_id : ''])
-      .concat(canSeeMoney ? [m.supplier || '', m.doc_no || ''] : [])
+      .concat(seeMoney ? [m.supplier || '', m.doc_no || ''] : [])
       .concat([m.note || '', voided ? 'ใช่' : '']);
   });
   const esc = v => `"${String(v).replace(/"/g, '""')}"`;
