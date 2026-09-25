@@ -2099,6 +2099,14 @@
     <button class="icon-btn view-erp-only" onclick="goToERP()" title="กลับไปหน้า ERP" aria-label="ERP" style="display:none;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
     </button>
+    <!-- Straight to stock for people who do not enter ERP (toun 2026-09-25:
+         the ERP home is for supervisor/office/admin; shop-floor staff go
+         directly). Shown only when viewStock && !viewERP — the office side
+         already reaches stock through ERP, so they get one button, not two.
+         stock.html re-checks viewStock itself. -->
+    <button class="icon-btn view-stock-direct" onclick="goToStock()" title="คลังสต๊อก" aria-label="Stock" style="display:none;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+    </button>
     <button class="icon-btn" onclick="doLogout()" title="ออกจากระบบ" aria-label="Logout">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
     </button>
@@ -2712,11 +2720,11 @@ function resetSessionTimer() {
 //   manageDataAdd     — add/edit master data rows (company/model/part/defect)
 //   manageDataDelete  — delete master data rows (manager CANNOT — prevents accidental destruction)
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, viewERP: true  },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, viewERP: true  },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, viewERP: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, viewERP: true,  viewStock: true },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, viewERP: false, viewStock: true },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, viewERP: false, viewStock: true }
 };
 
 // Station-based status permissions for staff
@@ -2743,7 +2751,8 @@ const PERMISSION_META = [
   { key: 'manageDataDelete', label: 'ลบ Master Data' },
   { key: 'quickAddMaster',   label: 'เพิ่ม master data ตอนสร้าง/แก้ PO (ไม่ต้องไปหน้าจัดการ)' },
   { key: 'viewActivityLog',  label: 'ดูกิจกรรมล่าสุดบน Dashboard' },
-  { key: 'viewERP',          label: 'เข้าหน้า ERP + คลังสต๊อก' },
+  { key: 'viewERP',          label: 'เข้าหน้า ERP (หน้ารวมออฟฟิศ)' },
+  { key: 'viewStock',        label: 'เข้าคลังสต๊อก (ไม่มี ERP = เข้าตรงจากหน้า PO)' },
 ];
 const ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
 
@@ -3044,6 +3053,10 @@ function applyPermissions() {
   document.querySelectorAll('.view-erp-only').forEach(el => {
     el.style.display = hasPermission('viewERP') ? '' : 'none';
   });
+  const stockDirect = hasPermission('viewStock') && !hasPermission('viewERP');
+  document.querySelectorAll('.view-stock-direct').forEach(el => {
+    el.style.display = stockDirect ? '' : 'none';
+  });
 }
 
 // The ERP shell lives beside this file, so a plain relative hop is enough.
@@ -3051,6 +3064,11 @@ function applyPermissions() {
 function goToERP() {
   if (!hasPermission('viewERP')) { toast('❌ ไม่มีสิทธิ์เข้าหน้า ERP'); return; }
   location.href = 'erp.html';
+}
+
+function goToStock() {
+  if (!hasPermission('viewStock')) { toast('❌ ไม่มีสิทธิ์เข้าคลังสต๊อก'); return; }
+  location.href = 'stock.html';
 }
 
 async function logActivity(action, targetType, detail) {

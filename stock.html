@@ -689,6 +689,7 @@
   .mv-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
   .mv-po {
     font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    white-space: nowrap;
     color: var(--accent); background: var(--accent-soft);
     padding: 1px 6px; border-radius: var(--r-pill);
   }
@@ -734,6 +735,35 @@
     transition: background .15s, color .15s;
   }
   .vs-btn.active { background: var(--surface-2); color: var(--ink); box-shadow: var(--shadow-card); }
+  .vs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .vs-lb { white-space: nowrap; }
+  /* Phones: four labels side by side do not fit on one line, and letting
+     them wrap broke Thai words in half ("ผู้ / ดูแล"). Icon goes on top,
+     the label stays whole on its own line. */
+  @media (max-width: 430px) {
+    .vs-btn { flex-direction: column; gap: 1px; padding: 6px 2px; font-size: 12px; line-height: 1.25; min-width: 0; }
+    .vs-ic { font-size: 15px; line-height: 1.2; }
+  }
+
+  /* Date/month pickers (daily custom range, PC period bar). These rules used
+     to live only inside the PC breakpoint, so on a phone the "เลือกช่วง"
+     dates fell back to bare browser inputs ~21px tall. */
+  .period-bar {
+    display: flex; align-items: center; gap: 8px 10px;
+    margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .period-bar label { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+  .period-bar input[type="month"], .period-bar input[type="date"] {
+    font-family: inherit; font-size: 14px;
+    padding: 7px 10px; border-radius: var(--r-sm);
+    border: 1px solid var(--line-deep); background: var(--surface-2);
+    color: var(--ink); min-height: var(--touch-min); min-width: 0;
+  }
+  @media (max-width: 430px) {
+    /* two dates side by side, each taking half the row */
+    #daily-custom-bar { display: grid; grid-template-columns: auto 1fr; }
+    #daily-custom-bar input[type="date"] { width: 100%; }
+  }
 
   /* ── Month picker ── */
   .month-picker-bar {
@@ -1331,7 +1361,7 @@
       </button>
     </div>
     <div class="topbar-greeting">
-      <div class="topbar-subtitle">ERP · คลังสต๊อก</div>
+      <div class="topbar-subtitle" id="stock-topbar-sub">ERP · คลังสต๊อก</div>
       <h1 class="topbar-title">คลังวัตถุดิบ / สี</h1>
     </div>
     <div class="topbar-actions">
@@ -1345,10 +1375,10 @@
 
     <!-- View switch: live stock vs month-by-month history -->
     <div class="view-switch" id="stock-view-switch">
-      <button class="vs-btn active" data-view="current">📦 คลังปัจจุบัน</button>
-      <button class="vs-btn" data-view="daily">🧾 รายวัน</button>
-      <button class="vs-btn" data-view="monthly">📈 รายเดือน</button>
-      <button class="vs-btn role-admin-only" data-view="perms" style="display:none;">🔐 ผู้ดูแล</button>
+      <button class="vs-btn active" data-view="current"><span class="vs-ic">📦</span><span class="vs-lb">คลังปัจจุบัน</span></button>
+      <button class="vs-btn" data-view="daily"><span class="vs-ic">🧾</span><span class="vs-lb">รายวัน</span></button>
+      <button class="vs-btn" data-view="monthly"><span class="vs-ic">📈</span><span class="vs-lb">รายเดือน</span></button>
+      <button class="vs-btn role-admin-only" data-view="perms" style="display:none;"><span class="vs-ic">🔐</span><span class="vs-lb">ผู้ดูแล</span></button>
     </div>
 
     <div id="view-current">
@@ -1918,16 +1948,18 @@ function resetSessionTimer() {
 // writes to role_permissions — so changing who may issue stock never needs a
 // code change.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true, viewERP: true  },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true  },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true  },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true  },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true, viewERP: true,  viewStock: true },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true }
 };
 
 // Labels for the permission panel — order here is the order shown.
 const STOCK_PERMS = [
-  { key: 'stockIn',      label: 'รับเข้า',      hint: 'บันทึกของเข้าคลัง + ราคาที่ซื้อ' },
+  { key: 'viewStock',    label: 'เข้าคลังสต๊อก', hint: 'เปิดหน้านี้ได้ — ใครไม่มีสิทธิ์เข้า ERP จะเข้าตรงจากปุ่มในหน้า PO' },
+  { key: 'viewERP',      label: 'เข้าหน้า ERP',  hint: 'เห็นหน้ารวมของออฟฟิศ และเข้าคลังผ่านหน้านั้น' },
+  { key: 'stockIn',     label: 'รับเข้า',      hint: 'บันทึกของเข้าคลัง + ราคาที่ซื้อ' },
   { key: 'stockOut',     label: 'เบิกออก',      hint: 'เบิกของไปใช้ในงาน' },
   { key: 'stockAdjust',  label: 'ปรับยอด',      hint: 'แก้ยอดคงเหลือให้ตรงของจริง' },
   { key: 'stockReverse', label: 'ยกเลิกรายการ', hint: 'ยกเลิกรายการที่บันทึกผิด' },
@@ -2128,15 +2160,17 @@ function doLogout() {
   document.getElementById('pin-error').textContent = '';
 }
 
-// ── ERP access gate ────────────────────────────────────────────────────────
+// ── Stock access gate ──────────────────────────────────────────────────────
 // Hiding the entrance is not the same as locking it: anyone holding the URL
 // (bookmark, shared link, browser history) lands here regardless of whether a
 // link was ever shown to them. So the check runs on this side too, on every
-// way in — fresh login and resumed session alike. It reads the same viewERP
-// flag the PO pages use to decide whether to show the way back, so toun can
-// grant or revoke it from the Permissions screen without a deploy.
-function enforceERPAccess() {
-  if (hasPermission('viewERP')) return true;
+// way in — fresh login and resumed session alike.
+// viewStock (not viewERP) is the key to this page: toun wants workers on the
+// shop floor to reach stock straight from PO Tracker without ever seeing the
+// ERP home, which is for supervisor/office/admin only (2026-09-25). Which of
+// the two routes a person took only changes where the back arrow leads.
+function enforceStockAccess() {
+  if (hasPermission('viewStock')) return true;
 
   document.getElementById('pin-login-screen').classList.add('hidden');
   const wrap = document.getElementById('app-wrapper');
@@ -2153,10 +2187,10 @@ function enforceERPAccess() {
                   border:1px solid var(--line,#ddd);border-radius:16px;padding:28px 22px;">
         <div style="font-size:40px;line-height:1;margin-bottom:12px;">🔒</div>
         <div style="font-size:19px;font-weight:800;color:var(--ink,#201E1D);margin-bottom:8px;">
-          บัญชีนี้ยังไม่มีสิทธิ์เข้าหน้า ERP
+          บัญชีนี้ยังไม่มีสิทธิ์เข้าคลังสต๊อก
         </div>
         <div style="font-size:14px;color:var(--ink-3,#6b6b6b);line-height:1.6;margin-bottom:20px;">
-          หน้านี้สำหรับออฟฟิศ ถ้าต้องใช้งานให้แจ้งผู้ดูแลระบบ<br>เปิดสิทธิ์ให้ในหน้าจัดการ &gt; สิทธิ์
+          ถ้าต้องใช้งานให้แจ้งผู้ดูแลระบบ<br>เปิดสิทธิ์ "เข้าคลังสต๊อก" ให้ในแท็บ 🔐 ผู้ดูแล
         </div>
         <button id="erp-denied-po" style="width:100%;min-height:46px;margin-bottom:10px;
                 background:var(--accent,#ec3013);color:#fff;border:none;border-radius:10px;
@@ -2176,13 +2210,13 @@ function enforceERPAccess() {
 
   // Worth a line in the log: a worker landing here means a link leaked, or
   // somebody needs a permission they do not have.
-  logActivity('erp_access_denied', 'system',
+  logActivity('stock_access_denied', 'system',
     { username: currentUser && currentUser.username, role: currentUser && currentUser.role });
   return false;
 }
 
 function showApp() {
-  if (!enforceERPAccess()) return;
+  if (!enforceStockAccess()) return;
   document.getElementById('pin-login-screen').classList.add('hidden');
   document.getElementById('app-wrapper').style.display = 'block';
   applyPermissions();
@@ -2211,6 +2245,11 @@ function applyPermissions() {
   document.querySelectorAll('.stock-write-only').forEach(el => {
     el.style.display = canWrite ? '' : 'none';
   });
+  // Someone who came straight from PO Tracker never passed through the ERP
+  // home, so the eyebrow should not name it and the back arrow returns them
+  // to PO (see goBack).
+  const sub = document.getElementById('stock-topbar-sub');
+  if (sub) sub.textContent = hasPermission('viewERP') ? 'ERP · คลังสต๊อก' : 'PO Tracker · คลังสต๊อก';
   // If a permission was just revoked while sitting on a hidden tab, fall back.
   if (!isAdmin && stockView === 'perms') switchStockView('current');
 }
@@ -2230,8 +2269,10 @@ async function logActivity(action, targetType, detail) {
   }
 }
 
+// Back to wherever this person came from: the ERP home for the office side,
+// PO Tracker for everyone else ('./' lets the router pick PC or mobile).
 function goBack() {
-  window.location.href = 'erp.html';
+  window.location.href = hasPermission('viewERP') ? 'erp.html' : './';
 }
 
 // ═══════════════════════════════════════════════════
@@ -4365,7 +4406,11 @@ function renderMovements(rows) {
     const isReversal = !!r.reverses_id;
     const wasReversed = reversedIds.has(r.id);
     // A row can be undone once, and a reversal itself is never undone.
-    const canUndo = hasPermission('stockReverse') && !isReversal && !wasReversed;
+    // No "ยกเลิก" on the opening balance: reversing it zeroes the material
+    // (the server allows it — it only reads the balance chain), and the
+    // right tool for a wrong opening count is ปรับยอด, which keeps history.
+    const canUndo = hasPermission('stockReverse') && !isReversal && !wasReversed
+      && r.movement_type !== 'initial';
 
     // Delivery-note details and the price paid are commercial information —
     // shown only to roles granted viewStockDocs.
