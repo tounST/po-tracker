@@ -1,5 +1,9 @@
 # Memory — PO Tracker Project
 
+> ## 📍 session ใหม่: อ่าน [`docs/STATUS.md`](docs/STATUS.md) ก่อน
+> ตอนนี้อยู่ตรงไหน · ต้องทำอะไรต่อ เรียงลำดับ · อะไรบล็อกอะไร
+> ไฟล์นี้เก็บ **กฎ · bug log · decision log** ไว้เปิดดูตอนต้องการ ไม่ต้องอ่านทั้งไฟล์
+
 ## เจ้าของโปรเจค (Boss)
 | | |
 |---|---|
@@ -29,7 +33,12 @@
 ถ้า bump cache ต้องบอกด้วยว่า **ต้องปิดแอปเปิดใหม่ 1 ครั้ง** + บอกวิธีเช็คว่าได้ตัวใหม่แล้ว
 
 ### Shortcut phrases (toun's shorthand)
-- **"เขียนบันทึก"** / **"บันทึกเลย"** / **"จดลง"** / **"จดไว้"** → update ทั้ง `CLAUDE.md` + memory files ใน `~/.claude/projects/.../memory/`. ไม่ต้องถามว่าเขียนเรื่องอะไร — ดู context บทสนทนาที่ผ่านมา (เพิ่ง fix อะไร / เจอกฎใหม่อะไร / ได้ milestone อะไร) แล้วเขียนสิ่งนั้น. ดูรายละเอียดใน `memory/feedback_shortcut_writenote.md`
+- **"บันทึก"** / **"เขียนบันทึก"** / **"บันทึกเลย"** / **"จดลง"** / **"จดไว้"** → อัปเดต **`docs/STATUS.md` เป็นหลัก** + `CLAUDE.md` (กฎ/bug/decision ใหม่) + memory files ถ้ามี. ไม่ต้องถามว่าเขียนเรื่องอะไร — ดู context บทสนทนา
+  **toun นิยามไว้ชัด (2026-09-25) ว่าต้องครบ 6 อย่างถึงจะเรียกว่าบันทึก:**
+  1. ที่ผ่านมาทำอะไรไปแล้ว · 2. ต้องทำอะไรต่อ · 3. เหลืออะไรบ้าง
+  4. **ไล่ลำดับความสำคัญ** · 5. **อะไร effect อะไร / บล็อกอะไร** · 6. **เขียนให้ session หน้าอ่านรู้เรื่อง**
+  ❌ เขียนแค่ "วันนี้ทำอะไร" = **ยังไม่ครบ** toun ทักมาแล้วครั้งหนึ่ง
+  ⚠️ **เช็คตัวเลขจากฐานข้อมูลจริงก่อนเขียนเสมอ** อย่าลอกของเก่า — เคยเกือบเขียนผิดว่า "สิทธิ์สต๊อกยังไม่เปิด" ทั้งที่ toun เปิดไปแล้ว
 
 ## ⚠️ กฎสำคัญ — ห้ามทำโดยเด็ดขาด
 
@@ -484,7 +493,7 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 | **เดินนับสต๊อกจริง แล้วกด "ตั้งต้นใหม่"** | toun | ตัวเลขในระบบยังเป็น mockup ทั้งหมด ใช้อ้างอิงอะไรไม่ได้จนกว่าจะทำ |
 | **ตั้งรหัส 6 หลักให้พนักงาน 5 คน** | toun (admin) | delivery/production/qc1/qc2/qc3 ยังถือรหัส 4 หลัก = **เข้าระบบไม่ได้เลยตั้งแต่ 2026-09-09** |
 | **ใส่ `qty_target`** | toun | ว่าง 13/16 → ป้าย "ควรสั่ง N" ไม่ทำงาน |
-| **เปิดสิทธิ์ `stockIn`/`stockOut` ให้พนักงาน** | toun | ถ้ายังเปิดแค่ admin จะไม่มีใครบันทึกได้ = สต๊อกไม่มีวันถูกใช้จริง (บทเรียนจากผลตรวจ 2026-08-13) |
+| **เปิดสิทธิ์ `stockIn`/`stockOut` ให้พนักงาน** | ✅ **toun ทำแล้ว** — staff มี `stockIn`/`stockOut` · ไม่ใช่คอขวดอีกต่อไป |
 
 **ก่อนตอบคำถามเรื่อง "ระบบพัง/เข้าไม่ได้" ทุกครั้ง — เช็ค Supabase `status` ก่อน** หลับไปแล้ว 3 ครั้ง
 
@@ -541,26 +550,14 @@ Design tokens จาก `tokens.css` (official) — Terracotta accent + warm cre
 - เพิ่ม column `permissions JSONB` ใน `users` table → override default role permissions per user
 - หรือใช้ Supabase RLS (Row Level Security) สำหรับ per-record filtering — แนะนำรวมกับลำดับ 3 Hardening
 
-#### **⭐ ลำดับ 2: Phase 3 — ฟีเจอร์ธุรกิจ** (6 ฟีเจอร์)
-- [ ] โหมดจุดงาน UI จริง — หลัง login แต่ละ station เห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
-- [ ] ระบบสต๊อกวัตถุดิบ/สี — เพิ่ม table `stock`, `stock_movements` ใน Supabase
-- [ ] ระบบคิดต้นทุน — คำนวณต้นทุน PO จากชิ้น × สี + ค่าแรง (SQL view)
-- [ ] Line แจ้งเตือน — Supabase Edge Function + Line Notify webhook (เตือนลูกค้าเมื่อส่ง)
-- [ ] เชื่อม n8n workflow — เปิด REST API สำหรับ automation
-- [ ] Dashboard สรุปยอดผลิต/ส่ง — chart ยอดรายเดือน, top customers, top parts
-
-#### **⭐ ลำดับ 2: Phase 3 — ฟีเจอร์ธุรกิจ** (6 ฟีเจอร์)
-- [ ] โหมดจุดงาน UI จริง — หลัง login แต่ละ station เห็นเฉพาะ tab/ฟีเจอร์ที่จำเป็น
-- [ ] ระบบสต๊อกวัตถุดิบ/สี — เพิ่ม table `stock`, `stock_movements` ใน Supabase
-- [ ] ระบบคิดต้นทุน — คำนวณต้นทุน PO จากชิ้น × สี + ค่าแรง (SQL view)
-- [ ] Line แจ้งเตือน — Supabase Edge Function + Line Notify webhook (เตือนลูกค้าเมื่อส่ง)
-- [ ] เชื่อม n8n workflow — เปิด REST API สำหรับ automation
-- [ ] Dashboard สรุปยอดผลิต/ส่ง — chart ยอดรายเดือน, top customers, top parts
+#### **⭐ ลำดับ 2: Phase 3 — ฟีเจอร์ธุรกิจ**
+> ⚠️ รายการเดิมตรงนี้ stale (เขียนว่า "ระบบสต๊อก" ยังไม่ทำ ทั้งที่เสร็จแล้ว) และซ้ำกันสองรอบ — ลบทิ้ง
+> **ดูงานที่เหลือจริง เรียงตามคุณค่า พร้อม dependency ที่ [`docs/STATUS.md`](docs/STATUS.md) §4**
 
 #### **🛡️ ลำดับ 3: Hardening + Backup** (ควรทำก่อน user เยอะขึ้น)
 - [ ] Supabase auto backup — ตั้ง scheduled backup รายวัน (Supabase Pro หรือ custom script)
-- [ ] Row Level Security (RLS) — แต่ละ user เห็นเฉพาะข้อมูลที่ตัวเองเกี่ยวข้อง
-- [ ] Supabase Realtime — เปลี่ยน fetch เป็น subscribe (ลูกน้อง 2 คน update พร้อมกันเห็น real-time)
+- [ ] Row Level Security (RLS) — แต่ละ user เห็นเฉพาะข้อมูลที่ตัวเองเกี่ยวข้อง (ตอนนี้เป็น permissive `using(true)` ตาม PIN login — ดูเหตุผลใน decision log)
+- [x] ~~Supabase Realtime~~ ✅ **เสร็จแล้ว** ทั้ง mobile + PC (2026-04-24)
 - [ ] Error monitoring — log JS errors ขึ้น Supabase table หรือ Sentry free tier
 - [ ] Rate limit — กัน abuse ผ่าน Edge Function middleware
 
