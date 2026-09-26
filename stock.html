@@ -941,6 +941,14 @@
   .unit-add-inline { display: flex; gap: 6px; align-items: stretch; }
   .unit-add-inline input { flex: 1; min-width: 0; }
   .unit-add-inline .row-btn { min-height: 40px; }
+  .unit-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .unit-tools .unit-add-btn { margin-top: 0; }
+  .unit-del-btn { min-height: 32px; }
+  .unit-del-row select { width: 100%; }
+  .unit-del-info { margin: 8px 0; }
+  .unit-del-info ul { margin: 6px 0 0; padding-left: 18px; }
+  .unit-del-info li { margin: 2px 0; }
+  .unit-del-go { color: var(--danger); border-color: var(--danger); }
   .row-btn.rb-in:hover  { border-color: var(--success); color: var(--success); }
   .row-btn.rb-out:hover { border-color: var(--warning); color: var(--warning); }
 
@@ -1706,7 +1714,10 @@
              report group and the ministry form. New units come in through the
              button below, which only stockAddUnit roles can see. -->
         <select id="st-unit"></select>
-        <button type="button" class="row-btn unit-add-btn stock-unit-add-only" id="st-unit-add-btn" style="display:none;">＋ เพิ่มหน่วย</button>
+        <div class="unit-tools">
+          <button type="button" class="row-btn unit-add-btn stock-unit-add-only" id="st-unit-add-btn" style="display:none;">＋ เพิ่มหน่วย</button>
+          <button type="button" class="row-btn unit-del-btn stock-unit-add-only" id="st-unit-del-btn" style="display:none;">🗑 ลบหน่วย</button>
+        </div>
       </div>
     </div>
     <div class="field unit-add-row" id="st-unit-add-row" style="display:none;">
@@ -1715,6 +1726,21 @@
         <input id="st-unit-new" type="text" maxlength="20" placeholder="เช่น ถัง, แกลลอน" autocomplete="off">
         <button type="button" class="row-btn" id="st-unit-save">เพิ่ม</button>
         <button type="button" class="row-btn" id="st-unit-cancel">ยกเลิก</button>
+      </div>
+    </div>
+    <!-- Deleting a unit never leaves a material without one: every material
+         that uses it (active or not) is moved to the replacement first. -->
+    <div class="field unit-del-row" id="st-unit-del-row" style="display:none;">
+      <label for="st-unit-del-pick">หน่วยที่จะลบ</label>
+      <select id="st-unit-del-pick"></select>
+      <div class="bl-note danger unit-del-info" id="st-unit-del-info"></div>
+      <div id="st-unit-del-to-wrap" style="display:none;margin-bottom:8px;">
+        <label for="st-unit-del-to">เปลี่ยนวัสดุเหล่านี้เป็นหน่วย</label>
+        <select id="st-unit-del-to"></select>
+      </div>
+      <div class="unit-add-inline">
+        <button type="button" class="row-btn unit-del-go" id="st-unit-del-go" style="flex:1;">ลบหน่วยนี้</button>
+        <button type="button" class="row-btn" id="st-unit-del-cancel">ยกเลิก</button>
       </div>
     </div>
     <div class="field">
@@ -2000,7 +2026,7 @@ const STOCK_PERMS = [
   { key: 'stockOut',     label: 'เบิกออก',      hint: 'เบิกของไปใช้ในงาน' },
   { key: 'stockAdjust',  label: 'ปรับยอด',      hint: 'แก้ยอดคงเหลือให้ตรงของจริง' },
   { key: 'stockReverse', label: 'ยกเลิกรายการ', hint: 'ยกเลิกรายการที่บันทึกผิด' },
-  { key: 'stockAddUnit', label: 'เพิ่มหน่วยใหม่', hint: 'เห็นปุ่ม "＋ เพิ่มหน่วย" ในฟอร์มวัสดุ — คนอื่นเลือกได้จากรายการเท่านั้น' },
+  { key: 'stockAddUnit', label: 'เพิ่ม/ลบหน่วย', hint: 'เห็นปุ่ม "＋ เพิ่มหน่วย" และ "🗑 ลบหน่วย" ในฟอร์มวัสดุ — คนอื่นเลือกได้จากรายการเท่านั้น' },
   { key: 'viewStockDocs', label: 'ดูราคา · มูลค่า · เอกสาร', hint: 'ปิด = เห็นแค่จำนวน ไม่เห็นตัวเลขเงินเลย (มูลค่าคลัง ราคา แท็บรายเดือน ใบส่งของ)' },
 ];
 const PERM_ROLES = [
@@ -2528,7 +2554,10 @@ function fillUnitSelect(current) {
     unitOptions(cur).map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
   sel.value = cur;
   closeUnitAdd();
-  document.getElementById('st-unit-add-btn').style.display = hasPermission('stockAddUnit') ? '' : 'none';
+  closeUnitDelete();
+  const canUnit = hasPermission('stockAddUnit');
+  document.getElementById('st-unit-add-btn').style.display = canUnit ? '' : 'none';
+  document.getElementById('st-unit-del-btn').style.display = canUnit ? '' : 'none';
 }
 function closeUnitAdd() {
   document.getElementById('st-unit-add-row').style.display = 'none';
@@ -2567,8 +2596,166 @@ async function addStockUnit() {
   toast(`เพิ่มหน่วย "${name}" แล้ว`);
   await logActivity('stock_unit_add', 'config', { unit: name });
 }
+// ── Delete a unit (toun 2026-09-26) ─────────────────────────────────────
+// Before anything is removed the panel lists every material on that unit and
+// asks which unit they move to. Quantities are NOT converted — 18 ลิตร becomes
+// 18 of the new unit — so the panel says that out loud. Materials are moved
+// first; the config row goes only after that succeeded, so a failure can
+// never leave a material pointing at a unit that is no longer in the list.
+let unitDelUsers = [];     // stock_items rows (any is_active) on the picked unit
+let unitDelSeq = 0;        // drops answers to a pick the user already changed
+function closeUnitDelete() {
+  document.getElementById('st-unit-del-row').style.display = 'none';
+  unitDelUsers = [];
+  unitDelSeq++;
+}
+function openUnitDelete() {
+  if (!hasPermission('stockAddUnit')) return;
+  closeUnitAdd();
+  const pick = document.getElementById('st-unit-del-pick');
+  const formUnit = document.getElementById('st-unit').value;
+  const opts = unitOptions('');
+  pick.innerHTML = opts.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+  pick.value = opts.includes(formUnit) ? formUnit : (opts[0] || '');
+  document.getElementById('st-unit-del-row').style.display = '';
+  refreshUnitDelete();
+}
+async function refreshUnitDelete() {
+  const unit = document.getElementById('st-unit-del-pick').value;
+  const info = document.getElementById('st-unit-del-info');
+  const toWrap = document.getElementById('st-unit-del-to-wrap');
+  const go = document.getElementById('st-unit-del-go');
+  const seq = ++unitDelSeq;
+  unitDelUsers = [];
+  toWrap.style.display = 'none';
+  go.disabled = true;
+  info.textContent = 'กำลังตรวจว่ามีวัสดุไหนใช้หน่วยนี้…';
+  let rows;
+  try {
+    // Fresh from the DB, not stockItems: that list is active-only, and a
+    // deactivated material on this unit would otherwise be left orphaned.
+    const { data, error } = await sb.from('stock_items')
+      .select('id, name, is_active, qty_current, report_group').eq('unit', unit).order('name');
+    if (error) throw error;
+    rows = data || [];
+  } catch (e) {
+    if (seq !== unitDelSeq) return;
+    info.textContent = 'ตรวจไม่สำเร็จ: ' + (e.message || e.code || '') + ' — ลองใหม่อีกครั้ง';
+    return;
+  }
+  if (seq !== unitDelSeq) return;
+  unitDelUsers = rows;
+  if (!rows.length) {
+    info.innerHTML = `ไม่มีวัสดุไหนใช้หน่วย <b>${escapeHtml(unit)}</b> — ลบได้เลย`;
+    go.disabled = false;
+    return;
+  }
+  const to = document.getElementById('st-unit-del-to');
+  const keep = to.value;
+  const opts = unitOptions('').filter(u => u !== unit);
+  to.innerHTML = '<option value="">— เลือกหน่วยที่จะใช้แทน —</option>' +
+    opts.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+  to.value = opts.includes(keep) ? keep : '';
+  toWrap.style.display = '';
+  go.disabled = false;
+  renderUnitDeleteInfo();
+}
+function renderUnitDeleteInfo() {
+  const unit = document.getElementById('st-unit-del-pick').value;
+  const target = document.getElementById('st-unit-del-to').value;
+  const rows = unitDelUsers;
+  if (!rows.length) return;
+  const active = rows.filter(r => r.is_active);
+  const off = rows.length - active.length;
+  const shownUnit = target ? escapeHtml(target) : '(หน่วยใหม่)';
+  const list = active.map(r =>
+    `<li>${escapeHtml(r.name)} — ${fmtNum(r.qty_current)} ${escapeHtml(unit)}` +
+    (target ? ` → ${fmtNum(r.qty_current)} ${shownUnit}` : '') + '</li>').join('');
+  // A report group must share one unit; say so if this move would split one.
+  const splits = [];
+  if (target) {
+    const moved = new Set(active.map(r => r.id));
+    const keys = [...new Set(active.map(groupKey))];
+    keys.forEach(k => {
+      const members = groupMembers(k);
+      if (members.length < 2) return;
+      const units = new Set(members.map(m => moved.has(m.id) ? target : m.unit));
+      if (units.size > 1) splits.push(k);
+    });
+  }
+  const example = active[0] || rows[0];
+  const info = document.getElementById('st-unit-del-info');
+  info.innerHTML =
+    `⚠️ มีวัสดุ <b>${rows.length} รายการ</b>ที่ใช้หน่วย <b>${escapeHtml(unit)}</b> อยู่` +
+    (list ? `<ul>${list}</ul>` : '') +
+    (off ? `<div>+ วัสดุที่ปิดใช้งานแล้ว ${off} รายการ (เปลี่ยนให้ด้วย)</div>` : '') +
+    `<div style="margin-top:6px;">ตัวเลขจะ<b>ไม่ถูกแปลง</b> — เช่น ${fmtNum(example.qty_current)} ${escapeHtml(unit)} จะกลายเป็น ${fmtNum(example.qty_current)} ${shownUnit}` +
+    ` · ถ้าหน่วยใหม่ขนาดไม่เท่าเดิม ให้ปรับยอดด้วย</div>` +
+    (splits.length ? `<div style="margin-top:6px;">⚠️ กลุ่ม ${splits.map(k => `"${escapeHtml(k)}"`).join(', ')} จะมีหน่วยไม่ตรงกัน</div>` : '');
+}
+async function deleteStockUnit() {
+  // Same flag as adding: whoever curates the list can prune it.
+  if (!hasPermission('stockAddUnit')) { toast('ไม่มีสิทธิ์ลบหน่วย'); return; }
+  const unit = document.getElementById('st-unit-del-pick').value;
+  const target = document.getElementById('st-unit-del-to').value;
+  if (!unit) return;
+  const inList = stockUnits.includes(unit);
+  if (inList && stockUnits.length <= 1) { toast('ลบไม่ได้ — ต้องเหลืออย่างน้อย 1 หน่วย'); return; }
+  const used = unitDelUsers.length;
+  if (used && !target) { toast('เลือกหน่วยที่จะใช้แทนก่อน'); return; }
+  if (used && target === unit) { toast('หน่วยที่ใช้แทนต้องไม่ใช่หน่วยเดิม'); return; }
+  const msg = used
+    ? `ลบหน่วย "${unit}"?
+
+วัสดุ ${used} รายการจะเปลี่ยนเป็น "${target}"
+ตัวเลขจะไม่ถูกแปลง`
+    : `ลบหน่วย "${unit}"?`;
+  if (!confirm(msg)) return;
+  const go = document.getElementById('st-unit-del-go');
+  go.disabled = true;
+  let moved = 0;
+  try {
+    // Whatever uses the unit *now* moves — including anything added since
+    // the panel was opened — so nothing is left on a unit that disappears.
+    const { data, error } = await sb.from('stock_items')
+      .update({ unit: target || unit, updated_at: nowTS() }).eq('unit', unit).select('id');
+    if (error) throw error;
+    moved = (data || []).length;
+    if (moved && !target) {
+      // Someone put a material on this unit after the panel said "unused".
+      go.disabled = false;
+      toast('มีวัสดุเพิ่งใช้หน่วยนี้ — ตรวจใหม่แล้ว เลือกหน่วยที่จะใช้แทน');
+      refreshUnitDelete();
+      return;
+    }
+    const { error: e2 } = await sb.from('config').delete()
+      .eq('config_type', 'stock_unit').eq('config_value', unit);
+    if (e2) throw e2;
+  } catch (e) {
+    go.disabled = false;
+    console.error('[deleteStockUnit]', e);
+    toast('ลบหน่วยไม่สำเร็จ: ' + (e.message || e.code || ''));
+    return;
+  }
+  go.disabled = false;
+  stockUnits = stockUnits.filter(u => u !== unit);
+  const formUnit = document.getElementById('st-unit').value;
+  await loadStock();
+  fillUnitSelect(formUnit === unit ? (target || '') : formUnit);
+  toast(moved ? `ลบหน่วย "${unit}" แล้ว · เปลี่ยน ${moved} รายการเป็น "${target}"` : `ลบหน่วย "${unit}" แล้ว`);
+  await logActivity('stock_unit_delete', 'config', { unit, replaced_with: target || null, items: moved });
+}
+document.getElementById('st-unit-del-btn').addEventListener('click', () => {
+  const row = document.getElementById('st-unit-del-row');
+  if (row.style.display === '') closeUnitDelete(); else openUnitDelete();
+});
+document.getElementById('st-unit-del-pick').addEventListener('change', refreshUnitDelete);
+document.getElementById('st-unit-del-to').addEventListener('change', renderUnitDeleteInfo);
+document.getElementById('st-unit-del-go').addEventListener('click', deleteStockUnit);
+document.getElementById('st-unit-del-cancel').addEventListener('click', closeUnitDelete);
 document.getElementById('st-unit-add-btn').addEventListener('click', () => {
   if (!hasPermission('stockAddUnit')) return;
+  closeUnitDelete();
   document.getElementById('st-unit-add-row').style.display = '';
   setTimeout(() => document.getElementById('st-unit-new').focus(), 50);
 });
