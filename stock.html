@@ -937,6 +937,10 @@
     transition: border-color .15s, background .15s;
   }
   .row-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .unit-add-btn { margin-top: 6px; min-height: 32px; }
+  .unit-add-inline { display: flex; gap: 6px; align-items: stretch; }
+  .unit-add-inline input { flex: 1; min-width: 0; }
+  .unit-add-inline .row-btn { min-height: 40px; }
   .row-btn.rb-in:hover  { border-color: var(--success); color: var(--success); }
   .row-btn.rb-out:hover { border-color: var(--warning); color: var(--warning); }
 
@@ -1697,18 +1701,20 @@
       </div>
       <div class="field">
         <label>หน่วย</label>
-        <input id="st-unit" type="text" list="unit-list" placeholder="กก." autocomplete="off">
-        <datalist id="unit-list">
-          <option value="กก."></option>
-          <option value="กิโลกรัม"></option>
-          <option value="ลิตร"></option>
-          <option value="ชุด"></option>
-          <option value="แผ่น"></option>
-          <option value="ม้วน"></option>
-          <option value="คู่"></option>
-          <option value="ชิ้น"></option>
-          <option value="กระป๋อง"></option>
-        </datalist>
+        <!-- A managed list (config_type 'stock_unit'), not free text: two
+             spellings of one unit ("กก." / "กิโลกรัม" / "โล") would split a
+             report group and the ministry form. New units come in through the
+             button below, which only stockAddUnit roles can see. -->
+        <select id="st-unit"></select>
+        <button type="button" class="row-btn unit-add-btn stock-unit-add-only" id="st-unit-add-btn" style="display:none;">＋ เพิ่มหน่วย</button>
+      </div>
+    </div>
+    <div class="field unit-add-row" id="st-unit-add-row" style="display:none;">
+      <label>หน่วยใหม่</label>
+      <div class="unit-add-inline">
+        <input id="st-unit-new" type="text" maxlength="20" placeholder="เช่น ถัง, แกลลอน" autocomplete="off">
+        <button type="button" class="row-btn" id="st-unit-save">เพิ่ม</button>
+        <button type="button" class="row-btn" id="st-unit-cancel">ยกเลิก</button>
       </div>
     </div>
     <div class="field">
@@ -1979,11 +1985,11 @@ function resetSessionTimer() {
 // writes to role_permissions — so changing who may issue stock never needs a
 // code change.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true, viewERP: true,  viewStock: true },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true, viewERP: true,  viewStock: true, stockAddUnit: true },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true, stockAddUnit: true },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true, stockAddUnit: true },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true, stockAddUnit: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true, stockAddUnit: false }
 };
 
 // Labels for the permission panel — order here is the order shown.
@@ -1994,6 +2000,7 @@ const STOCK_PERMS = [
   { key: 'stockOut',     label: 'เบิกออก',      hint: 'เบิกของไปใช้ในงาน' },
   { key: 'stockAdjust',  label: 'ปรับยอด',      hint: 'แก้ยอดคงเหลือให้ตรงของจริง' },
   { key: 'stockReverse', label: 'ยกเลิกรายการ', hint: 'ยกเลิกรายการที่บันทึกผิด' },
+  { key: 'stockAddUnit', label: 'เพิ่มหน่วยใหม่', hint: 'เห็นปุ่ม "＋ เพิ่มหน่วย" ในฟอร์มวัสดุ — คนอื่นเลือกได้จากรายการเท่านั้น' },
   { key: 'viewStockDocs', label: 'ดูราคา · มูลค่า · เอกสาร', hint: 'ปิด = เห็นแค่จำนวน ไม่เห็นตัวเลขเงินเลย (มูลค่าคลัง ราคา แท็บรายเดือน ใบส่งของ)' },
 ];
 const PERM_ROLES = [
@@ -2290,6 +2297,9 @@ function applyPermissions() {
   if (sub) sub.textContent = hasPermission('viewERP') ? 'ERP · คลังสต๊อก' : 'PO Tracker · คลังสต๊อก';
   // Money: the monthly tab is hidden outright, the table's price/value
   // columns via a class on <body> (they are static <th> + rendered <td>).
+  document.querySelectorAll('.stock-unit-add-only').forEach(el => {
+    el.style.display = hasPermission('stockAddUnit') ? '' : 'none';
+  });
   const money = canSeeMoney();
   document.querySelectorAll('.money-only').forEach(el => { el.style.display = money ? '' : 'none'; });
   document.body.classList.toggle('no-money', !money);
@@ -2485,7 +2495,91 @@ function fmtBaht(n) {
 // ═══════════════════════════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════════════════════════
+// ── Units (toun 2026-09-26) ──────────────────────────────────────────────
+// The list lives in config ('stock_unit'). Units already on a material are
+// always offered too, so an old spelling can still be re-selected on edit
+// instead of silently turning into the first option.
+let stockUnits = [];
+const FALLBACK_UNITS = ['กก.', 'กิโลกรัม', 'ลิตร', 'ชุด', 'แผ่น', 'ม้วน', 'คู่', 'ชิ้น', 'กระป๋อง'];
+async function loadStockUnits() {
+  try {
+    const { data, error } = await sb.from('config').select('config_value, sort_order')
+      .eq('config_type', 'stock_unit').eq('is_active', true)
+      .order('sort_order').order('config_value');
+    if (error) throw error;
+    stockUnits = (data || []).map(r => String(r.config_value).trim()).filter(Boolean);
+    if (!stockUnits.length) stockUnits = FALLBACK_UNITS.slice();
+  } catch (e) {
+    console.warn('[loadStockUnits] using fallback list', e?.message || e);
+    if (!stockUnits.length) stockUnits = FALLBACK_UNITS.slice();
+  }
+}
+function unitOptions(current) {
+  const list = stockUnits.slice();
+  const add = u => { u = String(u || '').trim(); if (u && !list.includes(u)) list.push(u); };
+  stockItems.forEach(i => add(i.unit));
+  add(current);
+  return list;
+}
+function fillUnitSelect(current) {
+  const sel = document.getElementById('st-unit');
+  const cur = String(current || '').trim();
+  sel.innerHTML = (cur ? '' : '<option value="">— เลือกหน่วย —</option>') +
+    unitOptions(cur).map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+  sel.value = cur;
+  closeUnitAdd();
+  document.getElementById('st-unit-add-btn').style.display = hasPermission('stockAddUnit') ? '' : 'none';
+}
+function closeUnitAdd() {
+  document.getElementById('st-unit-add-row').style.display = 'none';
+  document.getElementById('st-unit-new').value = '';
+}
+async function addStockUnit() {
+  // The button is hidden without the flag; this is the lock on the door.
+  if (!hasPermission('stockAddUnit')) { toast('ไม่มีสิทธิ์เพิ่มหน่วย'); return; }
+  const name = document.getElementById('st-unit-new').value.trim().replace(/\s+/g, ' ');
+  if (!name) { toast('พิมพ์ชื่อหน่วยก่อน'); return; }
+  if (name.length > 20) { toast('ชื่อหน่วยยาวเกินไป (ไม่เกิน 20 ตัวอักษร)'); return; }
+  const sel = document.getElementById('st-unit');
+  // Same unit typed again (any case / spacing) → just pick it, don't duplicate.
+  const same = unitOptions(sel.value).find(u => u.toLowerCase() === name.toLowerCase());
+  if (same) {
+    fillUnitSelect(same);
+    toast(`มีหน่วย "${same}" อยู่แล้ว — เลือกให้แล้ว`);
+    return;
+  }
+  const btn = document.getElementById('st-unit-save');
+  btn.disabled = true;
+  try {
+    const { error } = await sb.from('config').insert({
+      config_type: 'stock_unit', config_value: name, sort_order: stockUnits.length + 1
+    });
+    if (error) throw error;
+  } catch (e) {
+    btn.disabled = false;
+    console.error('[addStockUnit]', e);
+    toast('เพิ่มหน่วยไม่สำเร็จ: ' + (e.message || e.code || ''));
+    return;
+  }
+  btn.disabled = false;
+  stockUnits.push(name);
+  fillUnitSelect(name);
+  toast(`เพิ่มหน่วย "${name}" แล้ว`);
+  await logActivity('stock_unit_add', 'config', { unit: name });
+}
+document.getElementById('st-unit-add-btn').addEventListener('click', () => {
+  if (!hasPermission('stockAddUnit')) return;
+  document.getElementById('st-unit-add-row').style.display = '';
+  setTimeout(() => document.getElementById('st-unit-new').focus(), 50);
+});
+document.getElementById('st-unit-save').addEventListener('click', addStockUnit);
+document.getElementById('st-unit-cancel').addEventListener('click', closeUnitAdd);
+document.getElementById('st-unit-new').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addStockUnit(); }
+});
+
 async function loadStock(opts = {}) {
+  loadStockUnits();   // tiny list; fetched alongside, never blocks the stock itself
   try {
     const { data, error } = await sb.from('stock_items')
       .select('*')
@@ -4729,7 +4823,7 @@ document.getElementById('st-group').addEventListener('change', (e) => {
   const head = groupMembers(key).find(i => i.id !== editingStockId);
   if (!head) return;
   setCategorySelect(head.category || '');
-  document.getElementById('st-unit').value = head.unit || '';
+  fillUnitSelect(head.unit || '');
 });
 
 function openAddStockModal() {
@@ -4738,7 +4832,7 @@ function openAddStockModal() {
   document.getElementById('stock-modal-title').textContent = 'เพิ่มวัสดุ';
   document.getElementById('st-name').value = '';
   setCategorySelect('');
-  document.getElementById('st-unit').value = '';
+  fillUnitSelect('');
   document.getElementById('st-qty').value = '';
   document.getElementById('st-min').value = '';
   document.getElementById('st-target').value = '';
@@ -4759,7 +4853,7 @@ function openEditStockModal(id) {
   document.getElementById('stock-modal-title').textContent = 'แก้ไขวัสดุ';
   document.getElementById('st-name').value = item.name || '';
   setCategorySelect(item.category || '');
-  document.getElementById('st-unit').value = item.unit || '';
+  fillUnitSelect(item.unit || '');
   document.getElementById('st-min').value = (item.qty_min === null || item.qty_min === undefined) ? '' : item.qty_min;
   document.getElementById('st-target').value = (item.qty_target === null || item.qty_target === undefined) ? '' : item.qty_target;
   document.getElementById('st-cost').value = (item.cost_per_unit === null || item.cost_per_unit === undefined) ? '' : item.cost_per_unit;
@@ -4779,7 +4873,8 @@ async function saveStock() {
   const name = document.getElementById('st-name').value.trim();
   if (!name) { toast('กรุณากรอกชื่อวัสดุ'); return; }
   const categoryRaw = readCategorySelect();
-  const unit = document.getElementById('st-unit').value.trim() || 'ชิ้น';
+  const unit = document.getElementById('st-unit').value.trim();
+  if (!unit) { toast('กรุณาเลือกหน่วย'); return; }
   const qtyMin = parseFloat(document.getElementById('st-min').value) || 0;
   const targetRaw = document.getElementById('st-target').value;
   const qtyTarget = targetRaw === '' ? null : (parseFloat(targetRaw) || 0);
