@@ -421,6 +421,8 @@
   .qa-out:active { background: var(--warning-bg); border-color: var(--warning); }
   .qa-adjust { color: var(--ink-2); }
   .qa-adjust:active { background: var(--bg-deep); border-color: var(--line-deep); }
+  .qa-del { flex: 0 0 var(--touch-min); color: var(--danger); }
+  .qa-del:active { background: var(--danger-bg); border-color: var(--danger); }
 
   /* ── Floating add button ── */
   .stock-add-btn {
@@ -951,6 +953,8 @@
   .unit-del-go { color: var(--danger); border-color: var(--danger); }
   .row-btn.rb-in:hover  { border-color: var(--success); color: var(--success); }
   .row-btn.rb-out:hover { border-color: var(--warning); color: var(--warning); }
+  .row-btn.rb-del { color: var(--danger); }
+  .row-btn.rb-del:hover { border-color: var(--danger); color: var(--danger); }
 
   /* ── Search ── */
   .search-bar {
@@ -2011,11 +2015,11 @@ function resetSessionTimer() {
 // writes to role_permissions — so changing who may issue stock never needs a
 // code change.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true, viewERP: true,  viewStock: true, stockAddUnit: true },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true, stockAddUnit: true },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true, stockAddUnit: true },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true, stockAddUnit: false },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true, stockAddUnit: false }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: true,  stockOut: true,  stockAdjust: true,  stockReverse: true,  viewStockDocs: true, viewERP: true,  viewStock: true, stockAddUnit: true, stockDeleteItem: true },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true, stockAddUnit: true, stockDeleteItem: false },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: true,  viewStock: true, stockAddUnit: true, stockDeleteItem: false },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true, stockAddUnit: false, stockDeleteItem: false },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, stockIn: false, stockOut: false, stockAdjust: false, stockReverse: false, viewStockDocs: false, viewERP: false, viewStock: true, stockAddUnit: false, stockDeleteItem: false }
 };
 
 // Labels for the permission panel — order here is the order shown.
@@ -2026,6 +2030,7 @@ const STOCK_PERMS = [
   { key: 'stockOut',     label: 'เบิกออก',      hint: 'เบิกของไปใช้ในงาน' },
   { key: 'stockAdjust',  label: 'ปรับยอด',      hint: 'แก้ยอดคงเหลือให้ตรงของจริง' },
   { key: 'stockReverse', label: 'ยกเลิกรายการ', hint: 'ยกเลิกรายการที่บันทึกผิด' },
+  { key: 'stockDeleteItem', label: 'ลบวัสดุ', hint: 'เห็นปุ่ม 🗑 ลบ บนรายการวัสดุ — ประวัติเดิมยังเก็บไว้ ไม่ถูกลบ' },
   { key: 'stockAddUnit', label: 'เพิ่ม/ลบหน่วย', hint: 'เห็นปุ่ม "＋ เพิ่มหน่วย" และ "🗑 ลบหน่วย" ในฟอร์มวัสดุ — คนอื่นเลือกได้จากรายการเท่านั้น' },
   { key: 'viewStockDocs', label: 'ดูราคา · มูลค่า · เอกสาร', hint: 'ปิด = เห็นแค่จำนวน ไม่เห็นตัวเลขเงินเลย (มูลค่าคลัง ราคา แท็บรายเดือน ใบส่งของ)' },
 ];
@@ -4782,6 +4787,7 @@ function renderStockTableRow(i, idx, child = false) {
           ${canMove('in')  ? `<button class="row-btn rb-in"  data-action="in"  data-id="${escapeHtml(i.id)}">รับเข้า</button>` : ''}
           ${canMove('out') ? `<button class="row-btn rb-out" data-action="out" data-id="${escapeHtml(i.id)}">เบิกออก</button>` : ''}
           <button class="row-btn"        data-action="detail" data-id="${escapeHtml(i.id)}">ดู</button>
+          ${canDeleteItem() ? `<button class="row-btn rb-del" data-action="del" data-id="${escapeHtml(i.id)}" title="ลบวัสดุ">ลบ</button>` : ''}
         </div>
       </td>
     </tr>`;
@@ -4846,6 +4852,7 @@ function renderStockCard(i) {
     <div class="stock-card-actions">
       ${canMove('in')  ? `<button class="qa-btn qa-in" data-action="in" data-id="${escapeHtml(i.id)}">➕ รับเข้า</button>` : ''}
       ${canMove('out') ? `<button class="qa-btn qa-out" data-action="out" data-id="${escapeHtml(i.id)}">➖ เบิกออก</button>` : ''}
+      ${canDeleteItem() ? `<button class="qa-btn qa-del" data-action="del" data-id="${escapeHtml(i.id)}" aria-label="ลบวัสดุ ${escapeHtml(i.name)}" title="ลบวัสดุ">🗑</button>` : ''}
     </div>
   </div>`;
 }
@@ -5047,8 +5054,7 @@ function openEditStockModal(id) {
   document.getElementById('st-note').value = item.note || '';
   fillGroupSelect(String(item.report_group || '').trim(), item);
   document.getElementById('st-qty-field').style.display = 'none';  // qty edited via movements only
-  document.getElementById('st-delete-btn').style.display =
-    hasPermission('manageDataDelete') ? '' : 'none';
+  document.getElementById('st-delete-btn').style.display = canDeleteItem() ? '' : 'none';
   document.getElementById('stock-modal').classList.remove('hidden');
 }
 
@@ -5138,30 +5144,61 @@ async function saveStock() {
   await loadStock();
 }
 
-async function deleteStock() {
-  if (!editingStockId) return;
-  if (!hasPermission('manageDataDelete')) { toast('ไม่มีสิทธิ์ลบ'); return; }
-  const item = stockItems.find(i => i.id === editingStockId);
-  if (!confirm(`ลบวัสดุ "${item ? item.name : ''}" ?`)) return;
+// ── Delete a material (toun 2026-09-28: admin only, visible on the list) ──
+// A soft delete: the row is hidden (is_active=false) but its ledger stays, so
+// nothing already recorded is lost and the material can be brought back.
+// The confirm spells out what disappears with it — stock still on hand drops
+// out of the warehouse total, and past ministry reports list active materials
+// only — because a one-tap delete on the list is easy to hit by mistake.
+function canDeleteItem() { return hasPermission('stockDeleteItem'); }
+async function deleteStock(id = editingStockId) {
+  if (!id) return;
+  // The buttons are hidden without the flag; this is the lock on the door.
+  if (!canDeleteItem()) { toast('ไม่มีสิทธิ์ลบวัสดุ — เฉพาะ Admin'); return; }
+  const item = stockItems.find(i => i.id === id);
+  if (!item) { toast('ไม่พบวัสดุ'); return; }
+  let history = null;
+  try {
+    const { count, error } = await sb.from('stock_movements')
+      .select('id', { count: 'exact', head: true }).eq('item_id', id);
+    if (error) throw error;
+    history = count || 0;
+  } catch (e) {
+    console.warn('[deleteStock] count', e?.message || e);   // the warning just gets shorter
+  }
+  const qty = Number(item.qty_current) || 0;
+  const unit = item.unit || '';
+  const lines = [`ลบวัสดุ "${item.name}" ?`, ''];
+  if (qty > 0) {
+    lines.push(`⚠️ ยังเหลือของ ${fmtNum(qty)} ${unit}` +
+      (canSeeMoney() ? ` (มูลค่า ${fmtBaht(itemValue(item))} บาท)` : '') +
+      ' — จะหายไปจากยอดคลัง');
+  }
+  if (history) {
+    lines.push(`• มีประวัติ ${fmtNum(history)} รายการ — ยังเก็บไว้ ไม่ถูกลบ`);
+    lines.push('• แต่จะไม่แสดงในรายงานกระทรวงของเดือนที่ผ่านมาแล้ว — ถ้ายังต้องส่งรายงานเดือนก่อน ให้ส่งก่อนแล้วค่อยลบ');
+  }
+  const heads = stockItems.filter(i => i.id !== id && String(i.report_group || '').trim() === String(item.name || '').trim());
+  if (heads.length) lines.push(`• เฉดในกลุ่ม "${item.name}" อีก ${heads.length} รายการยังอยู่ และยังรวมยอดกันเหมือนเดิม`);
+  if (!confirm(lines.join('\n'))) return;
 
   try {
     showLoading(true);
     const { error } = await sb.from('stock_items')
       .update({ is_active: false, updated_at: nowTS() })
-      .eq('id', editingStockId);
+      .eq('id', id);
     if (error) throw error;
-    await logActivity('stock_delete', 'stock_item', { item_id: editingStockId, name: item ? item.name : '' });
   } catch(e) {
     showLoading(false);
     console.error('[deleteStock]', e);
     toast('ลบไม่สำเร็จ: ' + (e.message || ''));
     return;
   }
-
+  await logActivity('stock_delete', 'stock_item', { item_id: id, name: item.name, qty_left: qty, history });
   showLoading(false);
-  closeStockModal();
-  closeDetailSheet();
-  toast('ลบวัสดุแล้ว');
+  if (editingStockId === id) closeStockModal();
+  if (currentDetailId === id) closeDetailSheet();
+  toast(`ลบ "${item.name}" แล้ว`);
   await loadStock();
 }
 
@@ -5371,6 +5408,7 @@ function openDetailSheet(id) {
       ${canMove('adjust') ? '<button class="qa-btn qa-adjust" data-mv="adjust">⚖️ ปรับยอด</button>' : ''}
     </div>
     ${canEdit ? '<button class="btn-danger-ghost" style="color:var(--ink-2);border-color:var(--line);margin-top:0;" data-edit="1">✏️ แก้ไขข้อมูลวัสดุ</button>' : ''}
+    ${canDeleteItem() ? '<button class="btn-danger-ghost" data-del="1">🗑️ ลบวัสดุนี้</button>' : ''}
     <div class="detail-history-head">ประวัติการเคลื่อนไหว</div>
     <div class="mv-list" id="detail-mv-list"><div class="stock-empty">กำลังโหลด…</div></div>
   `;
@@ -5589,6 +5627,7 @@ function onStockRowClick(e) {
   if (action === 'detail')   openDetailSheet(id);
   else if (action === 'in')  openMovementModal(id, 'in');
   else if (action === 'out') openMovementModal(id, 'out');
+  else if (action === 'del') deleteStock(id);
 }
 document.getElementById('stock-list').addEventListener('click', onStockRowClick);
 document.getElementById('stock-tbody').addEventListener('click', onStockRowClick);
@@ -5870,6 +5909,8 @@ document.getElementById('detail-body').addEventListener('click', (e) => {
   if (mv) { if (currentDetailId) openMovementModal(currentDetailId, mv.dataset.mv); return; }
   const ed = e.target.closest('[data-edit]');
   if (ed) { const id = currentDetailId; if (id) { closeDetailSheet(); openEditStockModal(id); } return; }
+  const del = e.target.closest('[data-del]');
+  if (del) { if (currentDetailId) deleteStock(currentDetailId); return; }
 });
 
 // Tap the dimmed backdrop (not the sheet) to close a modal.
