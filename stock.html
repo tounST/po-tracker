@@ -338,6 +338,19 @@
   .stock-group.is-folded .sg-children { display: none; }
   .sg-children { border-left: 2px solid var(--line); padding-left: 10px; }
   .sg-children .stock-card { background: var(--bg); }
+  .sg-add {
+    width: 100%; min-height: var(--touch-min); margin: 0 0 10px;
+    border: 1px dashed var(--line-deep); border-radius: var(--r-sm);
+    background: transparent; color: var(--ink-2);
+    font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: rgba(184,92,60,.10);
+  }
+  .sg-add:active { background: var(--bg-deep); }
+  .sg-base-tag {
+    font-size: 11px; font-weight: 700; color: var(--ink-3);
+    background: var(--bg-deep); padding: 2px 8px; border-radius: var(--r-pill);
+    margin-left: 6px; white-space: nowrap;
+  }
   .stock-table tr.sub-group-row td { background: var(--bg-deep); font-weight: 700; }
   .stock-table tr.is-child .td-name { padding-left: 22px; }
   .child-mark { color: var(--ink-3); margin-right: 6px; font-weight: 400; }
@@ -1698,8 +1711,18 @@
       <div class="modal-title" id="stock-modal-title">เพิ่มวัสดุ</div>
       <button class="modal-close" onclick="closeStockModal()" aria-label="ปิด">✕</button>
     </div>
+    <!-- Sub-category (report_group). First, because picking one fills in and
+         locks category + unit and pre-types the name — a new sandpaper grit is
+         then just "เบอร์ 180" + quantity. -->
     <div class="field">
-      <label>ชื่อวัสดุ *</label>
+      <label for="st-group">หมวดย่อย</label>
+      <select id="st-group"></select>
+      <input id="st-group-new" type="text" maxlength="60" placeholder="ชื่อหมวดย่อย เช่น กระดาษทราย"
+             autocomplete="off" style="display:none;margin-top:6px;">
+      <div class="field-hint" id="st-group-hint"></div>
+    </div>
+    <div class="field">
+      <label id="st-name-label">ชื่อวัสดุ *</label>
       <input id="st-name" type="text" placeholder="เช่น สีดำเงา 2K" autocomplete="off">
     </div>
     <div class="field-row">
@@ -1745,13 +1768,6 @@
       <div class="unit-add-inline">
         <button type="button" class="row-btn unit-del-go" id="st-unit-del-go" style="flex:1;">ลบหน่วยนี้</button>
         <button type="button" class="row-btn" id="st-unit-del-cancel">ยกเลิก</button>
-      </div>
-    </div>
-    <div class="field">
-      <label>รวมยอดกับ</label>
-      <select id="st-group"></select>
-      <div class="field-hint" id="st-group-hint">
-        เช่น สีจริงเฉด 801, 802 → เลือก "สีจริง" · ในคลังยังแยกเฉดเหมือนเดิม แต่หัวกลุ่มกับรายงานกระทรวงจะรวมเป็นรายการเดียว
       </div>
     </div>
     <div class="field-row">
@@ -2436,6 +2452,18 @@ function catClass(cat) {
 // join it, and the group survives even if that original row is retired.
 function groupKey(i) { return String(i.report_group || '').trim() || String(i.name || '').trim(); }
 function groupMembers(key) { return stockItems.filter(i => groupKey(i) === key); }
+// A sub-category (หมวดย่อย) is a header, not a material: it exists as soon as
+// one item names it in report_group — even a single sandpaper grit gets its
+// header. A plain material with no members is just a material.
+function isSubGroup(key) {
+  return !!key && stockItems.some(i => String(i.report_group || '').trim() === key);
+}
+// The item whose own name IS the sub-category (the old "สีจริง" before it was
+// split into shades). Its stock is real and is counted; it gets a tag saying
+// so, because that is the number people did not expect to see added in.
+function isGroupBase(i) {
+  return !String(i.report_group || '').trim() && isSubGroup(String(i.name || '').trim());
+}
 function groupSeq(key) {
   const seqs = groupMembers(key).map(i => i.ministry_seq).filter(v => v != null);
   return seqs.length ? Math.min(...seqs) : null;
@@ -3250,7 +3278,7 @@ function renderStockTable(filtered) {
     }
     // First member of a multi-shade group: a subtotal row, then the shades.
     const key = groupKey(i);
-    const multi = !sorting && groupMembers(key).length > 1;
+    const multi = !sorting && isSubGroup(key);
     let subRow = '';
     if (multi && !subDone.has(key)) {
       subDone.add(key);
@@ -3259,7 +3287,7 @@ function renderStockTable(filtered) {
       const num = v => u !== null ? fmtNum(v) : '–';
       subRow = `<tr class="sub-group-row">
         <td class="td-seq">${groupSeq(key) ?? ''}</td>
-        <td class="td-name">${escapeHtml(key)} <span class="cgr-count">· รวม ${t.n} เฉด</span>${
+        <td class="td-name">${escapeHtml(key)} <span class="cgr-count">· หมวดย่อย ${t.n} รายการ</span>${
           t.low ? `<span class="row-low-tag">ใกล้หมด ${t.low}</span>` : ''}</td>
         <td></td>
         <td class="td-unit">${u !== null ? escapeHtml(u) : 'หน่วยไม่ตรงกัน'}</td>
@@ -3270,7 +3298,7 @@ function renderStockTable(filtered) {
         <td class="num td-unit">${num(t.min)}</td>
         <td class="num col-money">${u !== null && t.qty ? fmtBaht(t.value / t.qty) : '–'}</td>
         <td class="num col-money">${fmtBaht(t.value)}</td>
-        <td></td>
+        <td>${hasPermission('manageDataAdd') ? `<div class="row-actions"><button class="row-btn" data-action="group-add" data-key="${escapeHtml(key)}">＋ เพิ่มในหมวดนี้</button></div>` : ''}</td>
       </tr>`;
     }
     return groupRow + subRow + renderStockTableRow(i, idx, multi);
@@ -4770,7 +4798,7 @@ function renderStockTableRow(i, idx, child = false) {
     return `<tr class="${low ? 'is-low' : ''}${child ? ' is-child' : ''}">
       <td class="td-seq">${child ? '' : (i.ministry_seq != null ? i.ministry_seq : idx + 1)}</td>
       <td class="td-name" data-action="detail" data-id="${escapeHtml(i.id)}" style="cursor:pointer;">
-        ${child ? '<span class="child-mark">└</span>' : ''}${escapeHtml(i.name)}${low ? '<span class="row-low-tag">ใกล้หมด</span>' : ''}${
+        ${child ? '<span class="child-mark">└</span>' : ''}${escapeHtml(i.name)}${isGroupBase(i) ? '<span class="sg-base-tag">ยังไม่แยกเบอร์/เฉด</span>' : ''}${low ? '<span class="row-low-tag">ใกล้หมด</span>' : ''}${
           reorderQty(i) ? `<span class="reorder-tag">ควรสั่ง ${fmtNum(reorderQty(i))}</span>` : ''}
       </td>
       <td><span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span></td>
@@ -4800,7 +4828,7 @@ function renderCardBlocks(rows) {
   const done = new Set();
   return rows.map(i => {
     const key = groupKey(i);
-    if (groupMembers(key).length < 2) return renderStockCard(i);
+    if (!isSubGroup(key)) return renderStockCard(i);
     if (done.has(key)) return '';
     done.add(key);
     const shown = rows.filter(r => groupKey(r) === key).sort(memberCompare(key));
@@ -4821,14 +4849,15 @@ function renderGroupBlock(key, shown) {
   return `<div class="stock-group${folded ? ' is-folded' : ''}">
     <div class="sg-head" data-action="group-toggle" data-key="${escapeHtml(key)}">
       <div class="stock-card-info">
-        <div class="stock-card-name">${escapeHtml(key)} <span class="sg-count">${t.n} เฉด</span><span class="sg-caret">${folded ? '▸ ดูทุกเฉด' : '▾ ย่อ'}</span></div>
-        <div class="stock-card-min">รวมทุกเฉด${canSeeMoney() ? ` · ${fmtBaht(t.value)} บาท` : ''}${
+        <div class="stock-card-name">${escapeHtml(key)} <span class="sg-count">${t.n} รายการ</span><span class="sg-caret">${folded ? '▸ ดูทั้งหมด' : '▾ ย่อ'}</span></div>
+        <div class="stock-card-min">หมวดย่อย · รวมทุกรายการ${canSeeMoney() ? ` · ${fmtBaht(t.value)} บาท` : ''}${
           shown.length < t.n ? ` · แสดง ${shown.length} จาก ${t.n}` : ''}</div>
-        ${t.low ? `<span class="low-indicator">ใกล้หมด ${t.low} เฉด</span>` : ''}
+        ${t.low ? `<span class="low-indicator">ใกล้หมด ${t.low} รายการ</span>` : ''}
       </div>
       <div class="stock-card-qty">${qtyHTML}</div>
     </div>
-    <div class="sg-children">${shown.map(renderStockCard).join('')}</div>
+    <div class="sg-children">${shown.map(renderStockCard).join('')}${
+      hasPermission('manageDataAdd') ? `<button class="sg-add" data-action="group-add" data-key="${escapeHtml(key)}">＋ เพิ่มรายการในหมวด ${escapeHtml(key)}</button>` : ''}</div>
   </div>`;
 }
 
@@ -4838,7 +4867,7 @@ function renderStockCard(i) {
   return `<div class="stock-card${low ? ' is-low' : ''}">
     <div class="stock-card-body" data-action="detail" data-id="${escapeHtml(i.id)}">
       <div class="stock-card-info">
-        <div class="stock-card-name">${escapeHtml(i.name)} <span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span></div>
+        <div class="stock-card-name">${escapeHtml(i.name)}${isGroupBase(i) ? '<span class="sg-base-tag">ยังไม่แยกเบอร์/เฉด</span>' : ''} <span class="cat-chip ${catClass(cat)}">${escapeHtml(cat)}</span></div>
         <div class="stock-card-min">ห้ามต่ำกว่า ${fmtNum(i.qty_min)}${
           i.qty_target ? ` · ค่ากลาง ${fmtNum(i.qty_target)}` : ''} ${escapeHtml(i.unit || '')}</div>
         ${low ? '<span class="low-indicator">ใกล้หมด</span>' : ''}${
@@ -4990,38 +5019,87 @@ document.getElementById('st-cat').addEventListener('change', (e) => {
   if (isCustom) setTimeout(() => custom.focus(), 50);
 });
 
-// Group picker: every group key in use (a material standing alone offers its
-// own name), minus the item being edited. An item others already point at
-// is a group head — it cannot join another group without orphaning them.
+// Sub-category picker (หมวดย่อย). Offers only real sub-categories — keys some
+// item already points at — plus "＋ สร้างหมวดย่อยใหม่". A plain material is no
+// longer offered as a group head: joining one silently counted its own stock
+// into the total, which is what toun hit on 2026-09-29 (กระดาษทราย 140 + 100).
+const GROUP_NEW = '__new_group__';
+let groupNamePrefix = '';   // the "กระดาษทราย " we pre-typed, so we can swap it
 function fillGroupSelect(current, selfItem) {
   const sel = document.getElementById('st-group');
-  const hint = document.getElementById('st-group-hint');
   const selfName = selfItem ? String(selfItem.name || '').trim() : null;
-  const keys = [...new Set(stockItems.map(groupKey))]
-    .filter(k => k && k !== selfName)
+  const keys = [...new Set(stockItems.map(i => String(i.report_group || '').trim()).filter(Boolean))]
+    .filter(k => k !== selfName)
     .sort((a, b) => a.localeCompare(b, 'th'));
-  sel.innerHTML = `<option value="">— ไม่รวม (รายการเดี่ยว) —</option>` +
-    keys.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join('');
+  if (current && !keys.includes(current)) keys.push(current);
+  sel.innerHTML = `<option value="">— ไม่มี (วัสดุเดี่ยว) —</option>` +
+    keys.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join('') +
+    `<option value="${GROUP_NEW}">＋ สร้างหมวดย่อยใหม่…</option>`;
   sel.value = current || '';
   const followers = selfItem ? stockItems.filter(i => i.id !== selfItem.id && String(i.report_group || '').trim() === selfName).length : 0;
   sel.disabled = followers > 0;
-  hint.innerHTML = followers > 0
-    ? `วัสดุนี้เป็น<strong>หัวกลุ่ม</strong>ของอีก ${followers} เฉด — เปลี่ยนชื่อได้ (เฉดจะตามไปด้วย) แต่ย้ายไปกลุ่มอื่นไม่ได้`
-    : 'เช่น สีจริงเฉด 801, 802 → เลือก "สีจริง" · ในคลังยังแยกเฉดเหมือนเดิม แต่หัวกลุ่มกับรายงานกระทรวงจะรวมเป็นรายการเดียว';
+  sel.dataset.followers = followers;
+  document.getElementById('st-group-new').value = '';
+  groupNamePrefix = '';
+  applyGroupChoice(false);
 }
-// Joining a group copies its category and unit, so the shade lands in the
-// same section and its quantity can be added to the others.
+function currentGroupChoice() {
+  const sel = document.getElementById('st-group');
+  if (sel.disabled) return null;
+  if (sel.value === GROUP_NEW) return document.getElementById('st-group-new').value.trim().replace(/\s+/g, ' ') || null;
+  return sel.value || null;
+}
+// Lock category + unit to the sub-category's own, and pre-type its name.
+function applyGroupChoice(prefill) {
+  const sel = document.getElementById('st-group');
+  const hint = document.getElementById('st-group-hint');
+  const newBox = document.getElementById('st-group-new');
+  const catSel = document.getElementById('st-cat');
+  const unitSel = document.getElementById('st-unit');
+  const tools = document.querySelector('#stock-modal .unit-tools');
+  const nameLabel = document.getElementById('st-name-label');
+  newBox.style.display = sel.value === GROUP_NEW && !sel.disabled ? '' : 'none';
+  const key = currentGroupChoice();
+  const peers = key ? groupMembers(key).filter(i => i.id !== editingStockId) : [];
+  const lock = peers.length > 0;
+  if (lock) {
+    setCategorySelect(peers[0].category || '');
+    fillUnitSelect(peers[0].unit || '');
+  }
+  catSel.disabled = lock;
+  unitSel.disabled = lock;
+  if (tools) tools.style.display = lock ? 'none' : '';
+  nameLabel.textContent = key ? 'ชื่อ (เบอร์ / เฉด / ขนาด) *' : 'ชื่อวัสดุ *';
+  if (prefill && key && !editingStockId) {
+    const nameEl = document.getElementById('st-name');
+    const v = nameEl.value;
+    if (!v.trim() || v === groupNamePrefix) {
+      groupNamePrefix = key + ' ';
+      nameEl.value = groupNamePrefix;
+    }
+  }
+  const followers = Number(sel.dataset.followers || 0);
+  const clash = key && sel.value === GROUP_NEW
+    ? stockItems.find(i => i.id !== editingStockId && !String(i.report_group || '').trim() && String(i.name || '').trim() === key) : null;
+  hint.innerHTML = followers > 0
+    ? `วัสดุนี้เป็นชื่อหมวดย่อยของอีก ${followers} รายการ — เปลี่ยนชื่อได้ (รายการในหมวดจะตามไปด้วย) แต่ย้ายไปหมวดอื่นไม่ได้`
+    : clash
+      ? `⚠️ มีวัสดุชื่อ "${escapeHtml(key)}" อยู่แล้ว (${fmtNum(clash.qty_current)} ${escapeHtml(clash.unit || '')}) — ยอดนี้จะถูกนับรวมในหมวดย่อยด้วย ถ้าไม่ต้องการ ให้ตั้งชื่อหมวดย่อยอื่น`
+      : lock
+        ? `หมวดหมู่ <strong>${escapeHtml(peers[0].category || '')}</strong> · หน่วย <strong>${escapeHtml(peers[0].unit || '')}</strong> ตามหมวดย่อยนี้ · ยอดทุกรายการจะรวมที่หัวหมวดย่อย และรายงานกระทรวงรวมเป็นบรรทัดเดียว`
+        : key
+          ? 'หมวดย่อยใหม่ — เลือกหมวดหมู่และหน่วยได้ รายการถัดไปในหมวดนี้จะใช้ตามนี้'
+          : 'เช่น กระดาษทรายหลายเบอร์ (180, 600, 800) หรือสีจริงหลายเฉด → จัดเข้าหมวดย่อยเดียวกัน ยอดรวมจะขึ้นที่หัวหมวดย่อย';
+}
 document.getElementById('st-group').addEventListener('change', (e) => {
-  const key = e.target.value;
-  if (!key) return;
-  const head = groupMembers(key).find(i => i.id !== editingStockId);
-  if (!head) return;
-  setCategorySelect(head.category || '');
-  fillUnitSelect(head.unit || '');
+  applyGroupChoice(true);
+  if (e.target.value === GROUP_NEW) setTimeout(() => document.getElementById('st-group-new').focus(), 50);
 });
+document.getElementById('st-group-new').addEventListener('input', () => applyGroupChoice(true));
 
-function openAddStockModal() {
+function openAddStockModal(presetGroup) {
   if (!hasPermission('manageDataAdd')) { toast('ไม่มีสิทธิ์เพิ่มวัสดุ'); return; }
+  if (typeof presetGroup !== 'string') presetGroup = '';
   editingStockId = null;
   document.getElementById('stock-modal-title').textContent = 'เพิ่มวัสดุ';
   document.getElementById('st-name').value = '';
@@ -5032,11 +5110,17 @@ function openAddStockModal() {
   document.getElementById('st-target').value = '';
   document.getElementById('st-cost').value = '';
   document.getElementById('st-note').value = '';
-  fillGroupSelect('', null);
+  fillGroupSelect(presetGroup, null);
+  if (presetGroup) applyGroupChoice(true);
+  document.getElementById('stock-modal-title').textContent = presetGroup ? `เพิ่มรายการใน ${presetGroup}` : 'เพิ่มวัสดุ';
   document.getElementById('st-qty-field').style.display = '';   // qty only on add
   document.getElementById('st-delete-btn').style.display = 'none';
   document.getElementById('stock-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('st-name').focus(), 100);
+  setTimeout(() => {
+    const el = document.getElementById('st-name');
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, 100);
 }
 
 function openEditStockModal(id) {
@@ -5075,14 +5159,16 @@ async function saveStock() {
   const cost = costRaw === '' ? null : (parseFloat(costRaw) || 0);
   const note = document.getElementById('st-note').value.trim() || null;
   const groupSel = document.getElementById('st-group');
-  const reportGroup = groupSel.disabled ? null : (groupSel.value || null);
+  if (!groupSel.disabled && groupSel.value === GROUP_NEW && !currentGroupChoice()) { toast('พิมพ์ชื่อหมวดย่อยใหม่ก่อน'); return; }
+  const reportGroup = currentGroupChoice();
+  if (reportGroup && name === reportGroup && !groupSel.disabled) { toast(`ชื่อต้องต่างจากหมวดย่อย — เช่น "${reportGroup} เบอร์ 180"`); return; }
   let category = categoryRaw, groupSeqInherit;
   if (reportGroup) {
     // Quantities are only added up inside a group, so the units must agree —
     // "4 ถัง + 12 ลิตร" is not a number the ministry form can take.
     const others = groupMembers(reportGroup).filter(i => i.id !== editingStockId);
     const bad = others.find(i => String(i.unit || '').trim() !== unit);
-    if (bad) { toast(`หน่วยต้องตรงกับเฉดอื่นในกลุ่ม "${reportGroup}" (${bad.unit}) — ${bad.name} ใช้ ${bad.unit}`); return; }
+    if (bad) { toast(`หน่วยต้องตรงกับรายการอื่นในหมวดย่อย "${reportGroup}" — ${bad.name} ใช้ ${bad.unit}`); return; }
     if (others[0]) category = others[0].category || category;
     groupSeqInherit = groupSeq(reportGroup);
   }
@@ -5179,7 +5265,7 @@ async function deleteStock(id = editingStockId) {
     lines.push('• แต่จะไม่แสดงในรายงานกระทรวงของเดือนที่ผ่านมาแล้ว — ถ้ายังต้องส่งรายงานเดือนก่อน ให้ส่งก่อนแล้วค่อยลบ');
   }
   const heads = stockItems.filter(i => i.id !== id && String(i.report_group || '').trim() === String(item.name || '').trim());
-  if (heads.length) lines.push(`• เฉดในกลุ่ม "${item.name}" อีก ${heads.length} รายการยังอยู่ และยังรวมยอดกันเหมือนเดิม`);
+  if (heads.length) lines.push(`• รายการในหมวดย่อย "${item.name}" อีก ${heads.length} รายการยังอยู่ และยังรวมยอดกันเหมือนเดิม`);
   if (!confirm(lines.join('\n'))) return;
 
   try {
@@ -5392,8 +5478,8 @@ function openDetailSheet(id) {
         <div class="detail-summary-meta">
           ขั้นต่ำ ${fmtNum(item.qty_min)} ${escapeHtml(item.unit || '')}<br>
           ${costLine ? escapeHtml(costLine) + '<br>' : ''}
-          ${groupMembers(groupKey(item)).length > 1
-            ? `รวมยอดในรายงานกับ <strong>${escapeHtml(groupKey(item))}</strong> (${groupMembers(groupKey(item)).length} เฉด)<br>` : ''}
+          ${isSubGroup(groupKey(item))
+            ? `อยู่ในหมวดย่อย <strong>${escapeHtml(groupKey(item))}</strong> (${groupMembers(groupKey(item)).length} รายการ)<br>` : ''}
           ${item.note ? escapeHtml(item.note) : ''}
         </div>
       </div>
@@ -5618,6 +5704,7 @@ function onStockRowClick(e) {
   if (!btn) return;
   const id = btn.dataset.id;
   const action = btn.dataset.action;
+  if (action === 'group-add') { openAddStockModal(btn.dataset.key); return; }
   if (action === 'group-toggle') {
     const key = btn.dataset.key;
     if (sgCollapsed.has(key)) sgCollapsed.delete(key); else sgCollapsed.add(key);
