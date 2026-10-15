@@ -1085,6 +1085,37 @@
     margin-bottom: 12px;
   }
 
+  /* ── Express accounting hand-off (task.md B11) ── */
+  .ex-sec { margin: 18px 0 8px; }
+  .ex-sec:first-of-type { margin-top: 4px; }
+  .ex-sec-title { font-size: 13.5px; font-weight: 800; color: var(--ink); }
+  .ex-sec-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; line-height: 1.5; }
+  .ex-empty { font-size: 12.5px; color: var(--ink-3); padding: 10px 0; }
+  .ex-nocode { color: var(--danger); font-weight: 700; }
+  .ex-total td { font-weight: 800; border-top: 1px solid var(--line-deep); }
+  .ex-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .ex-tools input[type=search] {
+    flex: 1 1 180px; min-width: 0; font-family: inherit; font-size: 13.5px;
+    padding: 9px 10px; min-height: var(--touch-min);
+    border: 1px solid var(--line); border-radius: var(--r-sm);
+    background: var(--bg); color: var(--ink);
+  }
+  .ex-tools label { font-size: 12.5px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .ex-in {
+    width: 140px; flex: none; font-family: var(--font-mono); font-size: 14px;
+    padding: 9px 10px; min-height: var(--touch-min);
+    border: 1px solid var(--line); border-radius: var(--r-sm);
+    background: var(--bg); color: var(--ink);
+  }
+  .ex-in:focus { outline: none; border-color: var(--accent); }
+  .ex-in.changed { border-color: var(--accent); background: var(--accent-soft); }
+  .ex-in[readonly] { background: var(--bg-deep); }
+  .ex-grp { background: var(--bg-deep); border-radius: var(--r-sm); padding: 10px 10px; margin-top: 8px; }
+  .ex-save-bar {
+    position: sticky; bottom: 0; background: var(--card);
+    padding: 10px 0 2px; box-shadow: 0 -8px 8px -8px rgba(0,0,0,.12);
+  }
+
   /* ── Sortable table headers ── */
   .stock-table thead th.sortable { cursor: pointer; user-select: none; }
   .stock-table thead th.sortable:hover { color: var(--accent); }
@@ -1572,6 +1603,7 @@
         <label for="month-select">เดือน</label>
         <select id="month-select"></select>
         <button class="btn-ministry" id="btn-ministry">📤 รายงานกระทรวง</button>
+        <button class="btn-ministry" id="btn-express">🧾 ส่งบัญชี Express</button>
         <span class="period-note" id="month-range-note"></span>
       </div>
 
@@ -1811,6 +1843,11 @@
       <input id="st-cost" type="number" inputmode="decimal" min="0" step="any" placeholder="ไม่ระบุ">
     </div>
     <div class="field">
+      <label for="st-express">รหัสสินค้าใน Express (ถ้ามี)</label>
+      <input id="st-express" type="text" maxlength="40" placeholder="เช่น RM-0012" autocomplete="off">
+      <div class="field-hint">ใช้ตอนส่งยอดเบิกให้บัญชี · หลายรายการใช้รหัสเดียวกันได้ ยอดจะรวมกัน</div>
+    </div>
+    <div class="field">
       <label>หมายเหตุ</label>
       <textarea id="st-note" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea>
     </div>
@@ -1839,6 +1876,32 @@
     <div class="table-scroll">
       <table class="stock-table" id="ministry-table"></table>
     </div>
+  </div>
+</div>
+
+<!-- ═══ EXPRESS ACCOUNTING HAND-OFF (task.md B11) ═══
+     Express cannot import day-to-day transactions, so this is a month summary
+     the accountant keys in: issues to production + stocktake adjustments, by
+     Express product code. Purchases are shown for checking only — Express
+     already books them from the tax invoice. -->
+<div class="modal-backdrop hidden" id="express-modal" style="z-index:650;">
+  <div class="modal-sheet modal-wide">
+    <div class="modal-head">
+      <div class="modal-title" id="express-title">ส่งบัญชี Express</div>
+      <button class="modal-close" onclick="closeExpressModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="bl-modes">
+      <button class="bl-mode active" data-exmode="month" type="button">
+        <span class="bl-mode-name">🧾 ยอดของเดือน</span>
+        <span class="bl-mode-hint">สิ่งที่บัญชีต้องคีย์เข้า Express</span>
+      </button>
+      <button class="bl-mode" data-exmode="codes" type="button">
+        <span class="bl-mode-name" id="ex-codes-tab">🔗 รหัสสินค้า Express</span>
+        <span class="bl-mode-hint">จับคู่วัสดุในแอปกับรหัสใน Express</span>
+      </button>
+    </div>
+    <div id="ex-month"></div>
+    <div id="ex-codes" style="display:none;"></div>
   </div>
 </div>
 
@@ -2981,7 +3044,7 @@ function buildMonthlySeries() {
       const bucket = perMonth[mk];
       if (!bucket) return;               // outside the rendered window
       const it = bucket.items[itemId] || (bucket.items[itemId] =
-        { inQty: 0, outQty: 0, adjQty: 0, initQty: 0, inValue: 0, outValue: 0 });
+        { inQty: 0, outQty: 0, adjQty: 0, initQty: 0, inValue: 0, outValue: 0, adjValue: 0 });
 
       // Price as recorded on the row. Falling back to the material's current
       // cost only covers rows written before unit_cost existed.
@@ -3004,6 +3067,7 @@ function buildMonthlySeries() {
       } else if (bt === 'adjust') {
         bucket.adjust += delta * uc;
         it.adjQty += delta;
+        it.adjValue += delta * uc;
       } else {                            // in | initial
         bucket.purchase += delta * uc;
         it.inQty += delta;
@@ -4716,6 +4780,420 @@ document.getElementById('ministry-csv').addEventListener('click', () => {
   toast('ดาวน์โหลดแล้ว — เปิดด้วย Excel ได้เลย');
 });
 
+// ══════════════════════════════════════════════════════════════════════
+//  EXPRESS ACCOUNTING HAND-OFF (toun 2026-10-15 · task.md B11)
+//
+//  Express can import master data only — day-to-day transactions cannot be
+//  pushed in from another program, and writing its .DBF files directly risks
+//  corrupting the books without anyone noticing. So the link is a month-end
+//  file the accountant keys in, already sorted by Express product code:
+//    1. จ่ายวัตถุดิบเพื่อผลิต — every issue to production, at the cost stamped
+//       on each row (the same numbers as the monthly tab)
+//    2. ปรับปรุงสินค้า — stocktake corrections, + or −
+//    3. ยอดซื้อ — for CHECKING only. Express books purchases from the tax
+//       invoice; keying them again from here would count every lot twice.
+//  Several materials may share one Express code (43 shades of สีจริง can be a
+//  single Express item) — their quantities and values are added up.
+//  Materials whose code is missing are still listed, flagged in red, instead
+//  of being dropped: an issue that silently falls out of the file is an
+//  under-stated cost of goods that nobody would ever trace.
+// ══════════════════════════════════════════════════════════════════════
+let exMode = 'month';
+const EX_EPS = 1e-9;
+
+function exMonthBounds(mk) {
+  const [y, m] = mk.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return { from: `${mk}-01`, to: `${mk}-${String(last).padStart(2, '0')}` };
+}
+
+// One line per Express code (or per material while it has none). Iterates the
+// month's ledger rather than the active-material list, so something issued
+// this month and deleted since still reaches the accountant.
+function buildExpressLines(mk) {
+  const s = monthlySeries.find(x => x.month === mk);
+  const lines = new Map();
+  if (s) {
+    Object.keys(s.items).forEach(id => {
+      const it = s.items[id];
+      const item = stockItems.find(i => String(i.id) === String(id));
+      const code = item ? String(item.express_code || '').trim() : '';
+      const key = code ? 'c:' + code.toUpperCase() : 'i:' + id;
+      const L = lines.get(key) || { code, names: [], units: new Set(), ids: [],
+        outQty: 0, outValue: 0, adjQty: 0, adjValue: 0, inQty: 0, inValue: 0 };
+      L.names.push(item ? item.name : '(วัสดุที่ปิดใช้งานแล้ว)');
+      L.ids.push(id);
+      if (item && String(item.unit || '').trim()) L.units.add(String(item.unit).trim());
+      L.outQty += it.outQty || 0;   L.outValue += it.outValue || 0;
+      L.adjQty += it.adjQty || 0;   L.adjValue += it.adjValue || 0;
+      L.inQty  += it.inQty  || 0;   L.inValue  += it.inValue  || 0;
+      lines.set(key, L);
+    });
+  }
+  const all = [...lines.values()].sort((a, b) =>
+    (!a.code - !b.code) ||
+    a.code.localeCompare(b.code, 'th', { numeric: true }) ||
+    a.names[0].localeCompare(b.names[0], 'th', { numeric: true }));
+  const unitOf = L => L.units.size <= 1 ? ([...L.units][0] || '') : [...L.units].join('/');
+  all.forEach(L => { L.unit = unitOf(L); L.mixedUnits = L.units.size > 1; });
+  const nz = v => Math.abs(v) > EX_EPS;
+  return {
+    issue:    all.filter(L => nz(L.outQty)),
+    adjust:   all.filter(L => nz(L.adjQty)),
+    purchase: all.filter(L => nz(L.inQty)),
+    missing:  all.filter(L => !L.code && (nz(L.outQty) || nz(L.adjQty))),
+    mixed:    all.filter(L => L.mixedUnits && (nz(L.outQty) || nz(L.adjQty))),
+  };
+}
+
+function exNameText(L, full) {
+  if (L.names.length === 1 || full) return L.names.join(', ');
+  return `${L.names[0]} + อีก ${L.names.length - 1} รายการ`;
+}
+function exCodeCell(L) {
+  return L.code ? escapeHtml(L.code) : '<span class="ex-nocode">ยังไม่มีรหัส</span>';
+}
+const exMoney = v => (Math.round((Number(v) || 0) * 100) / 100)
+  .toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const exUnitCost = (value, qty) => Math.abs(qty) > EX_EPS ? value / qty : 0;
+
+function openExpressModal() {
+  if (!canSeeMoney()) { toast('ไม่มีสิทธิ์ดูตัวเลขเงิน'); return; }
+  exMode = 'month';
+  renderExpressModal();
+  document.getElementById('express-modal').classList.remove('hidden');
+}
+function closeExpressModal() {
+  document.getElementById('express-modal').classList.add('hidden');
+}
+
+function renderExpressModal() {
+  document.getElementById('express-title').textContent =
+    `ส่งบัญชี Express · ${monthLabelTH(selectedMonth, { long: true })}`;
+  document.querySelectorAll('#express-modal [data-exmode]').forEach(b =>
+    b.classList.toggle('active', b.dataset.exmode === exMode));
+  const noCode = stockItems.filter(i => !String(i.express_code || '').trim()).length;
+  document.getElementById('ex-codes-tab').textContent =
+    `🔗 รหัสสินค้า Express${noCode ? ` (ยังไม่มี ${noCode})` : ''}`;
+  document.getElementById('ex-month').style.display = exMode === 'month' ? '' : 'none';
+  document.getElementById('ex-codes').style.display = exMode === 'codes' ? '' : 'none';
+  if (exMode === 'month') renderExpressMonth(); else renderExpressCodes();
+}
+
+function renderExpressMonth() {
+  const box = document.getElementById('ex-month');
+  const X = buildExpressLines(selectedMonth);
+  const num = 'class="num"';
+
+  const warn = [];
+  if (X.missing.length) warn.push(
+    `⚠️ <strong>${X.missing.length} รายการยังไม่มีรหัส Express</strong> — ยังอยู่ในไฟล์ (ขึ้นสีแดง) แต่บัญชีจะไม่รู้ว่าคีย์เข้าสินค้าตัวไหน ` +
+    `<button class="row-btn" type="button" data-exgo="codes">ใส่รหัสตอนนี้</button>`);
+  if (X.mixed.length) warn.push(
+    `⚠️ รหัส ${X.mixed.map(L => escapeHtml(L.code)).join(', ')} มีวัสดุหลายหน่วยปนกัน — จำนวนที่รวมไว้ไม่มีความหมาย ให้แยกรหัส หรือแก้หน่วยให้ตรงกัน`);
+
+  const issueRows = X.issue.map(L => `<tr>
+      <td>${exCodeCell(L)}</td><td class="td-name">${escapeHtml(exNameText(L))}</td><td>${escapeHtml(L.unit)}</td>
+      <td ${num}>${fmtNum(L.outQty)}</td><td ${num}>${exMoney(exUnitCost(L.outValue, L.outQty))}</td><td ${num}>${exMoney(L.outValue)}</td></tr>`).join('');
+  const issueTotal = X.issue.reduce((t, L) => t + L.outValue, 0);
+
+  const adjRows = X.adjust.map(L => `<tr>
+      <td>${exCodeCell(L)}</td><td class="td-name">${escapeHtml(exNameText(L))}</td><td>${escapeHtml(L.unit)}</td>
+      <td>${L.adjQty > 0 ? 'เพิ่ม (นับได้เกิน)' : 'ลด (นับได้ขาด)'}</td>
+      <td ${num}>${fmtNum(Math.abs(L.adjQty))}</td><td ${num}>${exMoney(Math.abs(L.adjValue))}</td></tr>`).join('');
+
+  const buyRows = X.purchase.map(L => `<tr>
+      <td>${exCodeCell(L)}</td><td class="td-name">${escapeHtml(exNameText(L))}</td><td>${escapeHtml(L.unit)}</td>
+      <td ${num}>${fmtNum(L.inQty)}</td><td ${num}>${exMoney(L.inValue)}</td></tr>`).join('');
+  const buyTotal = X.purchase.reduce((t, L) => t + L.inValue, 0);
+
+  const table = (head, rows, foot) => rows
+    ? `<div class="table-scroll"><table class="stock-table"><thead><tr>${head}</tr></thead><tbody>${rows}${foot || ''}</tbody></table></div>`
+    : '<div class="ex-empty">ไม่มีรายการในเดือนนี้</div>';
+
+  box.innerHTML = `
+    <div class="ministry-actions">
+      <button class="btn-ministry" type="button" id="ex-download">⬇️ ดาวน์โหลดไฟล์ให้บัญชี (Excel)</button>
+    </div>
+    <div class="ministry-note">
+      ไฟล์สรุปทั้งเดือนให้พนักงานบัญชีคีย์เข้า Express · เรียงตามรหัสสินค้า · ตัวเลขชุดเดียวกับแท็บรายเดือน<br>
+      Express รับนำเข้ารายการประจำวันจากโปรแกรมอื่นไม่ได้ จึงเป็นไฟล์ให้คีย์ ไม่ใช่ส่งเข้าอัตโนมัติ
+    </div>
+    ${warn.length ? `<div class="bl-note danger">${warn.join('<br>')}</div>` : ''}
+
+    <div class="ex-sec">
+      <div class="ex-sec-title">1. จ่ายวัตถุดิบเพื่อผลิต — คีย์เข้า Express</div>
+      <div class="ex-sec-sub">ของที่เบิกไปใช้ในเดือนนี้ · ต้นทุนตามราคาที่บันทึกไว้ในแต่ละรายการ</div>
+    </div>
+    ${table(`<th>รหัส Express</th><th>ชื่อในแอป</th><th>หน่วย</th><th class="num">จำนวน</th><th class="num">ต้นทุน/หน่วย</th><th class="num">มูลค่า (บาท)</th>`,
+      issueRows, `<tr class="ex-total"><td colspan="5">รวม</td><td class="num">${exMoney(issueTotal)}</td></tr>`)}
+
+    <div class="ex-sec">
+      <div class="ex-sec-title">2. ปรับปรุงสินค้า — คีย์เข้า Express</div>
+      <div class="ex-sec-sub">ส่วนต่างจากการนับสต๊อก (ของจริงไม่ตรงกับในระบบ)</div>
+    </div>
+    ${table(`<th>รหัส Express</th><th>ชื่อในแอป</th><th>หน่วย</th><th>เพิ่ม/ลด</th><th class="num">จำนวน</th><th class="num">มูลค่า (บาท)</th>`, adjRows)}
+
+    <div class="ex-sec">
+      <div class="ex-sec-title">3. ยอดซื้อที่บันทึกในแอป — ไว้เทียบเท่านั้น ห้ามคีย์ซ้ำ</div>
+      <div class="ex-sec-sub">Express ลงการซื้อจากใบกำกับภาษีอยู่แล้ว · ถ้าตัวเลขไม่ตรงกัน แปลว่ามีฝั่งใดฝั่งหนึ่งบันทึกตกหล่น</div>
+    </div>
+    ${table(`<th>รหัส Express</th><th>ชื่อในแอป</th><th>หน่วย</th><th class="num">จำนวน</th><th class="num">มูลค่า (บาท)</th>`,
+      buyRows, `<tr class="ex-total"><td colspan="4">รวม</td><td class="num">${exMoney(buyTotal)}</td></tr>`)}
+  `;
+  box.querySelector('#ex-download').addEventListener('click', () => exportExpressXLSX(selectedMonth));
+  box.querySelectorAll('[data-exgo]').forEach(b => b.addEventListener('click', () => {
+    exMode = 'codes'; exCodeFilter = 'missing'; renderExpressModal();
+  }));
+}
+
+// ── Code matching ──────────────────────────────────────────────────────
+// All materials on one screen, in the same order as the stock list, so the
+// accountant can sit with Express's product list and type straight down.
+// A sub-category gets a "same code for the whole group" box — typing one
+// Express code 43 times for 43 shades is how codes end up half-filled.
+let exCodeFilter = 'all';
+let exCodeSearch = '';
+let exCodeDraft = new Map();   // item id → typed value (unsaved)
+
+function exCodeOrder() {
+  const ln = lineNumbers();
+  return stockItems.slice().sort((a, b) =>
+    ((ln.get(groupKey(a)) || 9999) - (ln.get(groupKey(b)) || 9999)) ||
+    String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }));
+}
+function exDraftValue(item) {
+  return exCodeDraft.has(item.id) ? exCodeDraft.get(item.id) : String(item.express_code || '');
+}
+
+function renderExpressCodes() {
+  const box = document.getElementById('ex-codes');
+  const canEdit = hasPermission('manageDataAdd');
+  const q = exCodeSearch.trim().toLowerCase();
+  const items = exCodeOrder().filter(i =>
+    (exCodeFilter === 'all' || !exDraftValue(i).trim()) &&
+    (!q || [i.name, groupKey(i), i.express_code, exDraftValue(i)].some(v => String(v || '').toLowerCase().includes(q))));
+
+  // Consecutive members of one sub-category share a header with the bulk box.
+  let html = '', lastGroup = null;
+  items.forEach(i => {
+    const key = groupKey(i);
+    const sub = isSubGroup(key);
+    if (sub && key !== lastGroup) {
+      const n = groupMembers(key).length;
+      html += `<div class="ex-grp"><div class="bl-row" style="border:0;padding:0;">
+        <div class="bl-who"><div class="bl-name">หมวดย่อย ${escapeHtml(key)}</div>
+          <div class="bl-sub2">${n} รายการ · ถ้าใน Express เป็นสินค้าตัวเดียว ใส่รหัสครั้งเดียวที่นี่</div></div>
+        ${canEdit ? `<input class="ex-in" data-exgroup="${escapeHtml(key)}" placeholder="รหัสทั้งหมวด" autocomplete="off">
+        <button class="row-btn" type="button" data-exapply="${escapeHtml(key)}">ใช้กับทั้ง ${n} รายการ</button>` : ''}
+      </div></div>`;
+    }
+    lastGroup = sub ? key : null;
+    const v = exDraftValue(i);
+    const changed = v.trim() !== String(i.express_code || '').trim();
+    html += `<div class="bl-row">
+      <div class="bl-who"><div class="bl-name">${escapeHtml(i.name)}</div>
+        <div class="bl-sub2">${escapeHtml(i.category || '')} · ${escapeHtml(i.unit || '')}</div></div>
+      <input class="ex-in${changed ? ' changed' : ''}" data-exid="${escapeHtml(i.id)}" value="${escapeHtml(v)}"
+        placeholder="ยังไม่มีรหัส" maxlength="40" autocomplete="off" ${canEdit ? '' : 'readonly'}>
+    </div>`;
+  });
+
+  const pending = [...exCodeDraft.entries()].filter(([id, v]) => {
+    const it = stockItems.find(i => i.id === id);
+    return it && v.trim() !== String(it.express_code || '').trim();
+  }).length;
+  const noCode = stockItems.filter(i => !exDraftValue(i).trim()).length;
+
+  box.innerHTML = `
+    <div class="ministry-note">
+      ขอรายชื่อสินค้าจากโปรแกรม Express จากพนักงานบัญชี แล้วใส่รหัสให้ตรงกับวัสดุแต่ละตัว ·
+      หลายรายการใช้รหัสเดียวกันได้ ยอดจะรวมกันในไฟล์ · ใส่ครั้งเดียว ใช้ได้ทุกเดือน
+      ${canEdit ? '' : '<br><strong>ดูได้อย่างเดียว</strong> — ต้องมีสิทธิ์เพิ่ม/แก้วัสดุถึงจะแก้รหัสได้'}
+    </div>
+    <div class="ex-tools">
+      <input type="search" id="ex-code-search" placeholder="ค้นหาชื่อวัสดุ หรือรหัส" value="${escapeHtml(exCodeSearch)}">
+      <label><input type="checkbox" id="ex-code-missing" ${exCodeFilter === 'missing' ? 'checked' : ''}> เฉพาะที่ยังไม่มีรหัส (${noCode})</label>
+    </div>
+    <div id="ex-code-list">${html || '<div class="ex-empty">ไม่พบรายการ</div>'}</div>
+    ${canEdit ? `<div class="ex-save-bar"><button class="btn-primary" type="button" id="ex-code-save" ${pending ? '' : 'disabled'}>
+      ${pending ? `บันทึกรหัส ${pending} รายการ` : 'ยังไม่มีอะไรเปลี่ยน'}</button></div>` : ''}
+  `;
+
+  const search = box.querySelector('#ex-code-search');
+  search.addEventListener('input', () => {
+    exCodeSearch = search.value;
+    const pos = search.selectionStart;
+    renderExpressCodes();
+    const again = document.getElementById('ex-code-search');
+    again.focus(); again.setSelectionRange(pos, pos);
+  });
+  box.querySelector('#ex-code-missing').addEventListener('change', e => {
+    exCodeFilter = e.target.checked ? 'missing' : 'all'; renderExpressCodes();
+  });
+  box.querySelectorAll('[data-exid]').forEach(inp => inp.addEventListener('input', () => {
+    const id = inp.dataset.exid;
+    exCodeDraft.set(id, inp.value);
+    const it = stockItems.find(i => i.id === id);
+    inp.classList.toggle('changed', inp.value.trim() !== String(it?.express_code || '').trim());
+    exRefreshSaveButton();
+  }));
+  box.querySelectorAll('[data-exapply]').forEach(btn => btn.addEventListener('click', () => {
+    const key = btn.dataset.exapply;
+    const inp = [...box.querySelectorAll('[data-exgroup]')].find(x => x.dataset.exgroup === key);
+    const v = (inp?.value || '').trim();
+    if (!v) { toast('พิมพ์รหัสในช่อง "รหัสทั้งหมวด" ก่อน'); return; }
+    groupMembers(key).forEach(i => exCodeDraft.set(i.id, v));
+    renderExpressCodes();
+    toast(`ใส่รหัส ${v} ให้ ${groupMembers(key).length} รายการแล้ว — กดบันทึกด้านล่าง`);
+  }));
+  const save = box.querySelector('#ex-code-save');
+  if (save) save.addEventListener('click', saveExpressCodes);
+}
+
+function exRefreshSaveButton() {
+  const save = document.getElementById('ex-code-save');
+  if (!save) return;
+  const pending = [...exCodeDraft.entries()].filter(([id, v]) => {
+    const it = stockItems.find(i => i.id === id);
+    return it && v.trim() !== String(it.express_code || '').trim();
+  }).length;
+  save.disabled = !pending;
+  save.textContent = pending ? `บันทึกรหัส ${pending} รายการ` : 'ยังไม่มีอะไรเปลี่ยน';
+}
+
+async function saveExpressCodes() {
+  if (!hasPermission('manageDataAdd')) { toast('ไม่มีสิทธิ์แก้รหัส'); return; }
+  // One UPDATE per distinct code rather than per material: 43 shades that
+  // all take the same code are a single round-trip.
+  const byCode = new Map();
+  exCodeDraft.forEach((v, id) => {
+    const it = stockItems.find(i => i.id === id);
+    if (!it) return;
+    const nv = v.trim() || null;
+    if ((nv || '') === String(it.express_code || '').trim()) return;
+    const k = nv === null ? '\u0000' : nv;
+    if (!byCode.has(k)) byCode.set(k, []);
+    byCode.get(k).push(id);
+  });
+  if (!byCode.size) { toast('ยังไม่มีอะไรเปลี่ยน'); return; }
+  let count = 0;
+  try {
+    showLoading(true);
+    for (const [k, ids] of byCode) {
+      const { error } = await sb.from('stock_items')
+        .update({ express_code: k === '\u0000' ? null : k, updated_at: nowTS() })
+        .in('id', ids);
+      if (error) throw error;
+      count += ids.length;
+    }
+    await logActivity('stock_express_codes', 'stock_item', { count });
+  } catch(e) {
+    showLoading(false);
+    console.error('[saveExpressCodes]', e);
+    toast('บันทึกรหัสไม่สำเร็จ: ' + (e.message || e.code || ''));
+    await loadStock();             // part may have gone in — show what is really saved
+    renderExpressModal();
+    return;
+  }
+  showLoading(false);
+  exCodeDraft = new Map();
+  await loadStock();
+  renderExpressModal();
+  toast(`บันทึกรหัส Express แล้ว ${count} รายการ`);
+}
+
+// ── The file the accountant receives ───────────────────────────────────
+// Numbers go in as numbers, not text, so Express-side totals can be checked
+// with a plain SUM. Full material names are kept (not "+ อีก N รายการ") —
+// on paper nobody can expand a row.
+async function exportExpressXLSX(mk) {
+  if (!canSeeMoney()) { toast('ไม่มีสิทธิ์ดูตัวเลขเงิน'); return; }
+  try {
+    showLoading(true);
+    const XLSX = await loadXLSX();
+    const X = buildExpressLines(mk);
+    const r2 = v => Math.round((Number(v) || 0) * 100) / 100;
+    const r4 = v => Math.round((Number(v) || 0) * 10000) / 10000;
+    const codeOf = L => L.code || 'ยังไม่มีรหัส';
+    const month = monthLabelTH(mk, { long: true });
+
+    const issue = [['รหัสสินค้า Express', 'ชื่อในแอปสต๊อก', 'หน่วย', 'จำนวน', 'ต้นทุน/หน่วย', 'มูลค่า (บาท)']]
+      .concat(X.issue.map(L => [codeOf(L), exNameText(L, true), L.unit, r4(L.outQty), r4(exUnitCost(L.outValue, L.outQty)), r2(L.outValue)]))
+      .concat([['', 'รวม', '', '', '', r2(X.issue.reduce((t, L) => t + L.outValue, 0))]]);
+    const adjust = [['รหัสสินค้า Express', 'ชื่อในแอปสต๊อก', 'หน่วย', 'เพิ่ม/ลด', 'จำนวน', 'มูลค่า (บาท)']]
+      .concat(X.adjust.map(L => [codeOf(L), exNameText(L, true), L.unit, L.adjQty > 0 ? 'เพิ่ม' : 'ลด', r4(Math.abs(L.adjQty)), r2(Math.abs(L.adjValue))]));
+    const buy = [['รหัสสินค้า Express', 'ชื่อในแอปสต๊อก', 'หน่วย', 'จำนวน', 'มูลค่า (บาท)']]
+      .concat(X.purchase.map(L => [codeOf(L), exNameText(L, true), L.unit, r4(L.inQty), r2(L.inValue)]))
+      .concat([['', 'รวม', '', '', r2(X.purchase.reduce((t, L) => t + L.inValue, 0))]]);
+
+    // Day-by-day issues and adjustments, for the accountant who keys one
+    // document per day instead of one per month. A cancellation lands in the
+    // section of the row it undoes, with the sign flipped (BUG39).
+    const { from, to } = exMonthBounds(mk);
+    const byId = new Map(allMovements.map(m => [m.id, m]));
+    const daily = [['วันที่', 'รหัสสินค้า Express', 'ชื่อในแอปสต๊อก', 'ประเภท', 'จำนวน', 'หน่วย', 'ต้นทุน/หน่วย', 'มูลค่า (บาท)', 'งาน/PO', 'ผู้บันทึก', 'หมายเหตุ']];
+    movementRows(from, to)
+      .sort((a, b) => new Date(a.mv.created_at) - new Date(b.mv.created_at))
+      .forEach(r => {
+        const m = r.mv;
+        const orig = m.reverses_id ? byId.get(m.reverses_id) : null;
+        const bt = orig ? orig.movement_type : m.movement_type;
+        if (bt !== 'out' && bt !== 'adjust') return;
+        const item = stockItems.find(i => i.id === m.item_id);
+        const qty = bt === 'out' ? -r.delta : r.delta;   // issue shown positive
+        const uc = Number(m.unit_cost) || 0;
+        const type = bt === 'out' ? (orig ? 'ยกเลิกการเบิก' : 'จ่ายเพื่อผลิต')
+                                  : (orig ? 'ยกเลิกการปรับยอด' : (r.delta >= 0 ? 'ปรับเพิ่ม' : 'ปรับลด'));
+        daily.push([monthDayTH(r.day), item && item.express_code ? item.express_code : 'ยังไม่มีรหัส',
+          r.name, type, r4(bt === 'out' ? qty : Math.abs(qty)), r.unit, r4(uc), r2(Math.abs(r.delta) * uc * (bt === 'out' && qty < 0 ? -1 : 1)),
+          (m.ref_type === 'po' && m.ref_id) ? m.ref_id : '', m.created_by || '', m.note || '']);
+      });
+
+    const help = [
+      [`ไฟล์ส่งบัญชี Express — ${month}`],
+      [`สร้างจากแอปคลังสต๊อก ${monthDayTH(todayISO())} โดย ${currentUser.display_name || currentUser.username}`],
+      [],
+      ['แผ่นงาน', 'ทำอะไร'],
+      ['1 จ่ายวัตถุดิบ', 'คีย์เข้า Express เมนูจ่ายวัตถุดิบ/เบิกเพื่อผลิต — ยอดรวมทั้งเดือนต่อรหัสสินค้า'],
+      ['2 ปรับปรุงสินค้า', 'คีย์เข้า Express เมนูปรับปรุงสินค้า — ส่วนต่างจากการนับสต๊อก'],
+      ['3 ยอดซื้อ (ไว้เทียบ)', 'ห้ามคีย์ — Express ลงการซื้อจากใบกำกับภาษีอยู่แล้ว ใช้เทียบว่าตรงกันไหมเท่านั้น'],
+      ['4 รายวัน', 'รายละเอียดทีละรายการ ถ้าต้องการคีย์เป็นรายวันแทนรายเดือน'],
+      [],
+      ['ข้อควรระวัง'],
+      ['•', '"ยังไม่มีรหัส" = วัสดุนี้ยังไม่ได้จับคู่กับรหัสใน Express — แจ้งผู้ดูแลให้ใส่รหัสในแอป แล้วดาวน์โหลดไฟล์ใหม่'],
+      ['•', 'หน่วยในแอปอาจไม่ตรงกับหน่วยใน Express (เช่น ลิตร กับ แกลลอน) — ตรวจก่อนคีย์'],
+      ['•', 'ต้นทุนเป็นราคาเฉลี่ยที่บันทึกไว้ตอนเบิกแต่ละครั้ง อาจต่างจากต้นทุนที่ Express คำนวณเองเล็กน้อย'],
+    ];
+
+    const sheet = (rows, cols) => { const ws = XLSX.utils.aoa_to_sheet(rows); ws['!cols'] = cols.map(w => ({ wch: w })); return ws; };
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet(issue,  [16, 34, 8, 10, 12, 14]), '1 จ่ายวัตถุดิบ');
+    XLSX.utils.book_append_sheet(wb, sheet(adjust, [16, 34, 8, 8, 10, 14]), '2 ปรับปรุงสินค้า');
+    XLSX.utils.book_append_sheet(wb, sheet(buy,    [16, 34, 8, 10, 14]), '3 ยอดซื้อ (ไว้เทียบ)');
+    XLSX.utils.book_append_sheet(wb, sheet(daily,  [11, 16, 26, 14, 9, 8, 11, 12, 16, 14, 24]), '4 รายวัน');
+    XLSX.utils.book_append_sheet(wb, sheet(help,   [22, 90]), 'วิธีใช้');
+    // ASCII name on purpose: a Thai name came out as plain "download" in
+    // testing, and the accountant has to find this file in a Downloads folder.
+    XLSX.writeFile(wb, `Express-stock-${mk}.xlsx`, { compression: true });
+    showLoading(false);
+    await logActivity('stock_express_export', 'stock_report', {
+      month: mk, issue_lines: X.issue.length, adjust_lines: X.adjust.length, missing_codes: X.missing.length });
+    toast(X.missing.length
+      ? `ดาวน์โหลดแล้ว — มี ${X.missing.length} รายการที่ยังไม่มีรหัส Express`
+      : 'ดาวน์โหลดแล้ว — ส่งไฟล์ให้พนักงานบัญชีได้เลย');
+  } catch(e) {
+    showLoading(false);
+    console.error('[exportExpressXLSX]', e);
+    toast(e.message || 'ดาวน์โหลดไม่สำเร็จ');
+  }
+}
+
+document.getElementById('btn-express').addEventListener('click', openExpressModal);
+document.querySelectorAll('#express-modal [data-exmode]').forEach(b => b.addEventListener('click', () => {
+  exMode = b.dataset.exmode; renderExpressModal();
+}));
+
 function renderMonthlyTable() {
   const tbody = document.getElementById('monthly-tbody');
   tbody.innerHTML = monthlySeries.slice().reverse().map(s => `
@@ -5185,6 +5663,7 @@ function openAddStockModal(presetGroup) {
   document.getElementById('st-target').value = '';
   document.getElementById('st-cost').value = '';
   document.getElementById('st-note').value = '';
+  document.getElementById('st-express').value = '';
   fillGroupSelect(presetGroup, null);
   if (presetGroup) applyGroupChoice(true);
   document.getElementById('stock-modal-title').textContent = presetGroup ? `เพิ่มรายการใน ${presetGroup}` : 'เพิ่มวัสดุ';
@@ -5211,6 +5690,7 @@ function openEditStockModal(id) {
   document.getElementById('st-target').value = (item.qty_target === null || item.qty_target === undefined) ? '' : item.qty_target;
   document.getElementById('st-cost').value = (item.cost_per_unit === null || item.cost_per_unit === undefined) ? '' : item.cost_per_unit;
   document.getElementById('st-note').value = item.note || '';
+  document.getElementById('st-express').value = item.express_code || '';
   fillGroupSelect(String(item.report_group || '').trim(), item);
   document.getElementById('st-qty-field').style.display = 'none';  // qty edited via movements only
   document.getElementById('st-delete-btn').style.display = canDeleteItem() ? '' : 'none';
@@ -5248,7 +5728,8 @@ async function saveStock() {
   }
   const editing = editingStockId ? stockItems.find(i => i.id === editingStockId) : null;
   const oldName = editing ? String(editing.name || '').trim() : null;
-  const extra = { report_group: reportGroup };
+  const extra = { report_group: reportGroup,
+                  express_code: document.getElementById('st-express').value.trim() || null };
 
   try {
     showLoading(true);
@@ -5554,6 +6035,7 @@ function openDetailSheet(id) {
           ${costLine ? escapeHtml(costLine) + '<br>' : ''}
           ${isSubGroup(groupKey(item))
             ? `อยู่ในหมวดย่อย <strong>${escapeHtml(groupKey(item))}</strong> (${groupMembers(groupKey(item)).length} รายการ)<br>` : ''}
+          ${item.express_code && canSeeMoney() ? `รหัส Express <strong>${escapeHtml(item.express_code)}</strong><br>` : ''}
           ${item.note ? escapeHtml(item.note) : ''}
         </div>
       </div>
