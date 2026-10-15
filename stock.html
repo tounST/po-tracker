@@ -333,6 +333,23 @@
   }
   .sg-head { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: rgba(184,92,60,.10); }
   .sg-caret { font-size: 11.5px; font-weight: 700; color: var(--ink-3); }
+  .sg-toggle {
+    margin-top: 8px; min-height: 36px; padding: 6px 14px;
+    border: 1px solid var(--line-deep); border-radius: var(--r-pill);
+    background: var(--surface); color: var(--ink-2);
+    font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: rgba(184,92,60,.10);
+  }
+  .sg-toggle:active { background: var(--bg-deep); }
+  .sg-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    margin: 2px 0 10px; font-size: 12.5px; color: var(--ink-3);
+  }
+  .sg-bar .sg-toggle { margin-top: 0; }
+  /* On its own line under the name: inline, it widened the name column enough
+     to push the row buttons off the right edge of the table. */
+  .stock-table tr.sub-group-row .cgr-count { font-size: 11.5px; font-weight: 700; color: var(--ink-3); }
+  .stock-table .sg-toggle { display: block; margin: 5px 0 0; min-height: 28px; padding: 3px 10px; font-size: 12px; }
   .stock-group.is-folded { padding-bottom: 14px; }
   .stock-group.is-folded .sg-head { margin-bottom: 0; }
   .stock-group.is-folded .sg-children { display: none; }
@@ -1461,6 +1478,8 @@
 
     <!-- Filter chips — rendered from the categories present in the data -->
     <div class="chip-row" id="stock-chips"></div>
+    <!-- One switch for every sub-category at once (สีจริง alone has 40+ shades) -->
+    <div class="sg-bar" id="sg-bar" style="display:none;"></div>
 
     <!-- Desktop table -->
     <div id="stock-table-wrap">
@@ -3129,6 +3148,7 @@ function renderStockList() {
   ).join('');
 
   const filtered = stockItems.filter(filterMatch);
+  renderSgBar(filtered);
 
   // Value summary
   renderStockSummary(lowItems);
@@ -3279,7 +3299,9 @@ function renderStockTable(filtered) {
     // First member of a multi-shade group: a subtotal row, then the shades.
     const key = groupKey(i);
     const multi = !sorting && isSubGroup(key);
+    const folded = multi && isFolded(key);
     let subRow = '';
+    if (multi && subDone.has(key) && folded) return groupRow;
     if (multi && !subDone.has(key)) {
       subDone.add(key);
       const t = groupSum(key);
@@ -3287,8 +3309,9 @@ function renderStockTable(filtered) {
       const num = v => u !== null ? fmtNum(v) : '–';
       subRow = `<tr class="sub-group-row">
         <td class="td-seq">${groupSeq(key) ?? ''}</td>
-        <td class="td-name">${escapeHtml(key)} <span class="cgr-count">· หมวดย่อย ${t.n} รายการ</span>${
-          t.low ? `<span class="row-low-tag">ใกล้หมด ${t.low}</span>` : ''}</td>
+        <td class="td-name">${escapeHtml(key)}${
+          t.low ? `<span class="row-low-tag">ใกล้หมด ${t.low}</span>` : ''}<div class="cgr-count">หมวดย่อย ${t.n} รายการ</div>${
+          foldIgnored() ? '' : toggleBtnHTML(key, rows.filter(r => groupKey(r) === key).length, folded)}</td>
         <td></td>
         <td class="td-unit">${u !== null ? escapeHtml(u) : 'หน่วยไม่ตรงกัน'}</td>
         <td class="num">${num(t.qty - t.inQ + t.outQ)}</td>
@@ -3301,6 +3324,7 @@ function renderStockTable(filtered) {
         <td>${hasPermission('manageDataAdd') ? `<div class="row-actions"><button class="row-btn" data-action="group-add" data-key="${escapeHtml(key)}">＋ เพิ่มในหมวดนี้</button></div>` : ''}</td>
       </tr>`;
     }
+    if (folded) return groupRow + subRow;
     return groupRow + subRow + renderStockTableRow(i, idx, multi);
   }).join('');
 
@@ -4836,23 +4860,54 @@ function renderCardBlocks(rows) {
   }).join('');
 }
 
-// Tap the group header to fold its shades away — with twenty shades the
-// block is longer than the screen. Folding is per session and ignored while
-// searching, so a search never hides the shade it just found.
-const sgCollapsed = new Set();
+// Sub-categories start folded (toun 2026-09-30: สีจริง has 40+ shades and the
+// phone list became endless). What someone opened is remembered on that device
+// only — a per-viewer convenience, so localStorage, wrapped in try/catch.
+// Folding is ignored while searching or on the ใกล้หมด filter: both are the
+// user asking to SEE particular rows, and a fold would hide exactly those.
+const SG_OPEN_KEY = 'stock.sgOpen';
+const sgOpen = new Set((() => {
+  try { return JSON.parse(localStorage.getItem(SG_OPEN_KEY) || '[]'); } catch (e) { return []; }
+})());
+function saveSgOpen() {
+  try { localStorage.setItem(SG_OPEN_KEY, JSON.stringify([...sgOpen])); } catch (e) { /* private mode: fine */ }
+}
+function foldIgnored() { return !!(stockSearch || '').trim() || stockFilter === 'low'; }
+function isFolded(key) { return !sgOpen.has(key) && !foldIgnored(); }
+function setGroupOpen(key, open) {
+  if (open) sgOpen.add(key); else sgOpen.delete(key);
+  saveSgOpen();
+}
+function toggleBtnHTML(key, n, folded) {
+  return `<button type="button" class="sg-toggle" data-action="group-toggle" data-key="${escapeHtml(key)}" aria-expanded="${!folded}">${
+    folded ? `▸ ดู ${n} รายการ` : '▾ ซ่อน'}</button>`;
+}
+// The bar above the list: open or close every sub-category in one tap.
+function renderSgBar(rows) {
+  const bar = document.getElementById('sg-bar');
+  if (!bar) return;
+  const keys = [...new Set(rows.map(groupKey))].filter(isSubGroup);
+  if (!keys.length || foldIgnored()) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  const allOpen = keys.every(k => sgOpen.has(k));
+  bar.style.display = '';
+  bar.innerHTML = `<span>หมวดย่อย ${keys.length} หมวด</span>
+    <button type="button" class="sg-toggle" id="sg-all" data-keys="${escapeHtml(JSON.stringify(keys))}" data-open="${allOpen ? '0' : '1'}">${
+      allOpen ? '▸ ซ่อนทุกหมวดย่อย' : '▾ แสดงทุกหมวดย่อย'}</button>`;
+}
 function renderGroupBlock(key, shown) {
   const t = groupSum(key);
-  const folded = sgCollapsed.has(key) && !(stockSearch || '').trim();
+  const folded = isFolded(key);
   const qtyHTML = t.unit !== null
     ? `<div class="stock-qty-num">${fmtNum(t.qty)}</div><div class="stock-qty-unit">${escapeHtml(t.unit)}</div>`
     : `<div class="stock-qty-num">–</div><div class="stock-qty-unit">หน่วยไม่ตรงกัน</div>`;
   return `<div class="stock-group${folded ? ' is-folded' : ''}">
     <div class="sg-head" data-action="group-toggle" data-key="${escapeHtml(key)}">
       <div class="stock-card-info">
-        <div class="stock-card-name">${escapeHtml(key)} <span class="sg-count">${t.n} รายการ</span><span class="sg-caret">${folded ? '▸ ดูทั้งหมด' : '▾ ย่อ'}</span></div>
+        <div class="stock-card-name">${escapeHtml(key)} <span class="sg-count">${t.n} รายการ</span></div>
         <div class="stock-card-min">หมวดย่อย · รวมทุกรายการ${canSeeMoney() ? ` · ${fmtBaht(t.value)} บาท` : ''}${
           shown.length < t.n ? ` · แสดง ${shown.length} จาก ${t.n}` : ''}</div>
         ${t.low ? `<span class="low-indicator">ใกล้หมด ${t.low} รายการ</span>` : ''}
+        ${foldIgnored() ? '' : `<div>${toggleBtnHTML(key, shown.length, folded)}</div>`}
       </div>
       <div class="stock-card-qty">${qtyHTML}</div>
     </div>
@@ -5224,6 +5279,7 @@ async function saveStock() {
   }
 
   showLoading(false);
+  if (reportGroup) setGroupOpen(reportGroup, true);   // show the row just added
   const wasEdit = !!editingStockId;
   closeStockModal();
   toast(wasEdit ? 'แก้ไขวัสดุแล้ว' : 'เพิ่มวัสดุแล้ว');
@@ -5706,8 +5762,9 @@ function onStockRowClick(e) {
   const action = btn.dataset.action;
   if (action === 'group-add') { openAddStockModal(btn.dataset.key); return; }
   if (action === 'group-toggle') {
+    if (foldIgnored()) return;          // search / ใกล้หมด show everything anyway
     const key = btn.dataset.key;
-    if (sgCollapsed.has(key)) sgCollapsed.delete(key); else sgCollapsed.add(key);
+    setGroupOpen(key, !sgOpen.has(key));
     renderStockList();
     return;
   }
@@ -5717,6 +5774,14 @@ function onStockRowClick(e) {
   else if (action === 'del') deleteStock(id);
 }
 document.getElementById('stock-list').addEventListener('click', onStockRowClick);
+document.getElementById('sg-bar').addEventListener('click', (e) => {
+  const b = e.target.closest('#sg-all');
+  if (!b) return;
+  const open = b.dataset.open === '1';
+  JSON.parse(b.dataset.keys || '[]').forEach(k => { if (open) sgOpen.add(k); else sgOpen.delete(k); });
+  saveSgOpen();
+  renderStockList();
+});
 document.getElementById('stock-tbody').addEventListener('click', onStockRowClick);
 
 // Period picker — re-aggregate the ministry-style columns for the chosen month.
