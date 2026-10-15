@@ -2483,10 +2483,30 @@ function isSubGroup(key) {
 function isGroupBase(i) {
   return !String(i.report_group || '').trim() && isSubGroup(String(i.name || '').trim());
 }
-function groupSeq(key) {
-  const seqs = groupMembers(key).map(i => i.ministry_seq).filter(v => v != null);
-  return seqs.length ? Math.min(...seqs) : null;
+// Line numbers are automatic (toun 2026-10-15: "เอาลำดับออกเลย มันมั่วไปหมด").
+// The fixed ministry_seq copied from the May form broke as soon as materials
+// were split into sub-categories: new lines had no number, fell to the end,
+// and the report filled the gap with the row position — which collided with
+// real numbers (two lines "12"). Now every line — a material or a whole
+// sub-category — is numbered 1..N in category order, then by name, and the
+// PC table and the ministry report use this same numbering. ministry_seq is
+// left in the DB untouched (not read, not written) in case it is ever needed.
+let _lineNoCache = { src: null, map: new Map() };
+function lineNumbers() {
+  if (_lineNoCache.src === stockItems) return _lineNoCache.map;
+  const firstCat = new Map();
+  stockItems.forEach(i => { const k = groupKey(i); if (!firstCat.has(k)) firstCat.set(k, (i.category || '').trim()); });
+  const keys = [...firstCat.keys()].sort((a, b) => {
+    const ca = firstCat.get(a), cb = firstCat.get(b);
+    return (catIndex(ca) - catIndex(cb))
+      || ca.localeCompare(cb, 'th')
+      || a.localeCompare(b, 'th', { numeric: true });
+  });
+  const map = new Map(keys.map((k, n) => [k, n + 1]));
+  _lineNoCache = { src: stockItems, map };
+  return map;
 }
+function lineNo(key) { return lineNumbers().get(key) ?? null; }
 // Totals across every active member, never just the ones a search left on
 // screen — the header must always answer "how much สีจริง do we have".
 function groupSum(key) {
@@ -3255,7 +3275,7 @@ function renderStockTable(filtered) {
     if (catIndex(a.category) === CAT_ORDER.length && ca !== 0) return ca;
     // Members of one group sit together, ordered as a block by the group's seq.
     const ka = groupKey(a), kb = groupKey(b);
-    const sa = ka !== kb ? groupSeq(ka) : null, sb2 = ka !== kb ? groupSeq(kb) : null;
+    const sa = ka !== kb ? lineNo(ka) : null, sb2 = ka !== kb ? lineNo(kb) : null;
     if (ka === kb) return memberCompare(ka)(a, b);
     if (sa != null && sb2 != null && sa !== sb2) return sa - sb2;
     if (sa != null && sb2 != null) return ka.localeCompare(kb, 'th');
@@ -3308,7 +3328,7 @@ function renderStockTable(filtered) {
       const u = t.unit;
       const num = v => u !== null ? fmtNum(v) : '–';
       subRow = `<tr class="sub-group-row">
-        <td class="td-seq">${groupSeq(key) ?? ''}</td>
+        <td class="td-seq">${lineNo(key) ?? ''}</td>
         <td class="td-name">${escapeHtml(key)}${
           t.low ? `<span class="row-low-tag">ใกล้หมด ${t.low}</span>` : ''}<div class="cgr-count">หมวดย่อย ${t.n} รายการ</div>${
           foldIgnored() ? '' : toggleBtnHTML(key, rows.filter(r => groupKey(r) === key).length, folded)}</td>
@@ -4073,8 +4093,8 @@ function blSetMode(mode) {
 
 function blRows() {
   return stockItems.filter(i => i.is_active !== false)
-    .slice().sort((a, b) => (a.ministry_seq || 999) - (b.ministry_seq || 999)
-                          || String(a.name).localeCompare(String(b.name), 'th'));
+    .slice().sort((a, b) => (lineNo(groupKey(a)) || 9999) - (lineNo(groupKey(b)) || 9999)
+                          || String(a.name).localeCompare(String(b.name), 'th', { numeric: true }));
 }
 
 function renderBaselinePanel() {
@@ -4101,8 +4121,7 @@ function renderBaselinePanel() {
     return `<div class="bl-row${drop ? ' is-drop' : ''}" data-blrow="${escapeHtml(i.id)}">
       <div class="bl-who">
         <div class="bl-name">${escapeHtml(i.name)}</div>
-        <div class="bl-sub2">ในระบบ ${fmtNum(i.qty_current)} ${escapeHtml(i.unit)}${
-          i.ministry_seq ? '' : ' · <strong>ไม่อยู่ในรายงานกระทรวง</strong>'}</div>
+        <div class="bl-sub2">ในระบบ ${fmtNum(i.qty_current)} ${escapeHtml(i.unit)}</div>
       </div>
       <label class="bl-field"><span class="bl-cap">นับได้จริง</span>
         <input class="bl-in" type="text" inputmode="decimal" data-blqty="${escapeHtml(i.id)}"
@@ -4591,7 +4610,7 @@ function buildMinistryRows() {
   stockItems.forEach(i => {
     const key = groupKey(i);
     const it  = s.items[i.id] || { inQty: 0, outQty: 0, adjQty: 0, initQty: 0, inValue: 0 };
-    const L = lines.get(key) || { key, members: [], seq: groupSeq(key), inQty: 0, outQty: 0, adjQty: 0,
+    const L = lines.get(key) || { key, members: [], seq: lineNo(key), inQty: 0, outQty: 0, adjQty: 0,
                                   inValue: 0, close: 0, heldValue: 0, units: new Set(), country: null };
     L.members.push(i);
     L.inQty += it.inQty; L.outQty += it.outQty; L.adjQty += it.adjQty; L.inValue += it.inValue;
@@ -4724,7 +4743,8 @@ function renderMonthItemTable() {
   }).sort((a, b) => {
     const d = catIndex(a.category) - catIndex(b.category);
     if (d !== 0) return d;
-    return (a.ministry_seq || 0) - (b.ministry_seq || 0);
+    return (lineNo(groupKey(a)) || 0) - (lineNo(groupKey(b)) || 0)
+      || String(a.name).localeCompare(String(b.name), 'th', { numeric: true });
   });
 
   if (!rows.length) {
@@ -4820,7 +4840,7 @@ function renderStockTableRow(i, idx, child = false) {
     const unit = escapeHtml(i.unit || '');
     const cat  = i.category || '—';
     return `<tr class="${low ? 'is-low' : ''}${child ? ' is-child' : ''}">
-      <td class="td-seq">${child ? '' : (i.ministry_seq != null ? i.ministry_seq : idx + 1)}</td>
+      <td class="td-seq">${child ? '' : (lineNo(groupKey(i)) ?? '')}</td>
       <td class="td-name" data-action="detail" data-id="${escapeHtml(i.id)}" style="cursor:pointer;">
         ${child ? '<span class="child-mark">└</span>' : ''}${escapeHtml(i.name)}${isGroupBase(i) ? '<span class="sg-base-tag">ยังไม่แยกเบอร์/เฉด</span>' : ''}${low ? '<span class="row-low-tag">ใกล้หมด</span>' : ''}${
           reorderQty(i) ? `<span class="reorder-tag">ควรสั่ง ${fmtNum(reorderQty(i))}</span>` : ''}
@@ -5217,7 +5237,7 @@ async function saveStock() {
   if (!groupSel.disabled && groupSel.value === GROUP_NEW && !currentGroupChoice()) { toast('พิมพ์ชื่อหมวดย่อยใหม่ก่อน'); return; }
   const reportGroup = currentGroupChoice();
   if (reportGroup && name === reportGroup && !groupSel.disabled) { toast(`ชื่อต้องต่างจากหมวดย่อย — เช่น "${reportGroup} เบอร์ 180"`); return; }
-  let category = categoryRaw, groupSeqInherit;
+  let category = categoryRaw;
   if (reportGroup) {
     // Quantities are only added up inside a group, so the units must agree —
     // "4 ถัง + 12 ลิตร" is not a number the ministry form can take.
@@ -5225,12 +5245,10 @@ async function saveStock() {
     const bad = others.find(i => String(i.unit || '').trim() !== unit);
     if (bad) { toast(`หน่วยต้องตรงกับรายการอื่นในหมวดย่อย "${reportGroup}" — ${bad.name} ใช้ ${bad.unit}`); return; }
     if (others[0]) category = others[0].category || category;
-    groupSeqInherit = groupSeq(reportGroup);
   }
   const editing = editingStockId ? stockItems.find(i => i.id === editingStockId) : null;
   const oldName = editing ? String(editing.name || '').trim() : null;
   const extra = { report_group: reportGroup };
-  if (reportGroup && groupSeqInherit != null) extra.ministry_seq = groupSeqInherit;
 
   try {
     showLoading(true);
