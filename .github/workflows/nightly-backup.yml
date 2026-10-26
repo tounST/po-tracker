@@ -1,0 +1,90 @@
+# Nightly backup + error report + keep-alive (task.md B2, toun 2026-10-26).
+#
+# 1. Reads every Supabase table and stores an ENCRYPTED copy on the `backup`
+#    branch. This repo is public, so the copy is locked with the public key in
+#    scripts/backup/backup-recipient.txt; only toun's private key opens it.
+# 2. Turns yesterday's browser errors (table client_errors) into a GitHub issue,
+#    which is what makes GitHub email the owner.
+# 3. As a side effect, touches the database every day — a free-tier project
+#    with no traffic for a week is put to sleep (it happened 4 times).
+#
+# If the database cannot be read, the run fails and GitHub emails the owner;
+# a "backup failed" issue is opened as well so the warning stays visible.
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: '47 18 * * *'      # 01:47 Bangkok
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: nightly-backup
+  cancel-in-progress: false
+
+env:
+  SUPABASE_URL: https://rkdxbxtakvisroxelrvq.supabase.co
+  # The anon key is already public in every page of this site.
+  SUPABASE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHhieHRha3Zpc3JveGVscnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMzM2MjgsImV4cCI6MjA4OTkwOTYyOH0.KvTaFrdXCERYl77hVt5x5_udMQn7YSy6GFdDoyu9bOU
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: code
+
+      - name: Install age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      - name: Check out the backup branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir store && cd store
+          git init -q
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q --depth=1 origin backup; then
+            git checkout -q -B backup FETCH_HEAD
+          else
+            git checkout -q --orphan backup
+          fi
+
+      - name: Back up the database (encrypted)
+        env:
+          OUT_DIR: ${{ github.workspace }}/store
+        run: python3 code/scripts/backup/backup.py
+
+      - name: Report browser errors
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          STATUS_FILE: ${{ github.workspace }}/store/status.json
+        run: python3 code/scripts/backup/error_report.py
+
+      - name: Save to the backup branch
+        working-directory: store
+        run: |
+          python3 ../code/scripts/backup/prune.py .
+          cp ../code/scripts/backup/BRANCH-README.md README.md
+          git config user.name "nightly-backup"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "backup $(TZ=Asia/Bangkok date +%F)" || echo "nothing new"
+          git push -q origin HEAD:backup
+
+      - name: Open an issue when the backup failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY=$(printf 'สำรองข้อมูลคืนนี้ไม่สำเร็จ\n\nสาเหตุที่พบบ่อย: Supabase หลับ (ต้องปลุกที่ supabase.com) หรือเน็ตของ GitHub มีปัญหาชั่วคราว\n\nรายละเอียด: %s\n\nส่งลิงก์นี้ให้ Claude ดูได้เลย' "$RUN")
+          curl -sS -X POST -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues" \
+            -d "$(python3 -c 'import json,sys; print(json.dumps({"title": "🚨 สำรองข้อมูลไม่สำเร็จ ("+sys.argv[1]+")", "body": sys.argv[2]}))' "$(TZ=Asia/Bangkok date +%F)" "$BODY")" > /dev/null

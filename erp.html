@@ -2,6 +2,67 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
+<!-- Error reporter (task.md B2): uncaught errors, failed script loads and
+     console.error() go to the Supabase table client_errors; the nightly job
+     (.github/workflows/nightly-backup.yml) turns them into a GitHub issue,
+     which emails the owner. Plain fetch, not supabase-js, so it still works
+     when that library failed to load. Live site only, at most 10 per load,
+     no user names. Same block in all four pages — only PAGE differs. -->
+<script>
+(function () {
+  var PAGE = 'erp';
+  var ENDPOINT = 'https://rkdxbxtakvisroxelrvq.supabase.co/rest/v1/client_errors';
+  var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHhieHRha3Zpc3JveGVscnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMzM2MjgsImV4cCI6MjA4OTkwOTYyOH0.KvTaFrdXCERYl77hVt5x5_udMQn7YSy6GFdDoyu9bOU';
+  var sent = 0, seen = {};
+  function cut(v, n) { v = v == null ? '' : String(v); return v.length > n ? v.slice(0, n) : v; }
+  function report(kind, message, source, stack) {
+    try {
+      if (location.hostname !== 'tounst.github.io') return;   // tests and local copies stay quiet
+      message = cut(message, 500);
+      if (!message || sent >= 10) return;
+      if (/^Script error\.?$|ResizeObserver loop/.test(message)) return;
+      if (/^(chrome|moz|safari)-extension:/.test(source || '')) return;
+      var k = kind + '|' + message;
+      if (seen[k]) return;
+      seen[k] = 1; sent++;
+      fetch(ENDPOINT, {
+        method: 'POST', keepalive: true,
+        headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          page: PAGE, kind: kind, message: message,
+          source: cut(source, 200) || null, stack: cut(stack, 2000) || null,
+          app_version: cut(typeof APP_VERSION !== 'undefined' ? APP_VERSION : '', 40) || null,
+          user_agent: cut(navigator.userAgent, 300)
+        })
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  window.addEventListener('error', function (e) {
+    if (e instanceof ErrorEvent) report('error', e.message, (e.filename || '') + ':' + e.lineno, e.error && e.error.stack);
+    else if (e.target && e.target.tagName === 'SCRIPT') report('error', 'โหลดสคริปต์ไม่สำเร็จ: ' + e.target.src, e.target.src, null);
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason;
+    report('rejection', (r && r.message) || String(r), null, r && r.stack);
+  });
+  // catch blocks across the app log with console.error('[fn]', e) and then
+  // show a toast — the failures people actually see, which never reach onerror.
+  var original = console.error;
+  console.error = function () {
+    try {
+      var parts = [], stack = null;
+      for (var i = 0; i < arguments.length && i < 3; i++) {
+        var a = arguments[i];
+        if (a && a.stack && !stack) stack = a.stack;
+        try { parts.push(a && a.message ? a.message : (typeof a === 'object' ? JSON.stringify(a) : String(a))); }
+        catch (x) { parts.push(String(a)); }
+      }
+      report('console', parts.join(' '), null, stack);
+    } catch (x) {}
+    return original.apply(console, arguments);
+  };
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#EC3013">
 <meta name="apple-mobile-web-app-capable" content="yes">
