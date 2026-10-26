@@ -1121,7 +1121,7 @@
         <span class="module-pill pill-soon">เร็ว ๆ นี้</span>
       </button>
 
-      <button class="module-card role-admin-only" id="module-settings" data-action="settings" style="display:none;">
+      <button class="module-card manage-users-only" id="module-settings" data-action="settings" style="display:none;">
         <div class="module-icon">⚙️</div>
         <div class="module-title">ตั้งค่า · ผู้ใช้ · สิทธิ์</div>
         <div class="module-desc">ผู้ใช้ · master data · สิทธิ์</div>
@@ -1402,11 +1402,11 @@ function resetSessionTimer() {
 
 // Permission matrix: role -> permissions  (copied verbatim from po-mobile.html)
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, viewERP: true,  viewStock: true },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, viewERP: false, viewStock: true },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, viewERP: false, viewStock: true }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  editUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: true,  editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, viewERP: true,  viewStock: true },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, viewERP: false, viewStock: true },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, editUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, viewERP: false, viewStock: true }
 };
 
 // Frozen JSON snapshot of code defaults (copied verbatim from po-mobile.html)
@@ -1690,12 +1690,15 @@ function applyPermissions() {
     badgeEl.innerHTML = `<span class="role-badge ${badgeClass} topbar-role-chip">${roleLabels[currentUser.role] || currentUser.role}${stationText}</span>`;
   }
 
-  // ตั้งค่าผู้ใช้งาน is the admin's own panel — everyone else must not even
-  // see the door. Hidden rather than disabled: a button that refuses you only
-  // tells you where to keep trying.
   const isAdmin = currentUser.role === 'admin';
   document.querySelectorAll('.role-admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
+  });
+  // ตั้งค่าผู้ใช้งาน (toun 2026-10-26): admin edits; supervisor + office may
+  // look (other people's PINs only). Everyone else must not even see the
+  // door — hidden rather than disabled.
+  document.querySelectorAll('.manage-users-only').forEach(el => {
+    el.style.display = hasPermission('manageUsers') ? '' : 'none';
   });
 }
 
@@ -1811,7 +1814,7 @@ const DK_NAV = [
   { label: 'จัดการ', items: [
     { key: 'cost',     icon: 'coins',    label: 'ต้นทุน & กำไร', action: 'soon' },
     { key: 'report',   icon: 'chart',    label: 'รายงาน',        action: 'soon' },
-    { key: 'settings', icon: 'settings', label: 'ตั้งค่า & ผู้ใช้', action: 'settings', adminOnly: true }
+    { key: 'settings', icon: 'settings', label: 'ตั้งค่า & ผู้ใช้', action: 'settings', perm: 'manageUsers' }
   ]}
 ];
 
@@ -1954,8 +1957,8 @@ function renderDesktopNav(model) {
         // The rail is re-rendered on every refresh, so it decides for itself
         // rather than waiting for applyPermissions to catch up — otherwise the
         // item flashes into view for a moment on each redraw.
-        const hide = n.adminOnly && !(currentUser && currentUser.role === 'admin');
-        return `<button class="dk-nav-item${n.key === 'home' ? ' active' : ''}${n.adminOnly ? ' role-admin-only' : ''}"
+        const hide = n.perm && !hasPermission(n.perm);
+        return `<button class="dk-nav-item${n.key === 'home' ? ' active' : ''}${n.perm === 'manageUsers' ? ' manage-users-only' : ''}"
                   ${hide ? 'style="display:none;"' : ''}
                   data-action="${n.action || ''}" type="button">
           <span class="dk-nav-icon">${dkIcon(n.icon, 18, n.key === 'home' ? 2.1 : 1.9)}</span>
@@ -2285,24 +2288,42 @@ const US_ROLE_ORDER = ['admin', 'supervisor', 'office', 'manager', 'staff'];
 // after a save does not silently re-reveal — or re-hide — what admin chose.
 let usShown = new Set();
 
-function isAdminUser() {
-  return !!currentUser && currentUser.role === 'admin';
+// Users & PINs (toun 2026-10-26): only admin changes PINs; supervisor +
+// office may LOOK at other people's PINs; an admin's PIN is never shown to,
+// nor changeable by, anyone but an admin — a role check on purpose, not a
+// flag. Same rules in po-mobile + po-desktop.
+function canSeePinOf(u) {
+  if (!currentUser || !u) return false;
+  if (u.role === 'admin') return currentUser.role === 'admin';
+  return hasPermission('manageUsers');
+}
+function canEditUser(u) {
+  if (!currentUser || !hasPermission('editUsers')) return false;
+  return !(u && u.role === 'admin') || currentUser.role === 'admin';
 }
 
 async function openUserSettings() {
-  if (!isAdminUser()) {
-    toast('หน้านี้เปิดได้เฉพาะ Admin');
+  if (!hasPermission('manageUsers')) {
+    toast('หน้านี้เปิดได้เฉพาะ Admin / หัวหน้า / ออฟฟิศ');
     logActivity('user_settings_denied', 'user', { role: currentUser ? currentUser.role : null });
     return;
   }
   try {
     showLoading(true);
+    // Names first, PINs in a second query that a non-admin runs with
+    // role <> 'admin' — so the owner's PIN never reaches their browser.
     const { data, error } = await sb.from('users')
-      .select('id,username,display_name,role,pin,is_active')
+      .select('id,username,display_name,role,is_active')
       .eq('is_active', true)
       .order('role').order('username');
     if (error) throw error;
     usUsers = data || [];
+    let pq = sb.from('users').select('id,pin').eq('is_active', true);
+    if (currentUser.role !== 'admin') pq = pq.neq('role', 'admin');
+    const { data: pins, error: pe } = await pq;
+    if (pe) throw pe;
+    const byId = new Map((pins || []).map(r => [r.id, r.pin]));
+    usUsers.forEach(u => { if (byId.has(u.id)) u.pin = byId.get(u.id); });
     showLoading(false);
   } catch(e) {
     showLoading(false);
@@ -2313,9 +2334,10 @@ async function openUserSettings() {
 
   // Anyone still holding a four-digit PIN cannot log in at all now, so the
   // screen has to say how many are stranded — not leave admin to spot it.
-  const stale = usUsers.filter(u => (u.pin || '').length !== PIN_LEN).length;
-  document.getElementById('users-note').innerHTML =
-    `ตั้งรหัสได้ทุกคน · รหัสต้องยาว <strong>${PIN_LEN} หลัก</strong> · ระบบจะกันไม่ให้ตั้งรหัสซ้ำกับของคนอื่น · กด 👁 เพื่อดูรหัส`
+  const stale = usUsers.filter(u => canSeePinOf(u) && (u.pin || '').length !== PIN_LEN).length;
+  document.getElementById('users-note').innerHTML = (hasPermission('editUsers')
+    ? `ตั้งรหัสได้ทุกคน · รหัสต้องยาว <strong>${PIN_LEN} หลัก</strong> · ระบบจะกันไม่ให้ตั้งรหัสซ้ำกับของคนอื่น · กด 👁 เพื่อดูรหัส`
+    : `👁 ดูได้อย่างเดียว — เปลี่ยนรหัสได้เฉพาะ Admin · รหัสของ Admin ไม่แสดง`)
     + (stale ? `<br><span class="us-warn">⚠️ ยังมี ${stale} คนใช้รหัสเก่าที่ไม่ครบ ${PIN_LEN} หลัก — เข้าระบบไม่ได้จนกว่าจะตั้งรหัสใหม่ให้</span>` : '');
 
   renderUsersList();
@@ -2331,8 +2353,9 @@ function usGroups() {
 }
 
 function usPinText(u) {
+  if (!canSeePinOf(u)) return '🔒 ซ่อน';
   const pin = u.pin || '';
-  return usShown.has(u.id) ? (pin || '—') : '•'.repeat(pin.length || 4);
+  return usShown.has(u.id) ? (pin || '—') : '•'.repeat(pin.length || PIN_LEN);
 }
 
 function renderUsersList() {
@@ -2344,35 +2367,40 @@ function renderUsersList() {
     ${g.rows.map(u => {
       const me = u.id === currentUser.id;
       const on = usShown.has(u.id);
-      const stale = (u.pin || '').length !== PIN_LEN;
+      const see = canSeePinOf(u);
+      const stale = see && (u.pin || '').length !== PIN_LEN;
       return `<div class="us-row${me ? ' is-me' : ''}${stale ? ' is-stale' : ''}">
         <div class="us-who">
           <div class="us-name">${escapeHtml(u.display_name || u.username)}${me ? ' · ตัวคุณเอง' : ''}</div>
           <div class="us-sub">${escapeHtml(u.username)} · ${escapeHtml(US_ROLE_TH[u.role] || u.role)}${
             stale ? ' · <span class="us-warn">เข้าระบบไม่ได้ ต้องตั้งรหัสใหม่</span>' : ''}</div>
         </div>
-        <div class="us-pin" id="uspin-${escapeHtml(u.id)}">${escapeHtml(usPinText(u))}</div>
-        <button class="us-eye${on ? ' on' : ''}" data-eye="${escapeHtml(u.id)}" type="button"
-                title="${on ? 'ซ่อนรหัส' : 'แสดงรหัส'}">👁</button>
-        <button class="us-btn" data-setpin="${escapeHtml(u.id)}">เปลี่ยนรหัส</button>
+        <div class="us-pin" id="uspin-${escapeHtml(u.id)}"${see ? '' : ' style="letter-spacing:normal;"'}>${escapeHtml(usPinText(u))}</div>
+        ${see ? `<button class="us-eye${on ? ' on' : ''}" data-eye="${escapeHtml(u.id)}" type="button"
+                title="${on ? 'ซ่อนรหัส' : 'แสดงรหัส'}">👁</button>` : ''}
+        ${canEditUser(u) ? `<button class="us-btn" data-setpin="${escapeHtml(u.id)}">เปลี่ยนรหัส</button>` : ''}
       </div>`;
     }).join('')}`).join('') || '<div class="us-note">ไม่มีผู้ใช้ให้แสดง</div>';
 
   document.getElementById('users-list').innerHTML = html;
   const all = document.getElementById('users-eye-all');
-  const everyShown = usUsers.length > 0 && usUsers.every(u => usShown.has(u.id));
+  const seeable = usUsers.filter(canSeePinOf);
+  const everyShown = seeable.length > 0 && seeable.every(u => usShown.has(u.id));
+  all.style.display = seeable.length ? '' : 'none';
   all.textContent = everyShown ? '🙈 ซ่อนรหัสทั้งหมด' : '👁 แสดงรหัสทั้งหมด';
   all.classList.toggle('on', everyShown);
 }
 
 function toggleUsPin(id) {
+  if (!canSeePinOf(usUsers.find(u => u.id === id))) return;
   if (usShown.has(id)) usShown.delete(id); else usShown.add(id);
   renderUsersList();
 }
 
 function toggleUsPinAll() {
-  const everyShown = usUsers.length > 0 && usUsers.every(u => usShown.has(u.id));
-  usShown = everyShown ? new Set() : new Set(usUsers.map(u => u.id));
+  const seeable = usUsers.filter(canSeePinOf);
+  const everyShown = seeable.length > 0 && seeable.every(u => usShown.has(u.id));
+  usShown = everyShown ? new Set() : new Set(seeable.map(u => u.id));
   renderUsersList();
 }
 
@@ -2390,9 +2418,9 @@ function pinClash(pin, exceptId) {
 }
 
 function openPinModal(userId) {
-  if (!isAdminUser()) { toast('หน้านี้เปิดได้เฉพาะ Admin'); return; }
   const u = usUsers.find(x => x.id === userId);
   if (!u) return;
+  if (!canEditUser(u)) { toast('เปลี่ยนรหัสได้เฉพาะ Admin'); return; }
   usTarget = u;
   document.getElementById('pin-modal-title').textContent =
     `เปลี่ยนรหัส · ${u.display_name || u.username}`;
@@ -2406,7 +2434,7 @@ function openPinModal(userId) {
 
 async function savePin() {
   if (!usTarget) return;
-  if (!isAdminUser()) { toast('หน้านี้เปิดได้เฉพาะ Admin'); return; }
+  if (!canEditUser(usTarget)) { toast('เปลี่ยนรหัสได้เฉพาะ Admin'); return; }
   const msg = document.getElementById('pin-msg');
   const set = (t, ok) => { msg.textContent = t; msg.className = 'us-msg' + (ok ? ' ok' : ''); };
   const a = document.getElementById('pin-new').value.trim();
@@ -2419,6 +2447,10 @@ async function savePin() {
 
   try {
     showLoading(true);
+    // The list may not hold every PIN (a non-admin never loads the admin's),
+    // so ask the database too — a duplicate would sign one person in as the other.
+    const { data: dup } = await sb.from('users').select('id').eq('pin', a).neq('id', usTarget.id);
+    if (dup && dup.length) { showLoading(false); return set('รหัสนี้มีคนใช้แล้ว — เลือกเลขอื่น'); }
     const { error } = await sb.from('users').update({ pin: a }).eq('id', usTarget.id);
     if (error) throw error;
     // The PIN itself never goes into the log — only who changed whose.

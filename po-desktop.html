@@ -1587,6 +1587,13 @@ a:hover { color: var(--accent); }
 }
 .user-row-icon-btn:hover { background: var(--bg); color: var(--ink); border-color: var(--line); }
 .user-row-icon-btn.danger:hover { color: var(--danger); background: var(--danger-bg); border-color: var(--danger); }
+.user-pin-val { font-family: var(--font-mono, monospace); letter-spacing: .04em; }
+.user-pin-eye {
+  font-family: inherit; font-size: 11px; line-height: 1; cursor: pointer;
+  padding: 2px 5px; margin-left: 2px; border-radius: 6px;
+  border: 1px solid var(--line); background: transparent; color: var(--ink-3);
+}
+.user-pin-eye:hover { background: var(--bg); color: var(--ink); }
 
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 400;
@@ -1864,8 +1871,8 @@ a:hover { color: var(--accent); }
         <input type="text" id="um-uname" placeholder="เช่น somchai" autocomplete="off">
       </div>
       <div class="modal-field">
-        <label>PIN * (ตัวเลข 4 หลัก, ห้ามซ้ำกับคนอื่น)</label>
-        <input type="text" id="um-pin" class="pin-input" maxlength="4" inputmode="numeric" placeholder="••••">
+        <label>PIN * (ตัวเลข 6 หลัก, ห้ามซ้ำกับคนอื่น)</label>
+        <input type="text" id="um-pin" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••••">
       </div>
       <div class="modal-field">
         <label id="um-role-label">Role</label>
@@ -1943,11 +1950,11 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 // Permissions — mirrored from po-mobile.html so both clients enforce the same rules.
 // See po-mobile.html for flag definitions.
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true, viewERP: true,  viewStock: true },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true, viewERP: true,  viewStock: true },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, qcPhoto: false, viewERP: true,  viewStock: true },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, qcPhoto: true, viewERP: false, viewStock: true },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, qcPhoto: false, viewERP: false, viewStock: true }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  editUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true, viewERP: true,  viewStock: true },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true,  qcPhoto: true, viewERP: true,  viewStock: true },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: true,  editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, qcPhoto: false, viewERP: true,  viewStock: true },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, qcPhoto: true, viewERP: false, viewStock: true },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, editUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, qcPhoto: false, viewERP: false, viewStock: true }
 };
 const ROLE_LABELS = { admin: 'Admin', supervisor: 'Supervisor', office: 'Office', manager: 'Manager', staff: 'Staff' };
 const ROLE_COLORS = { admin: '#A33B2E', supervisor: '#B8832A', office: '#2C6E70', manager: '#3F5AA6', staff: '#4A7F3F' };
@@ -1963,7 +1970,8 @@ const PERMISSION_META = [
   { key: 'delete',           label: 'ลบ PO' },
   { key: 'archive',          label: 'Archive PO' },
   { key: 'manage',           label: 'เข้าหน้าจัดการ' },
-  { key: 'manageUsers',      label: 'จัดการ Users (ดู/เพิ่ม/แก้)' },
+  { key: 'manageUsers',      label: 'ดูรายชื่อผู้ใช้ + รหัสของคนอื่น (รหัส Admin เห็นได้เฉพาะ Admin)' },
+  { key: 'editUsers',        label: 'เพิ่ม/แก้/ลบผู้ใช้ + เปลี่ยนรหัส (แก้ Admin ได้เฉพาะ Admin)' },
   { key: 'manageUserRoles',  label: 'เปลี่ยน Role/Station ของ user' },
   { key: 'manageDataAdd',    label: 'เพิ่ม/แก้ Master Data' },
   { key: 'manageDataDelete', label: 'ลบ Master Data' },
@@ -1989,6 +1997,20 @@ function hasPermission(permKey) {
   if (!currentUser) return false;
   if (permKey === 'all') return true;
   return !!(PERMISSIONS[currentUser.role] || PERMISSIONS.staff)[permKey];
+}
+
+// Users & PINs (toun 2026-10-26): only admin adds/edits/deletes users;
+// supervisor + office may LOOK at other people's PINs; an admin's PIN is
+// never shown to, nor editable by, anyone but an admin — a role check on
+// purpose, not a flag. Same rules in po-mobile + erp.
+function canSeePinOf(u) {
+  if (!currentUser || !u) return false;
+  if (u.role === 'admin') return currentUser.role === 'admin';
+  return hasPermission('manageUsers');
+}
+function canEditUser(u) {
+  if (!currentUser || !hasPermission('editUsers')) return false;
+  return !(u && u.role === 'admin') || currentUser.role === 'admin';
 }
 
 // ═══════════════════════════════════════════════════
@@ -3038,14 +3060,14 @@ const ACTION_LABELS = {
 let userModalEditId = null;  // null = adding new, else UUID being edited
 
 function openUserModal(data) {
+  if (!canEditUser(data)) { toast(data ? 'แก้ไขผู้ใช้ได้เฉพาะ Admin' : 'เพิ่มผู้ใช้ได้เฉพาะ Admin'); return; }
   userModalEditId = data?.id || null;
   document.getElementById('user-modal-title').textContent = data ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้ใหม่';
   document.getElementById('um-dname').value = data?.display_name || '';
   document.getElementById('um-uname').value = data?.username || '';
   document.getElementById('um-pin').value   = data?.pin || '';
   document.getElementById('um-role').value  = data?.role || 'staff';
-  // Supervisor has manageUsers=true but manageUserRoles=false — can CRUD user
-  // but cannot change their role/station (only admin can reassign).
+  // Without manageUserRoles the role/station fields are shown but locked.
   const lockRoles = !hasPermission('manageUserRoles');
   const roleSel = document.getElementById('um-role');
   roleSel.disabled = lockRoles;
@@ -3104,7 +3126,7 @@ async function validateUserForm(excludeId) {
 
   if (!dname)                 { toast('⚠️ กรุณากรอกชื่อที่แสดง'); return null; }
   if (!uname)                 { toast('⚠️ กรุณากรอก Username'); return null; }
-  if (!/^[0-9]{4}$/.test(pin)) { toast('⚠️ PIN ต้องเป็นตัวเลข 4 หลัก'); return null; }
+  if (!new RegExp(`^[0-9]{${PIN_LEN}}$`).test(pin)) { toast(`⚠️ PIN ต้องเป็นตัวเลข ${PIN_LEN} หลัก`); return null; }
   if (!station)                { toast('⚠️ กรุณาเลือก Station อย่างน้อย 1 จุด'); return null; }
 
   // Dedup checks — exclude the row being edited
@@ -3116,12 +3138,13 @@ async function validateUserForm(excludeId) {
   let qP = sb.from('users').select('id').eq('pin', pin);
   if (excludeId) qP = qP.neq('id', excludeId);
   const { data: dupP } = await qP;
-  if (dupP && dupP.length > 0) { toast(`⚠️ PIN "${pin}" ถูกใช้แล้ว`); return null; }
+  if (dupP && dupP.length > 0) { toast('⚠️ PIN นี้มีคนใช้แล้ว — เลือกเลขอื่น'); return null; }
 
   return { display_name: dname, username: uname, pin, role, station };
 }
 
 async function submitUserModal() {
+  if (!hasPermission('editUsers')) { toast('แก้ไขผู้ใช้ได้เฉพาะ Admin'); return; }
   const vals = await validateUserForm(userModalEditId);
   if (!vals) return;
   showLoading(true);
@@ -3129,12 +3152,14 @@ async function submitUserModal() {
     if (userModalEditId) {
       // EDIT
       const { data: old } = await sb.from('users').select('*').eq('id', userModalEditId).single();
+      if (!canEditUser(old)) { showLoading(false); toast('แก้ไขผู้ใช้ได้เฉพาะ Admin'); return; }
       const { error } = await sb.from('users').update(vals).eq('id', userModalEditId);
       if (error) throw error;
       const changes = {};
       if (old) {
         ['display_name','username','pin','role','station'].forEach(f => {
-          if (old[f] !== vals[f]) changes[f] = `${old[f] || ''} → ${vals[f]}`;
+          // Never write a PIN into the activity log — only that it changed.
+          if (old[f] !== vals[f]) changes[f] = f === 'pin' ? 'เปลี่ยนแล้ว' : `${old[f] || ''} → ${vals[f]}`;
         });
       }
       await logActivity('edit_user', 'user', { username: vals.username, changes });
@@ -3156,6 +3181,7 @@ async function submitUserModal() {
 }
 
 async function deleteUserDesktop(u) {
+  if (!canEditUser(u)) { toast('ลบผู้ใช้ได้เฉพาะ Admin'); return; }
   const name = u.display_name || u.username;
   if (!confirm(`ลบผู้ใช้ "${name}" ถาวร?\n\nกิจกรรมที่ ${name} เคยทำใน activity log จะอ้างอิง id เดิม (เก็บไว้เป็นประวัติ)`)) return;
   showLoading(true);
@@ -3193,7 +3219,7 @@ function wireUserModal() {
   };
   // PIN input: digits only
   document.getElementById('um-pin').oninput = (e) => {
-    e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+    e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, PIN_LEN);
   };
 }
 
@@ -5526,9 +5552,20 @@ async function renderManageUsers() {
 
   let users = [];
   try {
-    const { data, error } = await sb.from('users').select('*').order('role').order('display_name');
+    // Names/roles first, PINs in a second query that a non-admin runs with
+    // role <> 'admin' — so the owner's PIN never reaches their browser.
+    const { data, error } = await sb.from('users')
+      .select('id,username,display_name,role,station,is_active,last_login,created_at')
+      .order('role').order('display_name');
     if (error) throw error;
     users = data || [];
+    if (hasPermission('manageUsers') && users.length) {
+      let pq = sb.from('users').select('id,pin');
+      if (currentUser.role !== 'admin') pq = pq.neq('role', 'admin');
+      const { data: pins } = await pq;
+      const byId = new Map((pins || []).map(r => [r.id, r.pin]));
+      users.forEach(u => { if (byId.has(u.id)) u.pin = byId.get(u.id); });
+    }
   } catch(e) {
     body.innerHTML = `<div class="empty-state"><span class="emoji">❌</span><p>โหลดผู้ใช้ไม่สำเร็จ: ${escapeHtml(e.message)}</p></div>`;
     return;
@@ -5539,8 +5576,9 @@ async function renderManageUsers() {
   users.forEach(u => { if (counts[u.role] !== undefined) counts[u.role]++; });
 
   body.innerHTML = `
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 14px;">
-      <button class="btn btn-primary" id="btn-add-user">
+    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 14px;">
+      ${hasPermission('editUsers') ? '' : `<div style="margin-right:auto;color:var(--ink-3);font-size:13px;">👁 ดูได้อย่างเดียว — เพิ่ม/แก้/ลบผู้ใช้ และเปลี่ยนรหัส ทำได้เฉพาะ Admin · รหัสของ Admin ไม่แสดง</div>`}
+      <button class="btn btn-primary" id="btn-add-user" ${hasPermission('editUsers') ? '' : 'style="display:none;"'}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         เพิ่มผู้ใช้
       </button>
@@ -5555,12 +5593,16 @@ async function renderManageUsers() {
           const initials = [...(u.display_name || u.username || '?')].slice(0, 2).join('');
           const stations = (u.station || '').split(',').filter(Boolean).map(s => s.trim());
           const isSelf = currentUser && u.id === currentUser.id;
+          const canEdit = canEditUser(u);
+          const pinCell = canSeePinOf(u)
+            ? `PIN <span class="user-pin-val" data-pin-uid="${escapeHtml(u.id)}">••••••</span> <button class="user-pin-eye" data-eye-uid="${escapeHtml(u.id)}" title="แสดง/ซ่อน PIN" type="button">👁</button>`
+            : `PIN 🔒 <span title="รหัสของ Admin เห็นได้เฉพาะ Admin">ซ่อน</span>`;
           return `
             <div class="user-table-row" data-uid="${escapeHtml(u.id)}">
               <div class="user-avatar-big" style="background: ${ROLE_COLORS[u.role] || '#999'};">${escapeHtml(initials)}</div>
               <div class="user-name-cell">
                 <div class="name">${escapeHtml(u.display_name || u.username)}</div>
-                <div class="sub">PIN ••••${u.is_active === false ? ' · inactive' : ''}${isSelf ? ' · คุณ' : ''}</div>
+                <div class="sub">${pinCell}${u.is_active === false ? ' · inactive' : ''}${isSelf ? ' · คุณ' : ''}</div>
               </div>
               <div class="user-username">${escapeHtml(u.username)}</div>
               <div>
@@ -5573,10 +5615,10 @@ async function renderManageUsers() {
                 }
               </div>
               <div class="user-row-actions">
-                <button class="user-row-icon-btn" data-edit-uid="${escapeHtml(u.id)}" title="แก้ไข">
+                ${canEdit ? `<button class="user-row-icon-btn" data-edit-uid="${escapeHtml(u.id)}" title="แก้ไข">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                </button>
-                ${isSelf ? '' : `
+                </button>` : ''}
+                ${(isSelf || !canEdit) ? '' : `
                   <button class="user-row-icon-btn danger" data-del-uid="${escapeHtml(u.id)}" title="ลบ">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6v-2a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
                   </button>
@@ -5616,6 +5658,14 @@ async function renderManageUsers() {
     btn.onclick = () => {
       const u = users.find(x => x.id === btn.dataset.delUid);
       if (u) deleteUserDesktop(u);
+    };
+  });
+  body.querySelectorAll('[data-eye-uid]').forEach(btn => {
+    btn.onclick = () => {
+      const u = users.find(x => x.id === btn.dataset.eyeUid);
+      const el = body.querySelector(`[data-pin-uid="${btn.dataset.eyeUid}"]`);
+      if (!u || !el || !canSeePinOf(u)) return;
+      el.textContent = el.textContent === '••••••' ? (u.pin || '—') : '••••••';
     };
   });
 }

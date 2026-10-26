@@ -2624,12 +2624,12 @@
     <div id="export-status" style="text-align:center;font-size:13px;min-height:20px;margin-top:8px;color:var(--muted);"></div>
   </div>
 
-  <!-- ผู้ใช้งานระบบ (Admin + Supervisor) -->
+  <!-- ผู้ใช้งานระบบ — ดู: manageUsers (admin/หัวหน้า/ออฟฟิศ) · เพิ่ม/แก้/ลบ: editUsers (admin) -->
   <div class="card manage-users-only" style="padding:14px;margin-top:12px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div class="card-title" style="margin-bottom:0;">👥 ผู้ใช้งานระบบ</div>
       <div style="display:flex;gap:6px;">
-        <button onclick="showAddUserForm()" style="background:#2E7D32;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">➕ เพิ่มผู้ใช้</button>
+        <button class="edit-users-only" onclick="showAddUserForm()" style="background:#2E7D32;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">➕ เพิ่มผู้ใช้</button>
         <button onclick="loadUserList()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">🔄 รีเฟรช</button>
       </div>
     </div>
@@ -2715,16 +2715,18 @@ function resetSessionTimer() {
 // Flags:
 //   viewAll/createPO/editAll/delete/archive — PO-level ops
 //   manage            — enter Manage tab at all
-//   manageUsers       — see + CRUD the Users section (admin/supervisor)
-//   manageUserRoles   — modify a user's role + station (admin only; supervisor can edit name/PIN only)
+//   manageUsers       — see the Users section + other people's PINs (admin/supervisor/office)
+//   editUsers         — add/edit/delete users + change PINs (admin only — toun 2026-10-26)
+//   manageUserRoles   — modify a user's role + station (admin only)
+//   An admin's PIN is never shown to, or editable by, a non-admin — see canSeePinOf()
 //   manageDataAdd     — add/edit master data rows (company/model/part/defect)
 //   manageDataDelete  — delete master data rows (manager CANNOT — prevents accidental destruction)
 const PERMISSIONS = {
-  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
-  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
-  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, viewERP: true,  viewStock: true },
-  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, viewERP: false, viewStock: true },
-  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, viewERP: false, viewStock: true }
+  admin:      { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  editUsers: true,  manageUserRoles: true,  manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
+  supervisor: { viewAll: true,  createPO: true,  editAll: true,  delete: true,  archive: true,  manage: true,  manageUsers: true,  editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: true, viewERP: true,  viewStock: true },
+  office:     { viewAll: true,  createPO: false, editAll: false, delete: false, archive: false, manage: true,  manageUsers: true,  editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: true,  quickAddMaster: true,  viewActivityLog: false, viewERP: true,  viewStock: true },
+  manager:    { viewAll: true,  createPO: true,  editAll: true,  delete: false, archive: false, manage: true,  manageUsers: false, editUsers: false, manageUserRoles: false, manageDataAdd: true,  manageDataDelete: false, quickAddMaster: true,  viewActivityLog: false, viewERP: false, viewStock: true },
+  staff:      { viewAll: false, createPO: false, editAll: false, delete: false, archive: false, manage: false, manageUsers: false, editUsers: false, manageUserRoles: false, manageDataAdd: false, manageDataDelete: false, quickAddMaster: false, viewActivityLog: false, viewERP: false, viewStock: true }
 };
 
 // Station-based status permissions for staff
@@ -2745,7 +2747,8 @@ const PERMISSION_META = [
   { key: 'delete',           label: 'ลบ PO' },
   { key: 'archive',          label: 'Archive PO' },
   { key: 'manage',           label: 'เข้าหน้าจัดการ' },
-  { key: 'manageUsers',      label: 'จัดการ Users (ดู/เพิ่ม/แก้)' },
+  { key: 'manageUsers',      label: 'ดูรายชื่อผู้ใช้ + รหัสของคนอื่น (รหัส Admin เห็นได้เฉพาะ Admin)' },
+  { key: 'editUsers',        label: 'เพิ่ม/แก้/ลบผู้ใช้ + เปลี่ยนรหัส (แก้ Admin ได้เฉพาะ Admin)' },
   { key: 'manageUserRoles',  label: 'เปลี่ยน Role/Station ของ user' },
   { key: 'manageDataAdd',    label: 'เพิ่ม/แก้ Master Data' },
   { key: 'manageDataDelete', label: 'ลบ Master Data' },
@@ -2790,6 +2793,21 @@ function hasPermission(permission) {
   if (!currentUser) return false;
   const perms = PERMISSIONS[currentUser.role] || PERMISSIONS.staff;
   return perms[permission] === true;
+}
+
+// Users & PINs (toun 2026-10-26): only admin adds/edits/deletes users;
+// supervisor + office may LOOK at other people's PINs; an admin's PIN is
+// never shown to, nor editable by, anyone but an admin. That last rule is a
+// role check on purpose, not a flag — handing it out by mistake is how
+// someone takes over the owner's account. Same rules in po-desktop + erp.
+function canSeePinOf(u) {
+  if (!currentUser || !u) return false;
+  if (u.role === 'admin') return currentUser.role === 'admin';
+  return hasPermission('manageUsers');
+}
+function canEditUser(u) {
+  if (!currentUser || !hasPermission('editUsers')) return false;
+  return !(u && u.role === 'admin') || currentUser.role === 'admin';
 }
 
 function canEditStatus(status) {
@@ -3031,6 +3049,9 @@ function applyPermissions() {
   });
   document.querySelectorAll('.manage-users-only').forEach(el => {
     el.style.display = hasPermission('manageUsers') ? '' : 'none';
+  });
+  document.querySelectorAll('.edit-users-only').forEach(el => {
+    el.style.display = hasPermission('editUsers') ? '' : 'none';
   });
   document.querySelectorAll('.manage-data-add-only').forEach(el => {
     el.style.display = hasPermission('manageDataAdd') ? '' : 'none';
@@ -6078,13 +6099,26 @@ async function loadUserList() {
   if (!container) return;
   container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">⏳ กำลังโหลด...</div>';
   try {
-    const { data, error } = await sb.from('users').select('*').order('role').order('display_name');
+    // Names/roles first, PINs in a second query that a non-admin runs with
+    // role <> 'admin' — so the owner's PIN never reaches their browser.
+    const { data, error } = await sb.from('users')
+      .select('id,username,display_name,role,station,is_active,last_login,created_at')
+      .order('role').order('display_name');
     if (error) throw error;
+    if (hasPermission('manageUsers') && data && data.length) {
+      let pq = sb.from('users').select('id,pin');
+      if (currentUser.role !== 'admin') pq = pq.neq('role', 'admin');
+      const { data: pins } = await pq;
+      const byId = new Map((pins || []).map(r => [r.id, r.pin]));
+      data.forEach(u => { if (byId.has(u.id)) u.pin = byId.get(u.id); });
+    }
     if (!data || data.length === 0) {
       container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">ไม่พบผู้ใช้งาน</div>';
       return;
     }
-    container.innerHTML = data.map(u => renderUserCard(u)).join('');
+    const note = hasPermission('editUsers') ? '' :
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">👁 ดูได้อย่างเดียว — เพิ่ม/แก้/ลบผู้ใช้ และเปลี่ยนรหัส ทำได้เฉพาะ Admin · รหัสของ Admin ไม่แสดง</div>';
+    container.innerHTML = note + data.map(u => renderUserCard(u)).join('');
   } catch (e) {
     container.innerHTML = `<div style="text-align:center;padding:20px;color:#C62828;font-size:13px;">❌ โหลดไม่สำเร็จ: ${e.message}</div>`;
   }
@@ -6099,21 +6133,27 @@ function renderUserCard(u) {
   const inactiveClass = u.is_active === false ? ' inactive' : '';
   const inactiveBadge = u.is_active === false ? '<span class="user-card-inactive-badge">ปิดใช้งาน</span>' : '';
   const isSelf = currentUser && currentUser.id === u.id;
-  const delBtn = isSelf ? '' : `<button class="user-card-del-btn" onclick="deleteUser('${u.id}')" title="ลบ">🗑️</button>`;
-  const pin = u.pin || '----';
+  const canEdit = canEditUser(u);
+  const delBtn = (isSelf || !canEdit) ? '' : `<button class="user-card-del-btn" onclick="deleteUser('${u.id}')" title="ลบ">🗑️</button>`;
+  // The PIN only reaches the page for people allowed to see it — not even
+  // into a data- attribute, which anyone can read with "inspect".
+  const seePin = canSeePinOf(u);
+  const pinHtml = seePin
+    ? `<span class="user-card-pin" id="upin-${u.id}" data-pin="${escapeHtml(u.pin || '----')}">••••••</span>
+        <button class="pin-toggle-btn" onclick="togglePinVis('${u.id}')" title="แสดง/ซ่อน PIN">👁</button>`
+    : `<span class="user-card-pin" style="letter-spacing:normal;" title="รหัสของ Admin เห็นได้เฉพาะ Admin">🔒 ซ่อน</span>`;
   return `<div class="user-card${inactiveClass}" id="ucard-${u.id}">
     <div class="user-card-avatar">${initial}</div>
     <div class="user-card-info">
       <div class="user-card-name">${name}${inactiveBadge}</div>
       <div>
-        <span class="user-card-pin" id="upin-${u.id}" data-pin="${pin}">••••</span>
-        <button class="pin-toggle-btn" onclick="togglePinVis('${u.id}')" title="แสดง/ซ่อน PIN">👁</button>
+        ${pinHtml}
         <span class="user-card-role" style="background:${roleColor}">${roleLabel}</span>
       </div>
       <div class="user-card-station">📍 ${stations}</div>
     </div>
     <div class="user-card-actions">
-      <button class="user-card-edit-btn" onclick="editUser('${u.id}')" title="แก้ไข">✏️</button>
+      ${canEdit ? `<button class="user-card-edit-btn" onclick="editUser('${u.id}')" title="แก้ไข">✏️</button>` : ''}
       ${delBtn}
     </div>
   </div>`;
@@ -6123,7 +6163,7 @@ function togglePinVis(uid) {
   const el = document.getElementById('upin-' + uid);
   if (!el) return;
   const pin = el.getAttribute('data-pin');
-  el.textContent = el.textContent === '••••' ? pin : '••••';
+  el.textContent = el.textContent === '••••••' ? pin : '••••••';
 }
 
 function buildStationCheckboxes(prefix, selectedStr, disabled) {
@@ -6157,8 +6197,7 @@ function getStationValue(prefix) {
 
 function buildUserForm(prefix, data) {
   const d = data || {};
-  // Supervisor (manageUsers=true, manageUserRoles=false) can CRUD users
-  // but cannot reassign role/station. Lock those fields visibly.
+  // Without manageUserRoles the role/station fields are shown but locked.
   const lockRoles = !hasPermission('manageUserRoles');
   const defaultRole = d.role || 'staff';
   const lockHint = lockRoles ? ' <span style="font-size:11px;color:var(--muted);font-weight:400;">(Admin เท่านั้นที่แก้ได้)</span>' : '';
@@ -6167,8 +6206,8 @@ function buildUserForm(prefix, data) {
     <input type="text" id="${prefix}-dname" value="${d.display_name || ''}" placeholder="ชื่อที่แสดง เช่น สมชาย">
     <label>Username * (ภาษาอังกฤษ ตัวเล็ก)</label>
     <input type="text" id="${prefix}-uname" value="${d.username || ''}" placeholder="เช่น somchai" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
-    <label>PIN * (ตัวเลข 4 หลัก)</label>
-    <input type="text" id="${prefix}-pin" value="${d.pin || ''}" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="เช่น 1234" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+    <label>PIN * (ตัวเลข ${PIN_LEN} หลัก)</label>
+    <input type="text" id="${prefix}-pin" value="${d.pin || ''}" maxlength="${PIN_LEN}" inputmode="numeric" pattern="[0-9]{${PIN_LEN}}" placeholder="เช่น 123456" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
     <label>Role${lockHint}</label>
     <select id="${prefix}-role" ${lockRoles ? 'disabled' : ''} ${lockRoles ? 'style="opacity:0.55;"' : ''}>
       <option value="admin" ${defaultRole==='admin'?'selected':''}>👑 Admin</option>
@@ -6194,7 +6233,7 @@ async function validateUserForm(prefix, excludeId) {
 
   if (!dname) { toast('⚠️ กรุณากรอกชื่อที่แสดง'); return null; }
   if (!uname) { toast('⚠️ กรุณากรอก Username'); return null; }
-  if (!/^[0-9]{4}$/.test(pin)) { toast('⚠️ PIN ต้องเป็นตัวเลข 4 หลัก'); return null; }
+  if (!new RegExp(`^[0-9]{${PIN_LEN}}$`).test(pin)) { toast(`⚠️ PIN ต้องเป็นตัวเลข ${PIN_LEN} หลัก`); return null; }
   if (!station) { toast('⚠️ กรุณาเลือก Station อย่างน้อย 1 จุด'); return null; }
 
   // Check unique username
@@ -6207,7 +6246,7 @@ async function validateUserForm(prefix, excludeId) {
   let qp = sb.from('users').select('id').eq('pin', pin);
   if (excludeId) qp = qp.neq('id', excludeId);
   const { data: pDup } = await qp;
-  if (pDup && pDup.length > 0) { toast('⚠️ PIN "' + pin + '" ถูกใช้แล้ว'); return null; }
+  if (pDup && pDup.length > 0) { toast('⚠️ PIN นี้มีคนใช้แล้ว — เลือกเลขอื่น'); return null; }
 
   const role = document.getElementById(prefix + '-role').value;
   return { display_name: dname, username: uname, pin, role, station };
@@ -6215,6 +6254,7 @@ async function validateUserForm(prefix, excludeId) {
 
 // ── Add User ──
 function showAddUserForm() {
+  if (!hasPermission('editUsers')) { toast('เพิ่มผู้ใช้ได้เฉพาะ Admin'); return; }
   const c = document.getElementById('user-add-form-container');
   c.innerHTML = buildUserForm('uadd', {});
   c.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -6224,6 +6264,7 @@ function hideAddUserForm() {
 }
 
 async function submitAddUser() {
+  if (!hasPermission('editUsers')) { toast('เพิ่มผู้ใช้ได้เฉพาะ Admin'); return; }
   const vals = await validateUserForm('uadd', null);
   if (!vals) return;
   try {
@@ -6242,6 +6283,7 @@ async function submitAddUser() {
 async function editUser(uid) {
   const { data, error } = await sb.from('users').select('*').eq('id', uid).single();
   if (error || !data) { toast('❌ โหลดข้อมูลไม่สำเร็จ'); return; }
+  if (!canEditUser(data)) { toast('แก้ไขผู้ใช้ได้เฉพาะ Admin'); return; }
   const card = document.getElementById('ucard-' + uid);
   if (!card) return;
   card.outerHTML = buildUserForm('uedit-' + uid, data);
@@ -6259,13 +6301,15 @@ async function submitEditUser(uid) {
   try {
     // Get old data for change log
     const { data: old } = await sb.from('users').select('*').eq('id', uid).single();
+    if (!canEditUser(old)) { toast('แก้ไขผู้ใช้ได้เฉพาะ Admin'); return; }
     const { error } = await sb.from('users').update(vals).eq('id', uid);
     if (error) throw error;
     // Build changes object
     const changes = {};
     if (old) {
       ['display_name','username','pin','role','station'].forEach(f => {
-        if (old[f] !== vals[f]) changes[f] = (old[f] || '') + '→' + vals[f];
+        // Never write a PIN into the activity log — only that it changed.
+        if (old[f] !== vals[f]) changes[f] = f === 'pin' ? 'เปลี่ยนแล้ว' : (old[f] || '') + '→' + vals[f];
       });
     }
     await logActivity('edit_user', 'user', { username: vals.username, changes });
@@ -6278,7 +6322,8 @@ async function submitEditUser(uid) {
 
 // ── Delete User ──
 async function deleteUser(uid) {
-  const { data } = await sb.from('users').select('display_name,username').eq('id', uid).single();
+  const { data } = await sb.from('users').select('display_name,username,role').eq('id', uid).single();
+  if (!canEditUser(data)) { toast('ลบผู้ใช้ได้เฉพาะ Admin'); return; }
   const name = data ? (data.display_name || data.username) : uid;
   if (!confirm('ต้องการลบ ' + name + ' จริงหรือไม่?')) return;
   try {
